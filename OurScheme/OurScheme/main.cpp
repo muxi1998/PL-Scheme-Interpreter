@@ -19,8 +19,8 @@ using namespace std ;
 
 enum TokenType { LPAREN = 1067, RPAREN = 2134, INT = 1164, STRING = 1358, DOT = 3201, FLOAT = 1552, NIL = 1261, T = 2522, QUOTE = 4268, SYMBOL = 1746 } ;
 
-static int gLine = 0 ;
-static int gColumn = 0 ;
+static int gLine = 1 ;
+static int gColumn = 1 ;
 
 struct Token {
   string str ;  // the original apperance read from input
@@ -35,6 +35,13 @@ struct Token {
     column = 0 ;
 
   } // constructor
+  
+  void setInfo( string tokenStr,  int ln, int col, TokenType tType ) {
+    str = tokenStr ;
+    line = ln ;
+    column = col ;
+    type = tType ;
+  } //setInfo()
 } ;
 
 typedef Token *TokenPtr ;  // a head that point to the first token of the expression
@@ -79,8 +86,16 @@ string enumToStr( TokenType type ) {
 
 class LexicalAnalyzer {
   private:
+    bool isReturnLine( char ch ) {
+        if ( ch == '\n' || ch == '\r' ) {  // Because Linux has '\r' character, I added '\r' as one circumstance
+          return true ;
+        } // if()
+
+        return false ;
+    } // isReturnLine()
+    
     bool isWhiteSpace( char ch ) {
-      if ( ch == ' '|| ch == '\t' || ch == '\n' || ch == '\r' ) {  // Because Linux has '\r' character, I added '\r' as one circumstance
+      if ( ch == ' '|| ch == '\t' || isReturnLine( ch )) {  // Because Linux has '\r' character, I added '\r' as one circumstance
         return true ;
       } // if()
 
@@ -94,21 +109,62 @@ class LexicalAnalyzer {
 
       return false ;
     } // isSepatator()
+    
+    // Purpose: not only call the func. cin.get(), but also increase the column or line
+    char getChar() {
+        char ch = '\0' ;
+        ch = cin.get() ;
+        if ( isReturnLine( ch ) ) {
+            gLine ++ ;
+            gColumn = 0 ;
+        } // if()
+        else  {
+            gColumn ++ ;
+        } // else()
+        
+        return ch ;
+    } // getChar()
+    
+    void printToken( Token token ) {
+        cout << "Token: >" << token.str << "<   Line: " << token.line << " Column: " << token.column << "type: " << enumToStr( token.type ) << endl ;
+    } // printToken()
+    
+    // Purpose: since the original get token only get a token, but a string can contains many word, so need a special to process
+    string getFullStr( string fullStr ) {
+        // assert: 'ch' must be a peeked char which is '\"'
+        char ch = '\0' ;
+        
+        ch = cin.peek() ;
+        // because we need to get a string, keep reading the input until encounter the next '\"' or return-line
+        while ( ch != '\"' && !isReturnLine( ch ) ) {
+            ch = getChar() ;
+            fullStr += ch ;
+            ch = cin.peek() ;
+        } // while()
+        
+        if ( ch == '\"' ) {  // a complete string with a correct syntax
+            ch = getChar() ;
+            fullStr += ch ;
+        } // if()
+        
+        return fullStr ;
+    } // getFullStr()
 
     // Purpose: responcible for getting next token, add keep the next char after the token unread
     // Return: (String) token string
-    string getToken() {
+    Token getToken() {
       string tokenStrWeGet = "" ;
       char ch = '\0' ;
+      Token token ;
       
       ch = cin.peek() ;  // peek whether the next char is in input
       while ( isWhiteSpace( ch ) ) {  // before get a actual char, we need to skip all the white-spaces first
-        ch = cin.get() ;  // take away this white-space
+          ch = getChar() ;  // take away this white-space
         ch = cin.peek() ;  // keep peeking next char
       } // while()
 
       // assert: finally get a char which is not a white-space, now can start to construct a token
-      ch = cin.get() ;  // since this char is not a white-space, we can get it from the input
+      ch = getChar() ;  // since this char is not a white-space, we can get it from the input
       tokenStrWeGet += ch ;  // directly add the first non-white-space char into the token string
 
       // if this char is already a separator then STOP reading, or keep getting the next char
@@ -116,15 +172,20 @@ class LexicalAnalyzer {
         ch = cin.peek() ;
         
         while ( !isSeparator( ch ) && !isWhiteSpace( ch ) ) {
-          ch = cin.get() ;
+          ch = getChar() ;
           tokenStrWeGet += ch ;
           ch = cin.peek() ;
         } // while()
       } // if()
+      else if ( ch == '\"' ) {  // special case: this is the start of a string, call func. getFullStr()
+          tokenStrWeGet = getFullStr( tokenStrWeGet ) ;
+      } // else if()
       
-      // assert: we get the whole token
-      return tokenStrWeGet ;
-
+      // assert: we get the whole token string
+        
+      token.setInfo( tokenStrWeGet, gLine, gColumn - ( int ) tokenStrWeGet.length(), findToken( tokenStrWeGet ) ) ;
+        
+      return token ;
     } // getToken()
     
     // Purpose: recognize whether this string is a INT
@@ -179,10 +240,6 @@ class LexicalAnalyzer {
         return true ;
     } // isFLOAT()
     
-    bool isSTRING( string str ) {
-        return true ;
-    } // isSTRING()
-    
     // Purpose: accept the token string from func. getToken(), and response the corresponding token value
     TokenType findToken( string str ) {
         
@@ -210,8 +267,8 @@ class LexicalAnalyzer {
         else if ( isFLOAT( str ) ) {
             return FLOAT ;
         } // else if()
-        else if ( isSTRING( str ) ) {
-            
+        else if ( str[ 0 ] == '\"' ) {
+            return STRING ;
         } // else if()
         
         return SYMBOL ;  // none of the above, then assume it's symbol
@@ -227,11 +284,11 @@ class LexicalAnalyzer {
     } // printExp()
 
     void testGetToken() {
-      string inputStr = "" ;
-      inputStr = getToken() ;
-      while ( inputStr != "exit" ) {
-        cout << "<" << inputStr << ">" << " Type: " << enumToStr( findToken( inputStr ) ) << endl ;
-        inputStr = getToken() ;
+      Token inputToken ;
+      inputToken = getToken() ;
+      while ( inputToken.str != "exit" ) {
+        printToken( inputToken ) ; // test
+        inputToken = getToken() ;
       } // while()
     } // testGetToken()
 

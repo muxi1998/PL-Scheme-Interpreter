@@ -39,6 +39,44 @@ struct Token {
 
 typedef Token *TokenPtr ;  // a head that point to the first token of the expression
 
+string enumToStr( TokenType type ) {
+    switch ( type ) {
+        case LPAREN:
+            return "LPAREN" ;
+            break ;
+        case RPAREN :
+            return "RPAREN" ;
+            break ;
+        case INT :
+            return "INT" ;
+            break ;
+        case STRING :
+            return "STRING" ;
+            break ;
+        case DOT :
+            return "DOT" ;
+            break ;
+        case FLOAT :
+            return "FLOAT" ;
+            break ;
+        case NIL :
+            return "NIL" ;
+            break ;
+        case T :
+            return "T" ;
+            break ;
+        case QUOTE :
+            return "QUOTE" ;
+            break ;
+        case SYMBOL :
+            return "SYMBOL" ;
+            break ;
+            
+        default:
+            break;
+    }
+} // enumToStr()
+
 class LexicalAnalyzer {
   private:
     bool isWhiteSpace( char ch ) {
@@ -95,14 +133,14 @@ class LexicalAnalyzer {
         // Mark1: there might be a sign char, such as '+' or '-'
         // Mark2: except the sign char, other char should be a number
         // Mark3: the  whole string cannot contain the dot
-        int startIndex= 0 ;  // to avoid the sign char if there has one
+        int startIndex = 0 ;  // to avoid the sign char if there has one
         
         if ( str[ 0 ] == '+' || str[ 0 ] == '-' ) {
             startIndex = 1 ;  // the checking process start after the sign char
         } // if()
         
         for ( int i = startIndex ;  i < str.length() ; i ++ ) {
-            if ( !( str[ i ] >= '9' && str[ i ] <= '0' ) ) {
+            if ( !( str[ i ] <= '9' && str[ i ] >= '0' ) ) {
                 return false ;
             } // if()
         } // for()
@@ -116,9 +154,34 @@ class LexicalAnalyzer {
         // Mark1: there might be a sign char, such as '+' or '-'
         // Mark2: except the sign char, other char should be a number
         // Mark3: the whole string SHOULD contain the dot, NO MATTER the position of the dot is, but should be only dot
-        // Mark4: if there appear another dot after already get one, then might be a mistake
-        bool hasADOT = false ;
+        // Mark4: if there appear another dot after already get one, then might be a SYMBOL
+        int dotNum = 0 ;  // only can have ONE dot
+        int startIndex = 0 ;  // the checking process start after the sign char
+        
+        if ( str[ 0 ] == '+' || str[ 0 ] == '-' ) {
+            startIndex = 1 ;  // the checking process start after the sign char
+        } // if()
+        
+        for ( int i = startIndex ;  i < str.length() ; i ++ ) {
+            if ( str[ i ] == '.' ) {
+                dotNum ++ ;  // every time we encounter a dot, count it
+            } // if()
+            
+            if ( !( str[ i ] <= '9' && str[ i ] >= '0' ) && str[ i ] != '.' ) {
+                return false ;
+            } // if()
+        } // for()
+        
+        if ( dotNum != 1 ) {
+            return false ;
+        } // if()
+        
+        return true ;
     } // isFLOAT()
+    
+    bool isSTRING( string str ) {
+        return true ;
+    } // isSTRING()
     
     // Purpose: accept the token string from func. getToken(), and response the corresponding token value
     TokenType findToken( string str ) {
@@ -138,11 +201,17 @@ class LexicalAnalyzer {
         else if ( str == "nil" || str == "#f" ) {  // NIL
             return NIL ;
         } // else if()
-        else if ( str == "t" || str == "#f" ) {  // T
+        else if ( str == "t" || str == "#t" ) {  // T
             return T ;
         } // else if()
         else if ( isINT( str ) ) {
             return INT ;
+        } // else if()
+        else if ( isFLOAT( str ) ) {
+            return FLOAT ;
+        } // else if()
+        else if ( isSTRING( str ) ) {
+            
         } // else if()
         
         return SYMBOL ;  // none of the above, then assume it's symbol
@@ -161,7 +230,7 @@ class LexicalAnalyzer {
       string inputStr = "" ;
       inputStr = getToken() ;
       while ( inputStr != "exit" ) {
-        cout << "<" << inputStr << ">" << endl ;
+        cout << "<" << inputStr << ">" << " Type: " << enumToStr( findToken( inputStr ) ) << endl ;
         inputStr = getToken() ;
       } // while()
     } // testGetToken()
@@ -175,6 +244,8 @@ int main() {
 
   cout << "***Testing GetToken***" << endl ;
   la.testGetToken() ;
+    
+    
   /*
   while ( inputStr != "(EOF)" ) {
 

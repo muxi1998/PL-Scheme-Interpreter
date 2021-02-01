@@ -42,7 +42,7 @@ typedef Token *TokenPtr ;  // a head that point to the first token of the expres
 class LexicalAnalyzer {
   private:
     bool isWhiteSpace( char ch ) {
-      if ( ch == ' '|| ch == '\t' || ch == '\n' ) {
+      if ( ch == ' '|| ch == '\t' || ch == '\n' || ch == '\r' ) {  // Because Linux has '\r' character, I added '\r' as one circumstance
         return true ;
       } // if()
 
@@ -57,6 +57,8 @@ class LexicalAnalyzer {
       return false ;
     } // isSepatator()
 
+    // Purpose: responcible for getting next token, add keep the next char after the token unread
+    // Return: (String) token string
     string getToken() {
       string tokenStrWeGet = "" ;
       char ch = '\0' ;
@@ -86,6 +88,65 @@ class LexicalAnalyzer {
       return tokenStrWeGet ;
 
     } // getToken()
+    
+    // Purpose: recognize whether this string is a INT
+    // Return: true or false
+    bool isINT( string str ) {
+        // Mark1: there might be a sign char, such as '+' or '-'
+        // Mark2: except the sign char, other char should be a number
+        // Mark3: the  whole string cannot contain the dot
+        int startIndex= 0 ;  // to avoid the sign char if there has one
+        
+        if ( str[ 0 ] == '+' || str[ 0 ] == '-' ) {
+            startIndex = 1 ;  // the checking process start after the sign char
+        } // if()
+        
+        for ( int i = startIndex ;  i < str.length() ; i ++ ) {
+            if ( !( str[ i ] >= '9' && str[ i ] <= '0' ) ) {
+                return false ;
+            } // if()
+        } // for()
+        
+        return true ;
+    } // isINT()
+    
+    // Purpose: recognize whether this string is a FLOAT
+    // Return: true or false
+    bool isFLOAT( string str ) {
+        // Mark1: there might be a sign char, such as '+' or '-'
+        // Mark2: except the sign char, other char should be a number
+        // Mark3: the whole string SHOULD contain the dot, NO MATTER the position of the dot is, but should be only dot
+        // Mark4: if there appear another dot after already get one, then might be a mistake
+        bool hasADOT = false ;
+    } // isFLOAT()
+    
+    // Purpose: accept the token string from func. getToken(), and response the corresponding token value
+    TokenType findToken( string str ) {
+        
+        if ( str == "(" ) {  // Left parameter
+            return LPAREN ;
+        } // if()
+        else if ( str == ")" ) {  // Right parameter
+            return RPAREN ;
+        } // else if()
+        else if ( str == "." ) {  // Dot
+            return DOT ;
+        } // else if()
+        else if ( str == "\'" ) {  // Quote
+            return QUOTE ;
+        } // else if()
+        else if ( str == "nil" || str == "#f" ) {  // NIL
+            return NIL ;
+        } // else if()
+        else if ( str == "t" || str == "#f" ) {  // T
+            return T ;
+        } // else if()
+        else if ( isINT( str ) ) {
+            return INT ;
+        } // else if()
+        
+        return SYMBOL ;  // none of the above, then assume it's symbol
+    } // findToken()
 
   public :
     void readExp( TokenPtr expr ) {

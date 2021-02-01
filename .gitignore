@@ -2,3 +2,5 @@
 .clang-format
 *.json
 ourScheme.exe
+OurScheme/OurScheme.xcodeproj/project.xcworkspace/xcuserdata/mac.xcuserdatad/UserInterfaceState.xcuserstate
+*.xcuserstate

@@ -1,0 +1,26 @@
+'(Werf)  "wrtwrt"   "erg
+.345
+(1 . (2 . (3 . 4)))
+(1 . (2 . (3 . nil)))
+(1 . (2 . (3 . ())))
+(1 . (2 . (3 . #f)))
+13
+13.
++3
++3.
+-3
+-3.
+a
+t
+#t
+nil
+()
+#f
+(t () . (1 2 3))
+(t . nil . (1 2 3))
+"There is an ENTER HERE>>\nSee?!"
+"Use '\"' to start and close a string."
+"OurScheme allows the use of '\\n', '\\t' and '\\\"' in a string."
+"Please enter YES\NO below this line >\n"
+"You need to handle >>\\<<" "You also need to handle >>\"<<"
+((1 2 3) . (4 . (5 . nil)))

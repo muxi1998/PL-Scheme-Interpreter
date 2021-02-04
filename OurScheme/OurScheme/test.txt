@@ -24,3 +24,4 @@ nil
 "Please enter YES\NO below this line >\n"
 "You need to handle >>\\<<" "You also need to handle >>\"<<"
 ((1 2 3) . (4 . (5 . nil)))
+(exit)

@@ -19,33 +19,41 @@ using namespace std ;
 
 enum TokenType { LPAREN = 1067, RPAREN = 2134, INT = 1164, STRING = 1358, DOT = 3201, FLOAT = 1552, NIL = 1261, T = 2522, QUOTE = 4268, SYMBOL = 1746 } ;
 
+struct Token {
+    string str ;  // the original apperance read from input
+    int line ;  // the line which this token exist
+    int column ;  // the column where this token exist
+    TokenType type ;  // type of the token
+    Token *next ; // point to the next token
+    
+    Token() {
+        str = "" ;
+        line = 0 ;
+        column = 0 ;
+        
+    } // constructor
+    
+    void setInfo( string tokenStr,  int ln, int col, TokenType tType ) {
+        str = tokenStr ;
+        line = ln ;
+        column = col ;
+        type = tType ;
+    } //setInfo()
+} ;
+
+struct Expression {
+    Token *tokenList ;
+    Expression *next ;  // pointed to the next expression
+} ; // Expression
+
+typedef Expression *ExpressionList ;  // a head that point to the first token of the expression
+
 static int gLine = 1 ;
 static int gColumn = 1 ;
 
-struct Token {
-  string str ;  // the original apperance read from input
-  int line ;  // the line which this token exist
-  int column ;  // the column where this token exist
-  TokenType type ;  // type of the token
-  Token *next ; // point to the next token
+static bool gTerminate = false ;  // used to check whether Our scheme has to be stop.
 
-  Token() {
-    str = "" ;
-    line = 0 ;
-    column = 0 ;
-
-  } // constructor
-  
-  void setInfo( string tokenStr,  int ln, int col, TokenType tType ) {
-    str = tokenStr ;
-    line = ln ;
-    column = col ;
-    type = tType ;
-  } //setInfo()
-} ;
-
-typedef Token *TokenPtr ;  // a head that point to the first token of the expression
-
+//  convert the enum value into the string, which will be more convenient to recognize
 string enumToStr( TokenType type ) {
     switch ( type ) {
         case LPAREN:
@@ -85,29 +93,29 @@ string enumToStr( TokenType type ) {
 } // enumToStr()
 
 class LexicalAnalyzer {
-  private:
+private:
     bool isReturnLine( char ch ) {
         if ( ch == '\n' || ch == '\r' ) {  // Because Linux has '\r' character, I added '\r' as one circumstance
-          return true ;
+            return true ;
         } // if()
-
+        
         return false ;
     } // isReturnLine()
     
     bool isWhiteSpace( char ch ) {
-      if ( ch == ' '|| ch == '\t' || isReturnLine( ch )) {  // Because Linux has '\r' character, I added '\r' as one circumstance
-        return true ;
-      } // if()
-
-      return false ;
+        if ( ch == ' '|| ch == '\t' || isReturnLine( ch )) {  // Because Linux has '\r' character, I added '\r' as one circumstance
+            return true ;
+        } // if()
+        
+        return false ;
     } // isWhiteSpace()
-
+    
     bool isSeparator( char ch ) {
-      if ( ch == '(' || ch == ')' || ch == '\'' || ch == '\"' || ch == ';' ) {
-        return true ;
-      } // if()
-
-      return false ;
+        if ( ch == '(' || ch == ')' || ch == '\'' || ch == '\"' || ch == ';' ) {
+            return true ;
+        } // if()
+        
+        return false ;
     } // isSepatator()
     
     // Purpose: not only call the func. cin.get(), but also increase the column or line
@@ -149,43 +157,43 @@ class LexicalAnalyzer {
         
         return fullStr ;
     } // getFullStr()
-
+    
     // Purpose: responcible for getting next token, add keep the next char after the token unread
     // Return: (String) token string
     Token getToken() {
-      string tokenStrWeGet = "" ;
-      char ch = '\0' ;
-      Token token ;
-      
-      ch = cin.peek() ;  // peek whether the next char is in input
-      while ( isWhiteSpace( ch ) ) {  // before get a actual char, we need to skip all the white-spaces first
-          ch = getChar() ;  // take away this white-space
-        ch = cin.peek() ;  // keep peeking next char
-      } // while()
-
-      // assert: finally get a char which is not a white-space, now can start to construct a token
-      ch = getChar() ;  // since this char is not a white-space, we can get it from the input
-      tokenStrWeGet += ch ;  // directly add the first non-white-space char into the token string
-
-      // if this char is already a separator then STOP reading, or keep getting the next char
-      if ( !isSeparator( ch ) ) {  // 'ch' here is the first char overall
-        ch = cin.peek() ;
+        string tokenStrWeGet = "" ;
+        char ch = '\0' ;
+        Token token ;
         
-        while ( !isSeparator( ch ) && !isWhiteSpace( ch ) ) {
-          ch = getChar() ;
-          tokenStrWeGet += ch ;
-          ch = cin.peek() ;
+        ch = cin.peek() ;  // peek whether the next char is in input
+        while ( isWhiteSpace( ch ) ) {  // before get a actual char, we need to skip all the white-spaces first
+            ch = getChar() ;  // take away this white-space
+            ch = cin.peek() ;  // keep peeking next char
         } // while()
-      } // if()
-      else if ( ch == '\"' ) {  // special case: this is the start of a string, call func. getFullStr()
-          tokenStrWeGet = getFullStr( tokenStrWeGet ) ;
-      } // else if()
-      
-      // assert: we get the whole token string
         
-      token.setInfo( tokenStrWeGet, gLine, gColumn - ( int ) tokenStrWeGet.length(), findToken( tokenStrWeGet ) ) ;
+        // assert: finally get a char which is not a white-space, now can start to construct a token
+        ch = getChar() ;  // since this char is not a white-space, we can get it from the input
+        tokenStrWeGet += ch ;  // directly add the first non-white-space char into the token string
         
-      return token ;
+        // if this char is already a separator then STOP reading, or keep getting the next char
+        if ( !isSeparator( ch ) ) {  // 'ch' here is the first char overall
+            ch = cin.peek() ;
+            
+            while ( !isSeparator( ch ) && !isWhiteSpace( ch ) ) {
+                ch = getChar() ;
+                tokenStrWeGet += ch ;
+                ch = cin.peek() ;
+            } // while()
+        } // if()
+        else if ( ch == '\"' ) {  // special case: this is the start of a string, call func. getFullStr()
+            tokenStrWeGet = getFullStr( tokenStrWeGet ) ;
+        } // else if()
+        
+        // assert: we get the whole token string
+        
+        token.setInfo( tokenStrWeGet, gLine, gColumn - ( int ) tokenStrWeGet.length(), findToken( tokenStrWeGet ) ) ;
+        
+        return token ;
     } // getToken()
     
     // Purpose: recognize whether this string is a INT
@@ -273,44 +281,46 @@ class LexicalAnalyzer {
         
         return SYMBOL ;  // none of the above, then assume it's symbol
     } // findToken()
-
-  public :
-    void readExp( TokenPtr expr ) {
-      
+    
+    public :
+    void readExp( Expression expr ) {
+        
     }  // ReadExp()
-
-    void printExp( TokenPtr expr ) {
-       
+    
+    void printExp( Expression expr ) {
+        
     } // printExp()
-
+    
     void testGetToken() {
-      Token inputToken ;
-      inputToken = getToken() ;
-      while ( inputToken.str != "exit" ) {
-        printToken( inputToken ) ; // test
+        Token inputToken ;
         inputToken = getToken() ;
-      } // while()
+        while ( inputToken.str != "exit" ) {
+            printToken( inputToken ) ; // test
+            inputToken = getToken() ;
+        } // while()
     } // testGetToken()
-
+    
 } ;
 
 int main() {
-  LexicalAnalyzer la ;
-  cout << "Welcome to OurScheme!" << endl ;
-  string inputStr = "" ;
-
-  cout << "***Testing GetToken***" << endl ;
-  la.testGetToken() ;
+    LexicalAnalyzer la ;
+    cout << "Welcome to OurScheme!" << endl ;
+    string inputStr = "" ;
+    
+    cout << "***Testing GetToken***" << endl ;
+    la.testGetToken() ;
     
     
-  /*
-  while ( inputStr != "(EOF)" ) {
-
-    cout << ">" ;
-    cin >> inputStr ;
-    // ReadExp( inputStr ) ;
-
-  } // while()
-  */
-
+    /*
+     while ( inputStr != "(EOF)" ) {
+     
+     cout << ">" ;
+     cin >> inputStr ;
+     // ReadExp( inputStr ) ;
+     
+     } // while()
+     */
+    
+    cout << endl << "Thanks for using OurScheme!" ;
+    
 } // main()

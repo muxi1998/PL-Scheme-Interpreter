@@ -2,6 +2,8 @@
 # include <string>
 # include <stdlib.h>
 # include <vector>
+# include <stack>
+# include <exception>
 
 using namespace std;
 
@@ -89,6 +91,75 @@ struct Node_Linear {
     Node_Linear(): next(NULL) {} ;
 } ;
 
+string intToStr( int num ) {
+    string str = "" ;
+    if ( num == 0 ) return "0" ;
+    
+    while ( num != 0 ) {
+        str = ( char ) ( '0' + ( num % 10 ) ) + str ;
+        num /= 10 ;
+    } // while()
+    
+    return str ;
+} // intToStr()
+
+class MissingAtomOrLeftParException : public exception {
+private:
+    int line ;
+    int col ;
+    string str ;
+    
+public:
+    MissingAtomOrLeftParException( int l, int c, string s ) : line( l ), col( c ), str( s ) {}
+    string err_mesg() {
+        string mesg = "" ;
+        mesg = "ERROR (unexpected token) : atom or '(' expected when token at Line " + intToStr( line ) + " Column " + intToStr( col ) + " is >>" + str + "<<" ;
+        
+        return mesg ;
+    } // err_mesg()
+} ; // MissingAtomOrLeftParException
+
+class MissingRightParException : public exception {
+private:
+    int line ;
+    int col ;
+    string str ;
+    
+public:
+    MissingRightParException( int l, int c, string s ) : line( l ), col( c ), str( s ) {}
+    string err_mesg() {
+        string mesg = "" ;
+        mesg = "ERROR (unexpected token) : ')' expected when token at Line " + intToStr( line ) + " Column " + intToStr( col ) + " is >>" + str + "<<" ;
+        
+        return mesg ;
+    } // err_mesg()
+} ; // MissingRightParException
+
+class NoClosingQuoteException : public exception {
+private:
+    int line ;
+    int col ;
+    
+public:
+    NoClosingQuoteException( int l, int c ) : line( l ), col( c ) {}
+    string err_mesg() {
+        string mesg = "" ;
+        mesg = "ERROR (no closing quote) : END-OF-LINE encountered at Line " + intToStr( line ) + " Column " + intToStr( col ) ;
+        
+        return mesg ;
+    } // err_mesg()
+} ; // NoClosingQuoteException
+
+class EOFException : public exception {
+public:
+    string err_mesg() {
+        string mesg = "" ;
+        mesg = "ERROR (no more input) : END-OF-FILE encountered" ;
+        
+        return mesg ;
+    } // err_mesg()
+} ; // EOFException
+
 class SingleList {
     
 public:
@@ -165,6 +236,10 @@ public:
     void print() {
         for ( Node_Linear* walk = root ; walk != NULL ; walk = walk -> next ) {
             cout << walk -> token.str << "  (" << walk -> token.line << ", " << walk -> token.column << " ) " << enumToStr( walk -> token.type ) << endl ;
+        } // for()
+        cout << endl ;
+        for ( Node_Linear* walk = root ; walk != NULL ; walk = walk -> next ) {
+            cout << walk -> token.str << " " ;
         } // for()
     } // print()
     
@@ -387,6 +462,17 @@ public:
     Token getToken() {
         if ( gPeekToken == "" ) peekToken() ;
         
+        if ( gPeekToken == ";" ) { // encounter a line comment
+            char ch = getchar() ;
+            while ( !isReturnLine( ch ) ) {
+                ch = getchar() ;
+            } // while()
+            gLine ++ ;
+            gColumn = 0 ;
+            gPeekToken = "" ;
+            peekToken() ;
+        } // if()
+        
         Token tokenWeWant = lexToToken( gPeekToken ) ;
         gPeekToken = "" ;
         // gTokenList.push_back( tokenWeWant ) ;
@@ -469,6 +555,7 @@ private:
                         
                         hasOneSExpCorrect = checkSExp( token ) ;
                         if ( !hasOneSExpCorrect ) {
+                            throw MissingAtomOrLeftParException( gLine, gColumn, gPeekToken ) ;
                             return false ;
                         } // if()
                         else {
@@ -477,6 +564,10 @@ private:
                                 
                                 return true ;
                             } // if()
+                            else {
+                                throw MissingRightParException( gLine, gColumn, gPeekToken ) ;
+                                return false ;
+                            } // else()
                         } // else()
                         
                     } // if()
@@ -488,9 +579,14 @@ private:
                 } // else()
                 
             } // if()
+            else {
+                throw MissingAtomOrLeftParException( gLine, gColumn, token.str ) ;
+            } // else()
             
             return false ;
         } // else if()
+        
+        // throw MissingAtomOrLeftParException( gLine, gColumn, gPeekToken ) ;
         
         return false ; // none of the above begining
         
@@ -583,9 +679,38 @@ private:
         
     } // transferNIL()
     
+    Node_Linear* findStrAndGetPreviousNode( string str ) {
+        
+        Node_Linear* target = NULL ;
+        
+        if ( str == singleList.root -> token.str ) {
+            target = singleList.root ;
+            return target ;
+        } // if()
+        
+        for ( Node_Linear* walk = singleList.root ; walk -> next != NULL && target == NULL ; walk = walk -> next ) {
+            if ( str == walk -> next -> token.str ) {
+                target = walk ;
+            } // if()
+        } // for()
+        
+        return target ;
+        
+    } // findStrAndGetPreviousNode()
+    
     void translate() {
         
         transferNIL() ;
+        
+        if ( singleList.root -> token.type != LPAREN ) { // this S-exp is not a list, so don't need to make up
+            return ;
+        } //if()
+        
+        stack<Node_Linear> nodeStack ; // used to find the dot which we need to pair up
+        
+        if ( findStrAndGetPreviousNode( "." ) == NULL ) { // there is no DOT, so put it on manually
+            
+        } // if()
         
     } // translate
     
@@ -621,17 +746,31 @@ int main() {
     cout << "Welcome to OurScheme!" << endl ;
     string inputStr = "" ;
 
-    sa.test() ;
-    tree.test() ;
-    /*
-    while ( inputStr != "(EOF)" ) {
+    try {
+        
+        sa.test() ;
+        cout << endl << "** transfer ***" << endl ;
+        tree.test() ;
+        /*
+        while ( inputStr != "(EOF)" ) {
 
-      cout << ">" ;
-      cin >> inputStr ;
-      // ReadExp( inputStr ) ;
+          cout << ">" ;
+          cin >> inputStr ;
+          // ReadExp( inputStr ) ;
 
-    } // while()
-    */
+        } // while()
+        */
+        
+    } catch ( MissingAtomOrLeftParException e ) {
+        cout << e.err_mesg() << endl ;
+    } catch ( MissingRightParException e ) {
+        cout << e.err_mesg() << endl ;
+    } catch ( NoClosingQuoteException e ) {
+        cout << e.err_mesg() << endl ;
+    } catch ( EOFException e ) {
+        cout << e.err_mesg() << endl ;
+    }
+    
     cout << endl << "Thanks for using OurScheme!" << endl ;
 
 } // main()

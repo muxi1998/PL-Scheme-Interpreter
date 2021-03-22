@@ -657,29 +657,30 @@ class Tree {
 private:
     
     Node *root ;
+    SingleList copyList ;
     
-    void transferNIL( ) {
+    void transferNIL( Node_Linear* root, Node_Linear* tail ) {
         bool finish = false ;
         
-        if ( singleList.root -> token.type == LPAREN && singleList.root -> next -> token.type == RPAREN ) {
+        if ( root -> token.type == LPAREN && root -> next -> token.type == RPAREN ) {
             Node_Linear* nilNode = new Node_Linear ;
             nilNode -> token.str = "nil" ;
             nilNode -> token.type = NIL ;
-            nilNode -> token.line = singleList.root -> token.line ;
-            nilNode -> token.column = singleList.root -> token.column ;
+            nilNode -> token.line = root -> token.line ;
+            nilNode -> token.column = root -> token.column ;
             
-            nilNode -> next = singleList.root -> next -> next ;
+            nilNode -> next = root -> next -> next ;
             
             // Delete >)<
-            delete singleList.root -> next ;
-            singleList.root -> next = NULL ;
+            delete root -> next ;
+            root -> next = NULL ;
             // Delete >(<
-            delete singleList.root ;
+            delete root ;
             
-            singleList.root = nilNode ;
+            root = nilNode ;
         } // if()
         
-        for ( Node_Linear* walk = singleList.root ; walk -> next != NULL && walk -> next -> next != NULL && !finish ; walk = walk -> next ) {
+        for ( Node_Linear* walk = root ; walk -> next != NULL && walk -> next -> next != NULL && !finish ; walk = walk -> next ) {
             
             if ( walk -> next -> token.type == LPAREN && walk -> next -> next -> token.type == RPAREN ) {
                 Node_Linear* nilNode = new Node_Linear ;
@@ -704,18 +705,18 @@ private:
         
     } // transferNIL()
     
-    Node_Linear* findStrAndGetPreviousNode( string str ) {
+    Node_Linear* findStrAndGetPreviousNode( Node_Linear* root, Node_Linear* tail, string str ) {
         
         Node_Linear* target = NULL ;
         
-        if ( str == singleList.root -> token.str ) {
-            target = singleList.root ;
+        if ( str == root -> token.str ) {
+            target = root ;
             return target ;
         } // if()
         
-        for ( Node_Linear* walk = singleList.root ; walk -> next != NULL && target == NULL ; walk = walk -> next ) {
-            if ( str == walk -> next -> token.str ) {
-                target = walk ;
+        for ( Node_Linear* walk = root ; walk != tail && target == NULL ; walk = walk -> next ) {
+            if ( str == walk -> token.str ) {
+                target = walk -> prev ;
             } // if()
         } // for()
         
@@ -723,27 +724,91 @@ private:
         
     } // findStrAndGetPreviousNode()
     
-    void translate() {
+    Node_Linear* findCorrespondPar( Node_Linear* par_L ) {
+        stack<Node_Linear*> nodeStack ;
+        Node_Linear* target = NULL ; // the pointer that pointed to the Right parathesis
         
-        transferNIL() ;
+        nodeStack.push( par_L ) ; // put the first left parathesis in the stack
+        for ( Node_Linear* walk = par_L -> next ; target == NULL && !nodeStack.empty() ; walk = walk -> next ) {
+            if ( walk -> token.type == RPAREN ) {
+                // when encounter a right par, then keep pop out the items util meet the first left par
+                Node_Linear* node_pop = nodeStack.top() ;
+                while ( node_pop -> token.type != LPAREN ) {
+                    nodeStack.pop() ;
+                    node_pop = nodeStack.top() ;
+                } // while()
+                nodeStack.pop() ; // pop out the left par
+                
+                if ( nodeStack.empty() ) { // this left par is the last one
+                    target = walk ;
+                } // if()
+            } // if()
+            else {
+                nodeStack.push( walk ) ;
+            } // else()
+        } // for()
         
-        if ( singleList.root -> token.type != LPAREN ) { // this S-exp is not a list, so don't need to make up
-            return ;
-        } //if()
+        return target ;
+    } // findCorrespondPar()
+    
+    // Purpose: focus on one S-exp and give it the parathesis
+    // Only list can call this function
+    void translate( Node_Linear* root, Node_Linear* tail ) {
         
-        stack<Node_Linear> nodeStack ; // used to find the dot which we need to pair up
+        transferNIL( root, tail ) ; // put a NIL in this list if needed
         
-        if ( findStrAndGetPreviousNode( "." ) == NULL ) { // there is no DOT, so put it on manually
+        int countPar = 0 ; // increase when manually add DOT and Paranthesis
+        
+        if ( findStrAndGetPreviousNode( root, tail, "." ) == NULL ) { // there is no DOT, so put it on manually
             // assert: there is no DOT so need to add DOT and nil
-            singleList.insertNode( singleList.tail -> prev, DOT ) ;
-            singleList.insertNode( singleList.tail -> prev, NIL ) ;
+            copyList.insertNode( tail -> prev, DOT ) ;
+            copyList.insertNode( tail -> prev, NIL ) ;
         } // if()
+        
+        // assert: there must be at least one dot in this S-exp
+        bool hasFinish = false ;
+        for ( Node_Linear* walk = root -> next ; !hasFinish && walk != tail ; ) {
+            if ( walk -> token.type == LPAREN ) {
+                Node_Linear* corRightPar = findCorrespondPar( walk ) ;
+                translate( walk, corRightPar ) ;
+                walk = corRightPar ;
+            } // if()
+            
+            if ( walk -> next -> token.type != DOT ) { // manually add DOT and keep counting
+                copyList.insertNode( walk, DOT ) ;
+                walk = walk -> next ;
+                copyList.insertNode( walk, LPAREN ) ;
+                walk = walk -> next ;
+                countPar ++ ;
+            } // if()
+            else {
+                walk = walk -> next ; // skip the atom before the DOT
+                if ( walk -> next -> token.type == LPAREN ) {
+                    Node_Linear* corRightPar = findCorrespondPar( walk -> next ) ;
+                    translate( walk -> next, corRightPar ) ;
+                    walk = corRightPar ;
+                    
+                    for ( int i = 0 ; i < countPar ; i ++ ) {
+                        copyList.insertNode( walk, RPAREN ) ;
+                    } // for()
+                } // if()
+                else { // only an atom
+                    walk = walk -> next ; // skip DOT
+                    for ( int i = 0 ; i < countPar ; i ++ ) {
+                        copyList.insertNode( walk, RPAREN ) ;
+                    } // for()
+                } // else()
+                
+                hasFinish = true ;
+            } // else()
+            
+            if ( walk != NULL ) walk = walk -> next ;
+        } // for()
         
     } // translate
     
 public:
-    
-    Tree() : root(0) {} ;
+    Tree( SingleList list ) : root(0), copyList( list ) {} ;
     
     // Purpose: Transfer the DS from vector to pointer (tree)
     // Pre-request: tokens in vector construct a S-exp with correct grammer
@@ -759,11 +824,11 @@ public:
     } // prettyPrint()
     
     void test() {
-        translate() ;
+        translate( copyList.root, copyList.tail ) ;
         
-        singleList.print() ;
-        singleList.printForward() ;
-        singleList.printBackforward() ;
+        // singleList.print() ;
+        copyList.printForward() ;
+        copyList.printBackforward() ;
     } // test()
 
 };
@@ -771,13 +836,13 @@ public:
 int main() {
     
     SyntaxAnalyzer sa ;
-    Tree tree ;
     cout << "Welcome to OurScheme!" << endl ;
     string inputStr = "" ;
 
     try {
         
         sa.test() ;
+        Tree tree( singleList ) ;
         cout << endl << "** transfer ***" << endl ;
         tree.test() ;
         /*

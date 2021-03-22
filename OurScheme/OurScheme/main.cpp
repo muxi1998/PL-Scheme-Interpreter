@@ -751,6 +751,38 @@ private:
         return target ;
     } // findCorrespondPar()
     
+    bool hasDOT( Node_Linear* root, Node_Linear* tail ) {
+        stack<Node_Linear*> s ;
+        
+        s.push( tail ) ;
+        if ( tail -> prev -> token.type != RPAREN ) {
+            if (  tail -> prev -> prev -> token.type != DOT ) {
+                return false ;
+            } // if()
+            else {
+                return true ;
+            } // else()
+        } // if()
+        
+        Node_Linear* walk ;
+        for ( walk = tail -> prev ; !s.empty() && tail != root ; walk = walk -> prev ) {
+            if ( walk -> token.type == LPAREN ) {
+                while (  s.top() -> token.type != RPAREN ) {
+                    s.pop() ;
+                } // while()
+                s.pop() ; // last right par
+            } // if()
+            else {
+                s.push( walk ) ;
+            } // else()
+        } // for()
+        
+        if ( walk -> prev -> token.type  == DOT ) return true ;
+        
+        return false ;
+        
+    } // hasDOT()
+    
     // Purpose: focus on one S-exp and give it the parathesis
     // Only list can call this function
     void translate( Node_Linear* root, Node_Linear* tail ) {
@@ -759,7 +791,8 @@ private:
         
         int countPar = 0 ; // increase when manually add DOT and Paranthesis
         
-        if ( findStrAndGetPreviousNode( root, tail, "." ) == NULL ) { // there is no DOT, so put it on manually
+        if ( !hasDOT( root, tail ) ) { // there is no DOT, so put it on manually
+        // if ( findStrAndGetPreviousNode( root, tail, "." ) == NULL || !hasDOT( root, tail ) ) { // there is no DOT, so put it on manually
             // assert: there is no DOT so need to add DOT and nil
             copyList.insertNode( tail -> prev, DOT ) ;
             copyList.insertNode( tail -> prev, NIL ) ;

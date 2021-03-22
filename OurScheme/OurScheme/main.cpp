@@ -87,8 +87,9 @@ string enumToStr( TokenType type ) {
 struct Node_Linear {
     Token token ;
     Node_Linear* next ;
+    Node_Linear* prev ;
     
-    Node_Linear(): next(NULL) {} ;
+    Node_Linear(): next( NULL ), prev( NULL ) {} ;
 } ;
 
 string intToStr( int num ) {
@@ -165,6 +166,7 @@ class SingleList {
 public:
     
     Node_Linear* root ;
+    Node_Linear* tail ;
     
     Node_Linear* findNode( Token token ) {
         Node_Linear* nodeWeWant = NULL ;
@@ -185,6 +187,8 @@ public:
         
         if ( root == NULL ) { // empty
             root = newNode ;
+            newNode -> prev = root ;
+            tail = newNode ;
         } // if()
         else {
             bool addSuccess = false ;
@@ -192,6 +196,8 @@ public:
             for ( Node_Linear* walk = root ; walk != NULL && !addSuccess ; walk = walk -> next ) {
                 if ( walk -> next == NULL ) {
                     walk -> next = newNode ;
+                    newNode -> prev = walk ;
+                    tail = newNode ;
                     addSuccess = true ;
                 } // if()
             } // for()
@@ -224,10 +230,14 @@ public:
         newNode -> token = token ;
         if ( nodeBefore == root ) {
             newNode -> next = root ;
+            newNode -> prev = root ;
+            newNode -> next -> prev = newNode ;
             root = newNode ;
         } // if()
         else {
             newNode -> next = nodeBefore -> next ;
+            newNode -> prev = nodeBefore ;
+            newNode -> next -> prev = newNode ;
             nodeBefore -> next = newNode ;
         } // else()
         
@@ -240,6 +250,13 @@ public:
         cout << endl ;
         for ( Node_Linear* walk = root ; walk != NULL ; walk = walk -> next ) {
             cout << walk -> token.str << " " ;
+        } // for()
+        cout << "*** back ***" << endl ;
+        
+        bool finish = false ;
+        for ( Node_Linear* walk = tail ; !finish ; walk = walk -> prev ) {
+            cout << walk -> token.str << " " ;
+            if ( walk == root ) finish = true ;
         } // for()
     } // print()
     
@@ -666,6 +683,7 @@ private:
                 nilNode -> token.column = walk -> next -> token.column ;
                 
                 nilNode -> next = walk -> next -> next -> next ;
+                walk -> next -> next -> next -> prev = nilNode ;
                 
                 // Delete >)<
                 delete walk -> next -> next ;
@@ -673,6 +691,7 @@ private:
                 // Delete >(<
                 delete walk -> next ;
                 walk -> next = nilNode ;
+                nilNode -> prev = walk ;
             } // if()
             
         } // for()

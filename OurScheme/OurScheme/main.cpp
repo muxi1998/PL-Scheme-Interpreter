@@ -248,17 +248,23 @@ public:
             cout << walk -> token.str << "  (" << walk -> token.line << ", " << walk -> token.column << " ) " << enumToStr( walk -> token.type ) << endl ;
         } // for()
         cout << endl ;
+    } // print()
+    
+    void printForward() {
+        cout << endl << "*** Print forward ***" << endl ;
         for ( Node_Linear* walk = root ; walk != NULL ; walk = walk -> next ) {
             cout << walk -> token.str << " " ;
         } // for()
-        cout << "*** back ***" << endl ;
-        
+    } // printForward()
+    
+    void printBackforward() {
         bool finish = false ;
+        cout << endl << "*** Print backward ***" << endl ;
         for ( Node_Linear* walk = tail ; !finish ; walk = walk -> prev ) {
             cout << walk -> token.str << " " ;
             if ( walk == root ) finish = true ;
         } // for()
-    } // print()
+    } // printBackforward()
     
 } ;
 
@@ -728,7 +734,9 @@ private:
         stack<Node_Linear> nodeStack ; // used to find the dot which we need to pair up
         
         if ( findStrAndGetPreviousNode( "." ) == NULL ) { // there is no DOT, so put it on manually
-            
+            // assert: there is no DOT so need to add DOT and nil
+            singleList.insertNode( singleList.tail -> prev, DOT ) ;
+            singleList.insertNode( singleList.tail -> prev, NIL ) ;
         } // if()
         
     } // translate
@@ -754,6 +762,8 @@ public:
         translate() ;
         
         singleList.print() ;
+        singleList.printForward() ;
+        singleList.printBackforward() ;
     } // test()
 
 };

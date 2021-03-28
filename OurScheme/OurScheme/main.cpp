@@ -959,14 +959,29 @@ public:
     
     void buildTree() {
         // Substitude () with nil and put on the ( )
-        translate( copyList.root, copyList.tail ) ;
-        copyList.printForward() ;
-        
-        root = build( copyList.root, copyList.tail ) ;
-        
-        // singleList.print() ;
-        // copyList.printForward() ;
-        copyList.printBackforward() ;
+        if ( s.isATOM( copyList.root -> token ) ) {
+            Node* leaf = new Node ;
+            leaf -> lex = copyList.root -> token.str ;
+            if ( copyList.root -> token.type == NIL || copyList.root -> token.type == T ) {
+                leaf -> type = SPECIAL ;
+            } // if()
+            else {
+                leaf -> type = ATOM ;
+            } // else()
+            leaf -> left = NULL ;
+            leaf -> right = NULL ;
+            leaf -> parent = root ;
+        } // if((
+        else {
+            translate( copyList.root, copyList.tail ) ;
+            copyList.printForward() ;
+            
+            root = build( copyList.root, copyList.tail ) ;
+            
+            // singleList.print() ;
+            // copyList.printForward() ;
+            copyList.printBackforward() ;
+        } // else()
     } // test()
 
 };

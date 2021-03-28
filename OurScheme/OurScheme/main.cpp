@@ -513,27 +513,6 @@ private:
     
     LexicalAnalyzer la ;
     
-    // Purpose: recognize whether this string is a INT
-    // Return: true or false
-    
-    bool isATOM( Token token ) {
-        TokenType type = token.type ;
-        if ( type == SYMBOL || type == INT || type == FLOAT || type == STRING || type == NIL || type == T ) {
-            return true ;
-        } // if()
-        
-        return false ;
-    } // checkATOM()
-    
-    bool isATOM( string str ) {
-        TokenType type = la.getTokenType( str ) ;
-        if ( type == SYMBOL || type == INT || type == FLOAT || type == STRING || type == NIL || type == T ) {
-            return true ;
-        } // if()
-        
-        return false ;
-    } // isATOM()
-    
     bool checkSExp( Token startToken ) {
         // assert: startToken can only has three possibility
         // 1.Atom 2.LP 3.Quote *4.LR RP
@@ -617,6 +596,24 @@ private:
 
 public:
     
+    bool isATOM( Token token ) {
+        TokenType type = token.type ;
+        if ( type == SYMBOL || type == INT || type == FLOAT || type == STRING || type == NIL || type == T ) {
+            return true ;
+        } // if()
+        
+        return false ;
+    } // checkATOM()
+    
+    bool isATOM( string str ) {
+        TokenType type = la.getTokenType( str ) ;
+        if ( type == SYMBOL || type == INT || type == FLOAT || type == STRING || type == NIL || type == T ) {
+            return true ;
+        } // if()
+        
+        return false ;
+    } // isATOM()
+    
     void test() {
         string str = "" ;
         string getTokenStr = "" ;
@@ -648,8 +645,9 @@ struct Node {
     NodeType type ; // Three possibility: 1.Atom  2.Special(NIL)  3.Cons
     Node* left ;
     Node* right ;
+    Node* parent ;
 
-    Node() : lex(""), type(EMPTY), left(NULL), right(NULL) {} ;
+    Node() : lex(""), type(EMPTY), left(NULL), right(NULL), parent(NULL) {} ;
 };
 
 class Tree {
@@ -658,6 +656,10 @@ private:
     
     Node *root ;
     SingleList copyList ;
+    
+    SyntaxAnalyzer s ;
+    
+    enum Direction { RIGHT = 1234, LEFT = 4321 } ;
     
     void transferNIL( Node_Linear* root, Node_Linear* tail ) {
         bool finish = false ;
@@ -751,37 +753,49 @@ private:
         return target ;
     } // findCorrespondPar()
     
-    bool hasDOT( Node_Linear* root, Node_Linear* tail ) {
+    Node_Linear* findDOT( Node_Linear* root, Node_Linear* tail ) {
         stack<Node_Linear*> s ;
+        int count = 0 ;
         
         s.push( tail ) ;
         if ( tail -> prev -> token.type != RPAREN ) {
             if (  tail -> prev -> prev -> token.type != DOT ) {
-                return false ;
+                return NULL ;
             } // if()
             else {
-                return true ;
+                return tail -> prev -> prev ;
             } // else()
         } // if()
         
         Node_Linear* walk ;
-        for ( walk = tail -> prev ; !s.empty() && tail != root ; walk = walk -> prev ) {
+        for ( walk = tail -> prev ; walk != root ; ) {
             if ( walk -> token.type == LPAREN ) {
                 while (  s.top() -> token.type != RPAREN ) {
+                    if ( s.top() -> token.type == DOT ) count -- ;
                     s.pop() ;
                 } // while()
                 s.pop() ; // last right par
             } // if()
             else {
+                if ( walk -> token.type == DOT ) count ++ ;
                 s.push( walk ) ;
             } // else()
+            
+            if ( walk != root ) walk = walk -> prev ;
+            
         } // for()
         
-        if ( walk -> prev -> token.type  == DOT ) return true ;
+        if ( count == 1 ) {
+            while ( s.top() -> token.type != DOT ) { // right part of the cons is a list
+                s.pop() ;
+            } // if()
+            
+            return s.top() ;
+        } // if()
         
-        return false ;
+        return NULL ;
         
-    } // hasDOT()
+    } // findDOT()
     
     // Purpose: focus on one S-exp and give it the parathesis
     // Only list can call this function
@@ -791,8 +805,9 @@ private:
         
         int countPar = 0 ; // increase when manually add DOT and Paranthesis
         
-        if ( !hasDOT( root, tail ) ) { // there is no DOT, so put it on manually
-        // if ( findStrAndGetPreviousNode( root, tail, "." ) == NULL || !hasDOT( root, tail ) ) { // there is no DOT, so put it on manually
+        Node_Linear* dotPointer = findDOT( root, tail ) ;
+        if ( dotPointer == NULL ) { // there is no DOT, so put it on manually
+        // if ( findStrAndGetPreviousNode( root, tail, "." ) == NULL || !findDOT( root, tail ) ) { // there is no DOT, so put it on manually
             // assert: there is no DOT so need to add DOT and nil
             copyList.insertNode( tail -> prev, DOT ) ;
             copyList.insertNode( tail -> prev, NIL ) ;
@@ -840,27 +855,117 @@ private:
         
     } // translate
     
-public:
-    Tree( SingleList list ) : root(0), copyList( list ) {} ;
+    void printWhite( int num ) {
+        for ( int i = 0 ; i < num ; i ++ ) {
+            cout << " " ;
+        } // for()
+    } // printWhite()
     
-    // Purpose: Transfer the DS from vector to pointer (tree)
+public:
+    Tree( SingleList list ) : root(NULL), copyList( list ) {} ;
+    
+    // Purpose: Transfer the DS from list to pointer (tree)
     // Pre-request: tokens in vector construct a S-exp with correct grammer
-    void build() {
+    // Return the root of this tree
+    Node* build( Node_Linear* leftPointer, Node_Linear* rightPointer ) {
         
+        if ( leftPointer -> token.type == LPAREN && rightPointer -> token.type == DOT ) { // left part if the cons
+            Node* atomNode = new Node ;
+            atomNode -> lex = leftPointer -> next -> token.str ;
+            if ( leftPointer -> next -> token.type == NIL || leftPointer -> next -> token.type == T ) {
+                atomNode -> type = SPECIAL ;
+            } // if()
+            else {
+                atomNode -> type = ATOM ;
+            } // else()
+            atomNode -> left = NULL ;
+            atomNode -> right = NULL ;
+            
+            return atomNode ;
+        } // if()
+        else if ( leftPointer == rightPointer ) { // right part of the cons
+            Node* atomNode = new Node ;
+            atomNode -> lex = leftPointer -> token.str ;
+            if ( leftPointer -> token.type == NIL || leftPointer -> token.type == T ) {
+                atomNode -> type = SPECIAL ;
+            } // if()
+            else {
+                atomNode -> type = ATOM ;
+            } // else()
+            atomNode -> left = NULL ;
+            atomNode -> right = NULL ;
+            
+            return atomNode ;
+        } // else if()
+        else { // Now is still in ( ) form
+            Node_Linear* dotPointer = findDOT( leftPointer, rightPointer ) ;
+            Node* leftSubTree = build( leftPointer -> next, dotPointer -> prev ) ;
+            Node* rightSubTree = build( dotPointer -> next, rightPointer -> prev ) ;
+            
+            Node* cons = new Node ;
+            cons -> type = CONS ;
+            cons -> left = leftSubTree ;
+            cons -> left -> parent = cons ;
+            cons -> right = rightSubTree ;
+            cons -> right -> parent = cons ;
+            
+            return cons ;
+        } // else()
+        
+        return NULL ;
     } // build()
 
     void printTree() {
         
     } // printTree()
 
-    void prettyPrint() {
+    void prettyPrintAtom( Node* r ) {
+        if ( r -> type == SPECIAL ) {
+            if ( r -> lex == "nil" || r -> lex == "#f" ) {
+                cout << "nil" << endl ;
+            } // if()
+            else {
+                cout << "#t" << endl ;
+            } // else()
+        } // if()
+        else cout << r -> lex << endl ;
+    } // prettyPrintAtom()
+    
+    void prettyPrintSExp( Node* r, int numOfCharPrinted, Direction dir ) {
+        
+        if ( r -> left -> type != CONS && r -> right -> type != CONS ) {
+            if ( dir == LEFT ) {
+                cout << "( " << r -> left -> lex << endl ;
+                numOfCharPrinted ++ ;
+                printWhite( numOfCharPrinted + 2 ) ;
+                cout << "." << endl ;
+                printWhite( numOfCharPrinted + 2 ) ;
+                cout << r -> right -> lex ;
+                printWhite( numOfCharPrinted ) ;
+                cout << ")" << endl ;
+            } // if()
+            else if ( dir == RIGHT ) {
+                
+            } // else()
+        } // if()
+        else if ( r -> left -> type == CONS ) {
+            prettyPrintSExp( r -> left, numOfCharPrinted + 2, LEFT ) ;
+        } // else if()
+        else if ( r -> right -> type == CONS ) {
+            prettyPrintSExp( r -> right, numOfCharPrinted + 2, RIGHT ) ;
+        } // else if()
+        
     } // prettyPrint()
     
-    void test() {
+    void buildTree() {
+        // Substitude () with nil and put on the ( )
         translate( copyList.root, copyList.tail ) ;
+        copyList.printForward() ;
+        
+        root = build( copyList.root, copyList.tail ) ;
         
         // singleList.print() ;
-        copyList.printForward() ;
+        // copyList.printForward() ;
         copyList.printBackforward() ;
     } // test()
 
@@ -877,7 +982,7 @@ int main() {
         sa.test() ;
         Tree tree( singleList ) ;
         cout << endl << "** transfer ***" << endl ;
-        tree.test() ;
+        tree.buildTree() ;
         /*
         while ( inputStr != "(EOF)" ) {
 

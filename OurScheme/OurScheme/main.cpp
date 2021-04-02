@@ -996,6 +996,10 @@ public:
         if ( r -> type == ATOM ) { // this S-exp is an atom
             prettyPrintAtom( r ) ;
         } // if()
+        else if ( r -> right -> lex == "nil" ) {
+            prettyPrintAtom( r -> left ) ;
+            gIsEOF = true ;
+        }  // else if()
         else {
             prettyPrintSExp( r, LEFT, 0 ) ;
         } // else()
@@ -1017,9 +1021,6 @@ public:
             root = leaf ;
             leaf -> parent = root ;
             
-            if ( leaf -> lex == "exit" ) {
-                gIsEOF = true ;
-            } // if()
         } // if((
         else {
             translate( copyList.root, copyList.tail ) ;

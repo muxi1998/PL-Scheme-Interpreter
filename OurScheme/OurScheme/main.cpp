@@ -4,6 +4,7 @@
 # include <vector>
 # include <stack>
 # include <exception>
+# include <iomanip>
 
 using namespace std;
 
@@ -90,17 +91,60 @@ struct Node_Linear {
     Node_Linear(): next( NULL ), prev( NULL ) {} ;
 } ;
 
-string intToStr( int num ) {
-    string str = "" ;
-    if ( num == 0 ) return "0" ;
+class GlobalFunction { // the functions that may be used in anywhere
     
-    while ( num != 0 ) {
-        str = ( char ) ( '0' + ( num % 10 ) ) + str ;
-        num /= 10 ;
-    } // while()
+public:
+    string intToStr( int num ) {
+        string str = "" ;
+        if ( num == 0 ) return "0" ;
+        
+        while ( num != 0 ) {
+            str = ( char ) ( '0' + ( num % 10 ) ) + str ;
+            num /= 10 ;
+        } // while()
+        
+        return str ;
+    } // intToStr()
     
-    return str ;
-} // intToStr()
+    int getValueOfIntStr( string str ) {
+        int num = 0 ;
+        char sign = '\0' ;
+        
+        if ( str[ 0 ] == '+' || str[ 0 ] == '-' ) {
+            sign = str[ 0 ] ;
+            str.erase( str.begin(), str.begin() + 1 ) ; // take off the sign char
+        } // if()
+        
+        num = atoi( str.c_str() ) ;
+        
+        if ( sign == '-' ) {
+            num *= -1 ;
+        } // if()
+        
+        return num ;
+    } // getValueOfIntStr()
+    
+    float getValueOfFloatStr( string str ) {
+        float num = 0.0 ;
+        char sign = '\0' ;
+        
+        if ( str[ 0 ] == '+' || str[ 0 ] == '-' ) {
+            sign = str[ 0 ] ;
+            str.erase( str.begin(), str.begin() + 1 ) ; // take off the sign char
+        } // if()
+        
+        num = atof( str.c_str() ) ;
+        
+        if ( sign == '-' ) {
+            num *= -1.0 ;
+        } // if()
+        
+        return num ;
+    } // getValueOfFloatStr
+    
+} ;
+
+GlobalFunction g ;
 
 class MissingAtomOrLeftParException : public exception {
 private:
@@ -112,7 +156,7 @@ public:
     MissingAtomOrLeftParException( int l, int c, string s ) : line( l ), col( c ), str( s ) {}
     string err_mesg() {
         string mesg = "" ;
-        mesg = "ERROR (unexpected token) : atom or '(' expected when token at Line " + intToStr( line ) + " Column " + intToStr( col ) + " is >>" + str + "<<" ;
+        mesg = "ERROR (unexpected token) : atom or '(' expected when token at Line " + g.intToStr( line ) + " Column " + g.intToStr( col ) + " is >>" + str + "<<" ;
         
         return mesg ;
     } // err_mesg()
@@ -128,7 +172,7 @@ public:
     MissingRightParException( int l, int c, string s ) : line( l ), col( c ), str( s ) {}
     string err_mesg() {
         string mesg = "" ;
-        mesg = "ERROR (unexpected token) : ')' expected when token at Line " + intToStr( line ) + " Column " + intToStr( col ) + " is >>" + str + "<<" ;
+        mesg = "ERROR (unexpected token) : ')' expected when token at Line " + g.intToStr( line ) + " Column " + g.intToStr( col ) + " is >>" + str + "<<" ;
         
         return mesg ;
     } // err_mesg()
@@ -143,7 +187,7 @@ public:
     NoClosingQuoteException( int l, int c ) : line( l ), col( c ) {}
     string err_mesg() {
         string mesg = "" ;
-        mesg = "ERROR (no closing quote) : END-OF-LINE encountered at Line " + intToStr( line ) + " Column " + intToStr( col ) ;
+        mesg = "ERROR (no closing quote) : END-OF-LINE encountered at Line " + g.intToStr( line ) + " Column " + g.intToStr( col ) ;
         
         return mesg ;
     } // err_mesg()
@@ -305,25 +349,6 @@ private:
         return false ;
     } // isWhiteSpace()
     
-    bool isINT( string str ) {
-        // Mark1: there might be a sign char, such as '+' or '-'
-        // Mark2: except the sign char, other char should be a number
-        // Mark3: the  whole string cannot contain the dot
-        int startIndex = 0 ;  // to avoid the sign char if there has one
-            
-        if ( str[ 0 ] == '+' || str[ 0 ] == '-' ) {
-            startIndex = 1 ;  // the checking process start after the sign char
-        } // if()
-            
-        for ( int i = startIndex ;  i < str.length() ; i ++ ) {
-            if ( !( str[ i ] <= '9' && str[ i ] >= '0' ) ) {
-                return false ;
-            } // if()
-        } // for()
-            
-        return true ;
-    } // isINT()
-    
     string formatFloat( string str ) {
         string formatStr = "" ;
         
@@ -345,37 +370,6 @@ private:
         
         return formatStr ;
     } // formatFloat()
-        
-    // Purpose: recognize whether this string is a FLOAT
-    // Return: true or false
-    bool isFLOAT( string &str ) {
-        // Mark1: there might be a sign char, such as '+' or '-'
-        // Mark2: except the sign char, other char should be a number
-        // Mark3: the whole string SHOULD contain the dot, NO MATTER the position of the dot is, but should be only dot
-        // Mark4: if there appear another dot after already get one, then might be a SYMBOL
-        int dotNum = 0 ;  // only can have ONE dot
-        int startIndex = 0 ;  // the checking process start after the sign char
-        
-        if ( str[ 0 ] == '+' || str[ 0 ] == '-' ) {
-            startIndex = 1 ;  // the checking process start after the sign char
-        } // if()
-            
-        for ( int i = startIndex ;  i < str.length() ; i ++ ) {
-            if ( str[ i ] == '.' ) {
-                dotNum ++ ;  // every time we encounter a dot, count it
-            } // if()
-                
-            if ( !( str[ i ] <= '9' && str[ i ] >= '0' ) && str[ i ] != '.' ) {
-                return false ;
-            } // if()
-        } // for()
-            
-        if ( dotNum != 1 ) {
-            return false ;
-        } // if()
-        
-        return true ;
-    } // isFLOAT()
         
     // Purpose: not only call the func. cin.get(), but also increase the column or line
     char getChar() {
@@ -437,6 +431,56 @@ private:
 
 public:
     
+    bool isINT( string str ) {
+        // Mark1: there might be a sign char, such as '+' or '-'
+        // Mark2: except the sign char, other char should be a number
+        // Mark3: the  whole string cannot contain the dot
+        int startIndex = 0 ;  // to avoid the sign char if there has one
+            
+        if ( str[ 0 ] == '+' || str[ 0 ] == '-' ) {
+            startIndex = 1 ;  // the checking process start after the sign char
+        } // if()
+            
+        for ( int i = startIndex ;  i < str.length() ; i ++ ) {
+            if ( !( str[ i ] <= '9' && str[ i ] >= '0' ) ) {
+                return false ;
+            } // if()
+        } // for()
+            
+        return true ;
+    } // isINT()
+    
+    // Purpose: recognize whether this string is a FLOAT
+    // Return: true or false
+    bool isFLOAT( string &str ) {
+        // Mark1: there might be a sign char, such as '+' or '-'
+        // Mark2: except the sign char, other char should be a number
+        // Mark3: the whole string SHOULD contain the dot, NO MATTER the position of the dot is, but should be only dot
+        // Mark4: if there appear another dot after already get one, then might be a SYMBOL
+        int dotNum = 0 ;  // only can have ONE dot
+        int startIndex = 0 ;  // the checking process start after the sign char
+        
+        if ( str[ 0 ] == '+' || str[ 0 ] == '-' ) {
+            startIndex = 1 ;  // the checking process start after the sign char
+        } // if()
+            
+        for ( int i = startIndex ;  i < str.length() ; i ++ ) {
+            if ( str[ i ] == '.' ) {
+                dotNum ++ ;  // every time we encounter a dot, count it
+            } // if()
+                
+            if ( !( str[ i ] <= '9' && str[ i ] >= '0' ) && str[ i ] != '.' ) {
+                return false ;
+            } // if()
+        } // for()
+            
+        if ( dotNum != 1 ) {
+            return false ;
+        } // if()
+        
+        return true ;
+    } // isFLOAT()
+    
     // Purpose: accept the token string from func. getToken(), and response the corresponding token value
     TokenType getTokenType( string str ) {
         
@@ -478,6 +522,10 @@ public:
             char ch = '\0' ;
 
             ch = cin.peek() ;  // peek whether the next char is in input
+            if ( ch == EOF ) {
+                throw EOFException() ;
+            } // if()
+            
             while ( isWhiteSpace( ch ) ) {  // before get a actual char, we need to skip all the white-spaces first
                 ch = cin.get() ;  // take away this white-space
                 gColumn ++ ;
@@ -668,6 +716,7 @@ private:
     Node *root ;
     SingleList copyList ;
     
+    LexicalAnalyzer la ;
     SyntaxAnalyzer s ;
     
     enum Direction { RIGHT = 1234, LEFT = 4321 } ;
@@ -689,6 +738,7 @@ private:
             root -> next = NULL ;
             // Delete >(<
             delete root ;
+            root = NULL ;
             
             root = nilNode ;
         } // if()
@@ -935,6 +985,12 @@ public:
                 cout << "#t" << endl ;
             } // else()
         } // if()
+        else if ( la.isINT( r -> lex ) ) {
+            cout << g.getValueOfIntStr( r -> lex ) << endl ;
+        } // else()
+        else if ( la.isFLOAT( r -> lex ) ) {
+            cout << fixed << setprecision( 3 ) << g.getValueOfFloatStr( r -> lex ) << endl ;
+        } // else if()
         else cout << r -> lex << endl ;
     } // prettyPrintAtom()
     
@@ -942,25 +998,29 @@ public:
         
         int curLevel = level ;
         
-        if ( dir == RIGHT && r -> left -> type != CONS && r -> right -> type!= CONS ) {
-            printWhite( curLevel + 2 ) ;
-            prettyPrintAtom( r -> left ) ;
-            
-            if ( r -> right -> lex != "nil" && r  -> right  -> lex != "#f" ) {
+        if ( r -> type == ATOM || r -> type == SPECIAL ) {
+            // case1. LL case2. RL case3. RR
+            if ( dir == LEFT ) {
                 printWhite( curLevel + 2 ) ;
-                cout << "." << endl ;
-                printWhite( curLevel + 2 ) ;
-                prettyPrintAtom( r -> right ) ;
+                prettyPrintAtom( r -> left ) ;
             } // if()
-            
-            printWhite( curLevel ) ;
-            cout << ")" << endl ;
+            else {
+                if ( r -> lex != "nil" && r -> lex != "#f" ) {
+                    printWhite( curLevel + 2 ) ;
+                    cout << "." << endl ;
+                    printWhite( curLevel + 2 ) ;
+                    prettyPrintAtom( r ) ;
+                } // if()
+                
+                printWhite( curLevel ) ;
+                cout << ")" << endl ;
+            } // else()
             
             return ;
         } // if()
-        else {
+        else { // CONS node
             
-            if ( dir == LEFT  ) {
+            if ( dir == LEFT ) {
                 if ( r -> left -> type != CONS ) {
                     cout << "(" << " " ;
                     prettyPrintAtom( r -> left ) ;
@@ -993,7 +1053,7 @@ public:
     } // prettyPrint()
     
     void prettyPrint( Node* r ) {
-        if ( r -> type == ATOM ) { // this S-exp is an atom
+        if ( r -> type == ATOM || r -> type == SPECIAL ) { // this S-exp is an atom
             prettyPrintAtom( r ) ;
         } // if()
         else if ( r -> right -> lex == "nil" ) {

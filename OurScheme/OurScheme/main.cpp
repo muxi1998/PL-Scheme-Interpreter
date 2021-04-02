@@ -44,8 +44,6 @@ struct Token {
     } // constructor
 } ;
 
-vector<Token> gTokenList ; // used to store the original order of the tokens from input
-
 string enumToStr( TokenType type ) {
     switch ( type ) {
         case LPAREN:
@@ -266,6 +264,15 @@ public:
         } // for()
     } // printBackforward()
     
+    void clear() {
+        while ( root != NULL ) {
+            Node_Linear* current = root ;
+            root = root -> next ;
+            delete current ;
+            current = NULL ;
+        } // while()
+    } // clear()
+    
 } ;
 
 SingleList singleList ;
@@ -316,10 +323,32 @@ private:
             
         return true ;
     } // isINT()
+    
+    string formatFloat( string str ) {
+        string formatStr = "" ;
+        
+        if ( str[ str.length() - 1 ] == '.' ) { // float num end with a dot
+            formatStr = str + "000" ; // put some zero in it
+        } // if()
+        else if ( str[ 0 ] == '.' ) { // float num start with the dot
+            formatStr = "0" + str ;
+        } // else if()
+        else {
+            int dotIndex = ( int ) str.find( '.' ) ;
+            int count = ( int )str.length() - dotIndex ;
+            formatStr = str ;
+            for ( int i = 0 ; i < count ; i ++ ) {
+                formatStr = formatStr + "0" ;
+            } //  for()
+            
+        } // else()
+        
+        return formatStr ;
+    } // formatFloat()
         
     // Purpose: recognize whether this string is a FLOAT
     // Return: true or false
-    bool isFLOAT( string str ) {
+    bool isFLOAT( string &str ) {
         // Mark1: there might be a sign char, such as '+' or '-'
         // Mark2: except the sign char, other char should be a number
         // Mark3: the whole string SHOULD contain the dot, NO MATTER the position of the dot is, but should be only dot
@@ -344,7 +373,7 @@ private:
         if ( dotNum != 1 ) {
             return false ;
         } // if()
-            
+        
         return true ;
     } // isFLOAT()
         
@@ -391,7 +420,14 @@ private:
     
     Token lexToToken( string lex ) {
         Token token ;
-        token.str = lex ;
+        if ( lex != "." && isFLOAT( lex ) ) {
+            // assert: float with a original format
+            // now  can start trandfer the float into the format which (int).(3 chars)
+            token.str = formatFloat( lex ) ;
+        } // if()
+        else {
+            token.str = lex ;
+        } // else()
         token.line = gLine ;
         token.column = gColumn - ( int ) lex.length() + 1 ;
         token.type = getTokenType( lex ) ;
@@ -498,7 +534,6 @@ public:
         
         Token tokenWeWant = lexToToken( gPeekToken ) ;
         gPeekToken = "" ;
-        // gTokenList.push_back( tokenWeWant ) ;
         singleList.addNode( tokenWeWant ) ;
 
         return tokenWeWant ;
@@ -512,6 +547,8 @@ class SyntaxAnalyzer {
 private:
     
     LexicalAnalyzer la ;
+    
+public:
     
     bool checkSExp( Token startToken ) {
         // assert: startToken can only has three possibility
@@ -594,8 +631,6 @@ private:
         
     } // checkSExp()
 
-public:
-    
     bool isATOM( Token token ) {
         TokenType type = token.type ;
         if ( type == SYMBOL || type == INT || type == FLOAT || type == STRING || type == NIL || type == T ) {
@@ -613,30 +648,6 @@ public:
         
         return false ;
     } // isATOM()
-    
-    void test() {
-        string str = "" ;
-        string getTokenStr = "" ;
-        bool correct = true ;
-        
-        cout << "***Start test***" << endl ;
-        la.peekToken() ;
-        Token token = la.getToken() ;
-        
-        correct = checkSExp( token ) ;
-        if ( correct ) {
-            cout << "Grammer correct!" << endl ;
-        } // while()
-        else cout << "FAIL!!!!" << endl ;
-        
-        cout << "*** Print Lsit ***" << endl ;
-        /*
-        for ( int i = 0 ; i < gTokenList.size() ; i ++ ) {
-            cout << "( " << gTokenList[ i ].line << ", " << gTokenList[ i ].column << " ) >" << gTokenList[ i ].str << "<" << enumToStr( gTokenList[ i ].type ) << endl ;
-        } // for()
-         */
-        singleList.print() ;
-    } // test()
 
 } ;
 
@@ -915,10 +926,6 @@ public:
         return NULL ;
     } // build()
 
-    void printTree() {
-        
-    } // printTree()
-
     void prettyPrintAtom( Node* r ) {
         if ( r -> type == SPECIAL ) {
             if ( r -> lex == "nil" || r -> lex == "#f" ) {
@@ -931,31 +938,68 @@ public:
         else cout << r -> lex << endl ;
     } // prettyPrintAtom()
     
-    void prettyPrintSExp( Node* r, int numOfCharPrinted, Direction dir ) {
+    void prettyPrintSExp( Node* r, Direction dir, int level ) {
         
-        if ( r -> left -> type != CONS && r -> right -> type != CONS ) {
-            if ( dir == LEFT ) {
-                cout << "( " << r -> left -> lex << endl ;
-                numOfCharPrinted ++ ;
-                printWhite( numOfCharPrinted + 2 ) ;
+        int curLevel = level ;
+        
+        if ( dir == RIGHT && r -> left -> type != CONS && r -> right -> type!= CONS ) {
+            printWhite( curLevel + 2 ) ;
+            prettyPrintAtom( r -> left ) ;
+            
+            if ( r -> right -> lex != "nil" && r  -> right  -> lex != "#f" ) {
+                printWhite( curLevel + 2 ) ;
                 cout << "." << endl ;
-                printWhite( numOfCharPrinted + 2 ) ;
-                cout << r -> right -> lex ;
-                printWhite( numOfCharPrinted ) ;
-                cout << ")" << endl ;
+                printWhite( curLevel + 2 ) ;
+                prettyPrintAtom( r -> right ) ;
             } // if()
-            else if ( dir == RIGHT ) {
-                
-            } // else()
+            
+            printWhite( curLevel ) ;
+            cout << ")" << endl ;
+            
+            return ;
         } // if()
-        else if ( r -> left -> type == CONS ) {
-            prettyPrintSExp( r -> left, numOfCharPrinted + 2, LEFT ) ;
-        } // else if()
-        else if ( r -> right -> type == CONS ) {
-            prettyPrintSExp( r -> right, numOfCharPrinted + 2, RIGHT ) ;
-        } // else if()
+        else {
+            
+            if ( dir == LEFT  ) {
+                if ( r -> left -> type != CONS ) {
+                    cout << "(" << " " ;
+                    prettyPrintAtom( r -> left ) ;
+                } // if()
+                else {
+                    cout << "(" << " " ;
+                    curLevel += 2 ; // A new group, level up
+                    prettyPrintSExp( r -> left, LEFT, curLevel ) ;
+                    curLevel -= 2 ;  // End of a new group, level down
+                } // else()
+                
+                return prettyPrintSExp( r -> right, RIGHT, curLevel ) ;
+            } // if()
+            else if ( dir == RIGHT ){
+                if ( r -> left -> type != CONS ) {
+                    printWhite( curLevel + 2 ) ;
+                    prettyPrintAtom( r -> left ) ;
+                } // if()
+                else {
+                    prettyPrintSExp( r -> left, LEFT, curLevel ) ;
+                } // else()
+                
+                return prettyPrintSExp( r -> right, RIGHT, curLevel ) ;
+            } // else()
+            
+            return prettyPrintSExp( r -> right, RIGHT, curLevel ) ;
+            
+        } // else()
         
     } // prettyPrint()
+    
+    void prettyPrint( Node* r ) {
+        if ( r -> type == ATOM ) { // this S-exp is an atom
+            prettyPrintAtom( r ) ;
+        } // if()
+        else {
+            prettyPrintSExp( r, LEFT, 0 ) ;
+        } // else()
+    } // printTree()
     
     void buildTree() {
         // Substitude () with nil and put on the ( )
@@ -970,44 +1014,55 @@ public:
             } // else()
             leaf -> left = NULL ;
             leaf -> right = NULL ;
+            root = leaf ;
             leaf -> parent = root ;
+            
+            if ( leaf -> lex == "exit" ) {
+                gIsEOF = true ;
+            } // if()
         } // if((
         else {
             translate( copyList.root, copyList.tail ) ;
-            copyList.printForward() ;
+            // copyList.printForward() ;
             
             root = build( copyList.root, copyList.tail ) ;
             
             // singleList.print() ;
             // copyList.printForward() ;
-            copyList.printBackforward() ;
+            // copyList.printBackforward() ;
         } // else()
-    } // test()
+    } // buildTree()
+    
+    Node* getRoot() {
+        return root ;
+    } // getRoor()
 
 };
 
 int main() {
     
+    LexicalAnalyzer la ;
     SyntaxAnalyzer sa ;
+    bool grammerCorrect = false ;
+    
     cout << "Welcome to OurScheme!" << endl ;
     string inputStr = "" ;
 
     try {
-        
-        sa.test() ;
-        Tree tree( singleList ) ;
-        cout << endl << "** transfer ***" << endl ;
-        tree.buildTree() ;
-        /*
-        while ( inputStr != "(EOF)" ) {
-
-          cout << ">" ;
-          cin >> inputStr ;
-          // ReadExp( inputStr ) ;
-
+        while ( !gIsEOF ) {
+            cout << "> " ;
+            la.peekToken() ;
+            Token token = la.getToken() ;
+              
+            grammerCorrect = sa.checkSExp( token ) ;
+            if ( grammerCorrect ) {
+                Tree tree( singleList ) ;
+                tree.buildTree() ;
+                tree.prettyPrint( tree.getRoot() ) ;
+            } // if()
+            
+            singleList.clear() ;
         } // while()
-        */
-        
     } catch ( MissingAtomOrLeftParException e ) {
         cout << e.err_mesg() << endl ;
     } catch ( MissingRightParException e ) {

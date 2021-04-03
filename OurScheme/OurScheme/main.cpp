@@ -91,118 +91,6 @@ struct Node_Linear {
     Node_Linear(): next( NULL ), prev( NULL ) {} ;
 } ;
 
-class GlobalFunction { // the functions that may be used in anywhere
-    
-public:
-    string intToStr( int num ) {
-        string str = "" ;
-        if ( num == 0 ) return "0" ;
-        
-        while ( num != 0 ) {
-            str = ( char ) ( '0' + ( num % 10 ) ) + str ;
-            num /= 10 ;
-        } // while()
-        
-        return str ;
-    } // intToStr()
-    
-    int getValueOfIntStr( string str ) {
-        int num = 0 ;
-        char sign = '\0' ;
-        
-        if ( str[ 0 ] == '+' || str[ 0 ] == '-' ) {
-            sign = str[ 0 ] ;
-            str.erase( str.begin(), str.begin() + 1 ) ; // take off the sign char
-        } // if()
-        
-        num = atoi( str.c_str() ) ;
-        
-        if ( sign == '-' ) {
-            num *= -1 ;
-        } // if()
-        
-        return num ;
-    } // getValueOfIntStr()
-    
-    float getValueOfFloatStr( string str ) {
-        float num = 0.0 ;
-        char sign = '\0' ;
-        
-        if ( str[ 0 ] == '+' || str[ 0 ] == '-' ) {
-            sign = str[ 0 ] ;
-            str.erase( str.begin(), str.begin() + 1 ) ; // take off the sign char
-        } // if()
-        
-        num = atof( str.c_str() ) ;
-        
-        if ( sign == '-' ) {
-            num *= -1.0 ;
-        } // if()
-        
-        return num ;
-    } // getValueOfFloatStr
-    
-} ;
-
-GlobalFunction g ;
-
-class MissingAtomOrLeftParException : public exception {
-private:
-    int line ;
-    int col ;
-    string str ;
-    
-public:
-    MissingAtomOrLeftParException( int l, int c, string s ) : line( l ), col( c ), str( s ) {}
-    string err_mesg() {
-        string mesg = "" ;
-        mesg = "ERROR (unexpected token) : atom or '(' expected when token at Line " + g.intToStr( line ) + " Column " + g.intToStr( col ) + " is >>" + str + "<<" ;
-        
-        return mesg ;
-    } // err_mesg()
-} ; // MissingAtomOrLeftParException
-
-class MissingRightParException : public exception {
-private:
-    int line ;
-    int col ;
-    string str ;
-    
-public:
-    MissingRightParException( int l, int c, string s ) : line( l ), col( c ), str( s ) {}
-    string err_mesg() {
-        string mesg = "" ;
-        mesg = "ERROR (unexpected token) : ')' expected when token at Line " + g.intToStr( line ) + " Column " + g.intToStr( col ) + " is >>" + str + "<<" ;
-        
-        return mesg ;
-    } // err_mesg()
-} ; // MissingRightParException
-
-class NoClosingQuoteException : public exception {
-private:
-    int line ;
-    int col ;
-    
-public:
-    NoClosingQuoteException( int l, int c ) : line( l ), col( c ) {}
-    string err_mesg() {
-        string mesg = "" ;
-        mesg = "ERROR (no closing quote) : END-OF-LINE encountered at Line " + g.intToStr( line ) + " Column " + g.intToStr( col ) ;
-        
-        return mesg ;
-    } // err_mesg()
-} ; // NoClosingQuoteException
-
-class EOFException : public exception {
-public:
-    string err_mesg() {
-        string mesg = "" ;
-        mesg = "ERROR (no more input) : END-OF-FILE encountered" ;
-        
-        return mesg ;
-    } // err_mesg()
-} ; // EOFException
-
 class SingleList {
     
 public:
@@ -229,7 +117,7 @@ public:
         
         if ( root == NULL ) { // empty
             root = newNode ;
-            newNode -> prev = root ;
+            // newNode -> prev = root ;
             tail = newNode ;
         } // if()
         else {
@@ -315,11 +203,154 @@ public:
             delete current ;
             current = NULL ;
         } // while()
+        root = NULL ;
     } // clear()
     
 } ;
 
-SingleList singleList ;
+SingleList originalList ;
+
+class GlobalFunction { // the functions that may be used in anywhere
+    
+public:
+    string intToStr( int num ) {
+        string str = "" ;
+        if ( num == 0 ) return "0" ;
+        
+        while ( num != 0 ) {
+            str = ( char ) ( '0' + ( num % 10 ) ) + str ;
+            num /= 10 ;
+        } // while()
+        
+        return str ;
+    } // intToStr()
+    
+    int getValueOfIntStr( string str ) {
+        int num = 0 ;
+        char sign = '\0' ;
+        
+        if ( str[ 0 ] == '+' || str[ 0 ] == '-' ) {
+            sign = str[ 0 ] ;
+            str.erase( str.begin(), str.begin() + 1 ) ; // take off the sign char
+        } // if()
+        
+        num = atoi( str.c_str() ) ;
+        
+        if ( sign == '-' ) {
+            num *= -1 ;
+        } // if()
+        
+        return num ;
+    } // getValueOfIntStr()
+    
+    float getValueOfFloatStr( string str ) {
+        float num = 0.0 ;
+        char sign = '\0' ;
+        
+        if ( str[ 0 ] == '+' || str[ 0 ] == '-' ) {
+            sign = str[ 0 ] ;
+            str.erase( str.begin(), str.begin() + 1 ) ; // take off the sign char
+        } // if()
+        
+        num = atof( str.c_str() ) ;
+        
+        if ( sign == '-' ) {
+            num *= -1.0 ;
+        } // if()
+        
+        return num ;
+    } // getValueOfFloatStr
+    
+    void reset() {
+        gLine = 1 ;
+        gColumn = 0 ;
+        originalList.clear() ;
+    } // reset()
+    
+    void skipLine() {
+        char ch = cin.peek() ;
+        while ( ch != '\n' ) {
+            ch = cin.get() ;
+            ch = cin.peek() ;
+        } // while()
+        
+        gPeekToken = "" ;
+    } // skipLine()
+    
+} ;
+
+GlobalFunction g ;
+
+class MissingAtomOrLeftParException : public exception {
+private:
+    int line ;
+    int col ;
+    string str ;
+    
+public:
+    MissingAtomOrLeftParException( int l, int c, string s ) : line( l ), col( c ), str( s ) {}
+    string err_mesg() {
+        string mesg = "" ;
+        mesg = "ERROR (unexpected token) : atom or '(' expected when token at Line " + g.intToStr( line ) + " Column " + g.intToStr( col - ( int ) str.length() + 1 ) + " is >>" + str + "<<" ;
+        g.skipLine() ;
+        int tmpGLine = gLine ;
+        g.reset() ;
+        gLine = tmpGLine ;
+        
+        return mesg ;
+    } // err_mesg()
+} ; // MissingAtomOrLeftParException
+
+class MissingRightParException : public exception {
+private:
+    int line ;
+    int col ;
+    string str ;
+    
+public:
+    MissingRightParException( int l, int c, string s ) : line( l ), col( c ), str( s ) {}
+    string err_mesg() {
+        string mesg = "" ;
+        mesg = "ERROR (unexpected token) : ')' expected when token at Line " + g.intToStr( line ) + " Column " + g.intToStr( col - ( int ) str.length() + 1 ) + " is >>" + str + "<<" ;
+        g.skipLine() ;
+        int tmpGLine = gLine ;
+        g.reset() ;
+        gLine = tmpGLine ;
+        
+        return mesg ;
+    } // err_mesg()
+} ; // MissingRightParException
+
+class NoClosingQuoteException : public exception {
+private:
+    int line ;
+    int col ;
+    
+public:
+    NoClosingQuoteException( int l, int c ) : line( l ), col( c ) {}
+    string err_mesg() {
+        string mesg = "" ;
+        mesg = "ERROR (no closing quote) : END-OF-LINE encountered at Line " + g.intToStr( line ) + " Column " + g.intToStr( col ) ;
+        int tmpGLine = gLine ;
+        g.reset() ;
+        gLine = tmpGLine ;
+        
+        return mesg ;
+    } // err_mesg()
+} ; // NoClosingQuoteException
+
+class EOFException : public exception {
+public:
+    string err_mesg() {
+        string mesg = "" ;
+        mesg = "ERROR (no more input) : END-OF-FILE encountered" ;
+        int tmpGLine = gLine ;
+        g.reset() ;
+        gLine = tmpGLine ;
+        
+        return mesg ;
+    } // err_mesg()
+} ; // EOFException
 
 class LexicalAnalyzer {
     
@@ -408,6 +439,9 @@ private:
             ch_get = getChar() ;
             fullStr += ch_get ;
         } // if()
+        else { // miss the ending quote
+            throw NoClosingQuoteException( gLine, gColumn + 1 ) ;
+        } // else()
         
         return fullStr ;
     } // getFullStr()
@@ -582,7 +616,7 @@ public:
         
         Token tokenWeWant = lexToToken( gPeekToken ) ;
         gPeekToken = "" ;
-        singleList.addNode( tokenWeWant ) ;
+        originalList.addNode( tokenWeWant ) ;
 
         return tokenWeWant ;
     } // getToken()
@@ -673,7 +707,7 @@ public:
             return false ;
         } // else if()
         
-        // throw MissingAtomOrLeftParException( gLine, gColumn, gPeekToken ) ;
+        throw MissingAtomOrLeftParException( gLine, gColumn, startToken.str ) ;
         
         return false ; // none of the above begining
         
@@ -724,6 +758,7 @@ private:
     void transferNIL( Node_Linear* root, Node_Linear* tail ) {
         bool finish = false ;
         
+        // only ()
         if ( root -> token.type == LPAREN && root -> next -> token.type == RPAREN ) {
             Node_Linear* nilNode = new Node_Linear ;
             nilNode -> token.str = "nil" ;
@@ -819,8 +854,8 @@ private:
         int count = 0 ;
         
         s.push( tail ) ;
-        if ( tail -> prev -> token.type != RPAREN ) {
-            if (  tail -> prev -> prev -> token.type != DOT ) {
+        if ( tail -> prev != NULL && tail -> prev -> token.type != RPAREN ) {
+            if (  tail -> prev -> prev != NULL && tail -> prev -> prev -> token.type != DOT ) {
                 return NULL ;
             } // if()
             else {
@@ -862,7 +897,30 @@ private:
     // Only list can call this function
     void translate( Node_Linear* root, Node_Linear* tail ) {
         
-        transferNIL( root, tail ) ; // put a NIL in this list if needed
+        if ( copyList.root -> token.type == LPAREN && copyList.root -> next -> token.type == RPAREN && copyList.root -> next -> next == NULL ) {
+            Node_Linear* nilNode = new Node_Linear ;
+            nilNode -> token.str = "nil" ;
+            nilNode -> token.type = NIL ;
+            nilNode -> token.line = copyList.root -> token.line ;
+            nilNode -> token.column = copyList.root -> token.column ;
+            nilNode -> next = NULL ;
+            
+            while ( copyList.root != NULL ) { // clear ( )
+                Node_Linear* current = copyList.root ;
+                copyList.root = copyList.root -> next ;
+                delete current ;
+                current = NULL ;
+            } // while()
+            
+            copyList.root = nilNode ; // connect nil node
+            copyList.tail = copyList.root ;
+            originalList.root = copyList.root ;
+            copyList.tail = originalList.root ;
+            return ;
+        } // if()
+        else {
+            transferNIL( root, tail ) ; // put a NIL in this list if needed
+        } // else()
         
         int countPar = 0 ; // increase when manually add DOT and Paranthesis
         
@@ -1058,7 +1116,6 @@ public:
         } // if()
         else if ( r -> right -> lex == "nil" ) {
             prettyPrintAtom( r -> left ) ;
-            gIsEOF = true ;
         }  // else if()
         else {
             prettyPrintSExp( r, LEFT, 0 ) ;
@@ -1088,7 +1145,10 @@ public:
             
             root = build( copyList.root, copyList.tail ) ;
             
-            // singleList.print() ;
+            if ( root -> type == CONS && root -> left -> lex == "exit" && root -> right -> lex == "nil" ) {
+                gIsEOF = true ;
+            } // if()
+            // originalList.print() ;
             // copyList.printForward() ;
             // copyList.printBackforward() ;
         } // else()
@@ -1108,31 +1168,36 @@ int main() {
     
     cout << "Welcome to OurScheme!" << endl ;
     string inputStr = "" ;
-
-    try {
-        while ( !gIsEOF ) {
+    
+    while ( !gIsEOF ) {
+        
+        try {
+            
             cout << "> " ;
             la.peekToken() ;
             Token token = la.getToken() ;
               
             grammerCorrect = sa.checkSExp( token ) ;
             if ( grammerCorrect ) {
-                Tree tree( singleList ) ;
+                Tree tree( originalList ) ;
                 tree.buildTree() ;
-                tree.prettyPrint( tree.getRoot() ) ;
+                if ( !gIsEOF ) tree.prettyPrint( tree.getRoot() ) ;
             } // if()
             
-            singleList.clear() ;
-        } // while()
-    } catch ( MissingAtomOrLeftParException e ) {
-        cout << e.err_mesg() << endl ;
-    } catch ( MissingRightParException e ) {
-        cout << e.err_mesg() << endl ;
-    } catch ( NoClosingQuoteException e ) {
-        cout << e.err_mesg() << endl ;
-    } catch ( EOFException e ) {
-        cout << e.err_mesg() << endl ;
-    }
+            originalList.clear() ;
+            g.reset() ;
+            
+        } catch ( MissingAtomOrLeftParException e ) {
+            cout << e.err_mesg() << endl ;
+        } catch ( MissingRightParException e ) {
+            cout << e.err_mesg() << endl ;
+        } catch ( NoClosingQuoteException e ) {
+            cout << e.err_mesg() << endl ;
+        } catch ( EOFException e ) {
+            cout << e.err_mesg() << endl ;
+        }
+        
+    } // while()
     
     cout << endl << "Thanks for using OurScheme!" << endl ;
 

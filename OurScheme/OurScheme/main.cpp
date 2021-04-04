@@ -1109,7 +1109,7 @@ public:
         else cout << r -> lex << endl ;
     } // prettyPrintAtom()
     
-    void prettyPrintSExp( Node* r, Direction dir, int level ) {
+    void prettyPrintSExp( Node* r, Direction dir, int level, bool rightPart ) {
         
         int curLevel = level ;
         
@@ -1137,19 +1137,23 @@ public:
             
             if ( dir == LEFT ) {
                 if ( r -> left -> type != CONS ) {
-                    printWhite( curLevel ) ;
+                    if ( rightPart ) {
+                        printWhite( curLevel ) ;
+                    } // if()
                     cout << "(" << " " ;
                     prettyPrintAtom( r -> left ) ;
                 } // if()
                 else {
-                    printWhite( curLevel ) ;
+                    if ( rightPart ) {
+                        printWhite( curLevel ) ;
+                    } // if()
                     cout << "(" << " " ;
                     curLevel += 2 ; // A new group, level up
-                    prettyPrintSExp( r -> left, LEFT, curLevel ) ;
+                    prettyPrintSExp( r -> left, LEFT, curLevel, rightPart ) ;
                     curLevel -= 2 ;  // End of a new group, level down
                 } // else()
                 
-                return prettyPrintSExp( r -> right, RIGHT, curLevel ) ;
+                return prettyPrintSExp( r -> right, RIGHT, curLevel, true ) ;
             } // if()
             else if ( dir == RIGHT ){
                 if ( r -> left -> type != CONS ) {
@@ -1158,14 +1162,14 @@ public:
                 } // if()
                 else {
                     curLevel += 2 ; // A new group, level up
-                    prettyPrintSExp( r -> left, LEFT, curLevel ) ;
+                    prettyPrintSExp( r -> left, LEFT, curLevel, rightPart ) ;
                     curLevel -= 2 ;  // End of a new group, level down
                 } // else()
                 
-                return prettyPrintSExp( r -> right, RIGHT, curLevel ) ;
+                return prettyPrintSExp( r -> right, RIGHT, curLevel, true ) ;
             } // else()
             
-            return prettyPrintSExp( r -> right, RIGHT, curLevel ) ;
+            return prettyPrintSExp( r -> right, RIGHT, curLevel, true ) ;
             
         } // else()
         
@@ -1179,7 +1183,7 @@ public:
             prettyPrintAtom( r -> left ) ;
         }  // else if()
         else {
-            prettyPrintSExp( r, LEFT, 0 ) ;
+            prettyPrintSExp( r, LEFT, 0, false ) ;
         } // else()
     } // printTree()
     

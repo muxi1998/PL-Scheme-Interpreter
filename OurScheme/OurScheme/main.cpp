@@ -624,14 +624,10 @@ public:
       char ch = '\0' ;
 
       ch = cin.peek() ;  // peek whether the next char is in input
-      if ( ch == -1 ) { // -1 means EOF for cin.peek
+      if ( ( ch = cin.peek() ) == EOF ) { // -1 means EOF for cin.peek
         gIsEOF = true ;
         throw EOFException() ;
       } // if()
-      else if ( ch == ';' ) { // peek there is a comment
-        g.SkipLine() ;
-        ch = cin.peek() ;
-      } // else if()
             
       // before get a actual char, we need to skip all the white-spaces first
       while ( IsWhiteSpace( ch ) ) {
@@ -690,6 +686,12 @@ public:
       // PeekToken() ;
     } // if()
     */
+    while ( gPeekToken == ";") {
+      g.SkipLine() ;
+      gLine -- ; // doesn't count the comment line
+      PeekToken() ;
+    } // while()
+    
     Token tokenWeWant = LexToToken( gPeekToken ) ;
     gPeekToken = "" ;
     gOriginalList.AddNode( tokenWeWant ) ;
@@ -1319,7 +1321,7 @@ int main() {
   bool grammerCorrect = false ;
   
   cin >> uTestNum ;
-  char retuenLine = cin.get() ;
+  // char retuenLine = cin.get() ;
     
   cout << "Welcome to OurScheme!" << endl ;
   string inputStr = "" ;
@@ -1341,7 +1343,6 @@ int main() {
       
       gOriginalList.Clear() ;
       g.Reset() ;
-            
     } // catch()
     catch ( MissingAtomOrLeftParException e ) {
       cout << e.Err_mesg() << endl ;
@@ -1356,6 +1357,7 @@ int main() {
       cout << e.Err_mesg() << endl ;
     } // catch()
         
+    cout << endl ;
   } // while()
     
   cout << endl << "Thanks for using OurScheme!" << endl ;

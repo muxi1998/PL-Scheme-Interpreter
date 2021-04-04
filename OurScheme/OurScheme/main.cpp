@@ -153,6 +153,9 @@ public:
         else if ( type == NIL ) {
             token.str = "nil" ;
         } // else if()
+        else if ( type == QUOTE ) {
+            token.str = "quote" ;
+        } // else if()
         
         // assert: all information for this token has done
         
@@ -1021,7 +1024,18 @@ private:
     } // printWhite()
     
 public:
-    Tree( SingleList list ) : root(NULL), copyList( list ) {} ;
+    Tree( SingleList list ) : root(NULL), copyList( list ) {
+        if ( copyList.root -> token.type == QUOTE ) {
+            copyList.root -> token.str = "quote" ;
+            copyList.insertNode( copyList.root, LPAREN ) ;
+            Token token ;
+            token.str = ")" ;
+            token.type = RPAREN ;
+            token.line = -1 ;
+            token.column = -1 ;
+            copyList.addNode( token ) ;
+        } //  if()
+    } ;
     
     // Purpose: Transfer the DS from list to pointer (tree)
     // Pre-request: tokens in vector construct a S-exp with correct grammer

@@ -1137,10 +1137,12 @@ public:
             
             if ( dir == LEFT ) {
                 if ( r -> left -> type != CONS ) {
+                    printWhite( curLevel ) ;
                     cout << "(" << " " ;
                     prettyPrintAtom( r -> left ) ;
                 } // if()
                 else {
+                    printWhite( curLevel ) ;
                     cout << "(" << " " ;
                     curLevel += 2 ; // A new group, level up
                     prettyPrintSExp( r -> left, LEFT, curLevel ) ;
@@ -1155,7 +1157,9 @@ public:
                     prettyPrintAtom( r -> left ) ;
                 } // if()
                 else {
+                    curLevel += 2 ; // A new group, level up
                     prettyPrintSExp( r -> left, LEFT, curLevel ) ;
+                    curLevel -= 2 ;  // End of a new group, level down
                 } // else()
                 
                 return prettyPrintSExp( r -> right, RIGHT, curLevel ) ;

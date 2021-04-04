@@ -277,6 +277,38 @@ public:
         gPeekToken = "" ;
     } // skipLine()
     
+    void printStr( string str ) {
+        // \n \" \t \\
+        
+        for ( int i = 0 ; i < str.length() ; i ++ ) {
+            if ( str[ i ] == '\\' && i < str.length() - 1 ) { // this char is a '\\' and still has next char  behind
+                i ++ ; // skip '\\'
+                if ( str[ i ] == 'n' ) {
+                    cout << endl ;
+                } // if()
+                else if ( str[ i ] == 't' ) {
+                    cout << '\t' ;
+                } // else if()
+                else if  ( str[ i ] == '"') {
+                    cout << '"' ;
+                } // else if()
+                else if ( str[ i ] == '\\' ) {
+                    cout << '\\' ;
+                } // else if()
+                else { // simple '\'
+                    cout << str[ i ] ;
+                    i -- ;
+                } // else()
+                //i ++ ; // skip the char right behind '\\'
+            } // if()
+            else {
+                cout << str[ i ] ;
+            } //
+        } // for()
+        
+        cout << endl ;
+    } // printStr()
+    
 } ;
 
 GlobalFunction g ;
@@ -514,6 +546,14 @@ public:
         
         return true ;
     } // isFLOAT()
+    
+    bool isStr( string str ) {
+        if ( str[ 0 ] == '"' && str[ str.length() - 1 ] == '"' ) {
+            return true ;
+        } // if()
+        
+        return false ;
+    } // isStr()
     
     // Purpose: accept the token string from func. getToken(), and response the corresponding token value
     TokenType getTokenType( string str ) {
@@ -1048,6 +1088,9 @@ public:
         } // else()
         else if ( la.isFLOAT( r -> lex ) ) {
             cout << fixed << setprecision( 3 ) << g.getValueOfFloatStr( r -> lex ) << endl ;
+        } // else if()
+        else if ( la.isStr( r -> lex ) ) {
+            g.printStr( r -> lex ) ;
         } // else if()
         else cout << r -> lex << endl ;
     } // prettyPrintAtom()

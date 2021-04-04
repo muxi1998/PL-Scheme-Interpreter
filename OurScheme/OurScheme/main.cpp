@@ -21,1249 +21,1336 @@ using namespace std;
 // QUOTE 44*97 '
 // SYMBOL 18*97  // DO NOT contain '(', ')', '\'', '\"', white-space
 
-enum TokenType { LPAREN = 1067, RPAREN = 2134, INT = 1164, STRING = 1358, DOT = 3201, FLOAT = 1552, NIL = 1261, T = 2522, QUOTE = 4268, SYMBOL = 1746 } ;
+enum TokenType {
+  LPAREN = 1067, RPAREN = 2134, INT = 1164, STRING = 1358, DOT = 3201,
+  FLOAT = 1552, NIL = 1261, T = 2522, QUOTE = 4268, SYMBOL = 1746
+} ;
 
 enum NodeType { EMPTY = 0, ATOM = 1, CONS = 2, SPECIAL = 3 } ;
 
-static int gTestNum = 0 ;  // test num from PAL
-static int gLine = 1 ;  // the line of the token we recently "GET"
-static int gColumn = 0 ; // // the golumn of the token we recently "GET"
-static string gPeekToken = "" ;  // the recent token we peek BUT haven't "GET"
-static bool gIsEOF = false ; // if is TRUE means there doesn't have '(exit)'
+static int uTestNum = 0 ;  // test num from PAL
+int gLine = 1 ;  // the line of the token we recently "GET"
+int gColumn = 0 ; // // the golumn of the token we recently "GET"
+string gPeekToken = "" ;  // the recent token we peek BUT haven't "GET"
+bool gIsEOF = false ; // if is TRUE means there doesn't have '(exit)'
 
 struct Token {
-    string str ;  // the original apperance read from input
-    int line ;  // the line which this token exist
-    int column ;  // the column where this token exist
-    TokenType type ;  // type of the token
+  string str ;  // the original apperance read from input
+  int line ;  // the line which this token exist
+  int column ;  // the column where this token exist
+  TokenType type ;  // type of the token
 
-    Token() {
-        str = "" ;
-        line = 0 ;
-        column = 0 ;
-
-    } // constructor
+  // Token(): str( "" ), line( 0 ), column( 0 ) {} ; // constructor
+  /*
+  Token() {
+      str = "" ;
+      line = 0 ;
+      column = 0 ;
+  } // reset()
+  */
 } ;
 
-string enumToStr( TokenType type ) {
-    switch ( type ) {
-        case LPAREN:
-            return "LPAREN" ;
-            break ;
-        case RPAREN :
-            return "RPAREN" ;
-            break ;
-        case INT :
-            return "INT" ;
-            break ;
-        case STRING :
-            return "STRING" ;
-            break ;
-        case DOT :
-            return "DOT" ;
-            break ;
-        case FLOAT :
-            return "FLOAT" ;
-            break ;
-        case NIL :
-            return "NIL" ;
-            break ;
-        case T :
-            return "T" ;
-            break ;
-        case QUOTE :
-            return "QUOTE" ;
-            break ;
-        case SYMBOL :
-            return "SYMBOL" ;
-            break ;
-            
-        default:
-            break;
-    }
-} // enumToStr()
+string EnumToStr( TokenType type ) {
+  if ( type == LPAREN ) return "LPAREN" ;
+  else if ( type == RPAREN ) return "RPAREN" ;
+  else if ( type == INT ) return "INT" ;
+  else if ( type == STRING ) return "STRING" ;
+  else if ( type == DOT ) return "DOT" ;
+  else if ( type == FLOAT ) return "FLOAT" ;
+  else if ( type == NIL ) return "NIL" ;
+  else if ( type == T ) return "T" ;
+  else if ( type == QUOTE ) return "QUOTE" ;
+  else if ( type == SYMBOL ) return "SYMBOL" ;
+  
+  return "" ;
+} // EnumToStr()
+
 
 struct Node_Linear {
-    Token token ;
-    Node_Linear* next ;
-    Node_Linear* prev ;
+  Token token ;
+  Node_Linear* next ;
+  Node_Linear* prev ;
     
-    Node_Linear(): next( NULL ), prev( NULL ) {} ;
+    //  Node_Linear(): next( NULL ), prev( NULL ) {} ;
 } ;
 
 class SingleList {
     
 public:
     
-    Node_Linear* root ;
-    Node_Linear* tail ;
+  Node_Linear* mRoot ;
+  Node_Linear* mTail ;
     
-    Node_Linear* findNode( Token token ) {
-        Node_Linear* nodeWeWant = NULL ;
+  Node_Linear* FindNode( Token token ) {
+    Node_Linear* nodeWeWant = NULL ;
         
-        for ( Node_Linear* walk = root ; walk != NULL && nodeWeWant != NULL ; walk = walk -> next ) {
-            if ( token.str == walk -> token.str && token.line == walk -> token.line && token.column == walk -> token.column ) {
-                nodeWeWant = walk ;
-            } // if()
-        } // for()
+    for ( Node_Linear* walk = mRoot ; walk != NULL && nodeWeWant != NULL ; walk = walk -> next ) {
+      if ( token.str == walk -> token.str && token.line == walk -> token.line
+           && token.column == walk -> token.column ) {
+        nodeWeWant = walk ;
+      } // if()
+    } // for()
         
-        return nodeWeWant ;
-    } // findNode()
+    return nodeWeWant ;
+  } // FindNode()
     
-    // Purpose: Simply add a new node at the tail
-    void addNode( Token token ) {
-        Node_Linear* newNode = new Node_Linear ;
-        newNode -> token = token ;
+  // Purpose: Simply add a new node at the tail
+  void AddNode( Token token ) {
+    Node_Linear* newNode = new Node_Linear ;
+    newNode -> token = token ;
+    newNode -> prev = NULL ;
+    newNode -> next = NULL ;
         
-        if ( root == NULL ) { // empty
-            root = newNode ;
-            // newNode -> prev = root ;
-            tail = newNode ;
-        } // if()
-        else {
-            bool addSuccess = false ;
+    if ( mRoot == NULL ) { // empty
+      mRoot = newNode ;
+            // newNode -> prev = mRoot ;
+      mTail = newNode ;
+    } // if()
+    else {
+      bool addSuccess = false ;
             
-            for ( Node_Linear* walk = root ; walk != NULL && !addSuccess ; walk = walk -> next ) {
-                if ( walk -> next == NULL ) {
-                    walk -> next = newNode ;
-                    newNode -> prev = walk ;
-                    tail = newNode ;
-                    addSuccess = true ;
-                } // if()
-            } // for()
-        } // else()
-        
-    } // addNode()
-    
-    // Purpose: used to make up some DOT and () and NIL
-    void insertNode( Node_Linear* nodeBefore, TokenType type ) {
-        Token token ;
-        token.line = -1 ;
-        token.column = -1 ;
-        token.type = type ;
-        if ( type == DOT ) {
-            token.str = "." ;
+      for ( Node_Linear* walk = mRoot ; walk != NULL && !addSuccess ; walk = walk -> next ) {
+        if ( walk -> next == NULL ) {
+          walk -> next = newNode ;
+          newNode -> prev = walk ;
+          mTail = newNode ;
+          addSuccess = true ;
         } // if()
-        else if ( type == LPAREN ) {
-            token.str = "(" ;
-        } // else if()
-        else if ( type == RPAREN ) {
-            token.str = ")" ;
-        } // else if()
-        else if ( type == NIL ) {
-            token.str = "nil" ;
-        } // else if()
-        else if ( type == QUOTE ) {
-            token.str = "quote" ;
-        } // else if()
+      } // for()
+    } // else()
         
-        // assert: all information for this token has done
+  } // AddNode()
+    
+  // Purpose: used to make up some DOT and () and NIL
+  void InsertNode( Node_Linear* nodeBefore, TokenType type ) {
+    Token token ;
+    token.str  = "" ;
+    token.line = -1 ;
+    token.column = -1 ;
+    token.type = type ;
+    if ( type == DOT ) {
+      token.str = "." ;
+    } // if()
+    else if ( type == LPAREN ) {
+      token.str = "(" ;
+    } // else if()
+    else if ( type == RPAREN ) {
+      token.str = ")" ;
+    } // else if()
+    else if ( type == NIL ) {
+      token.str = "nil" ;
+    } // else if()
+    else if ( type == QUOTE ) {
+      token.str = "quote" ;
+    } // else if()
         
-        Node_Linear* newNode = new Node_Linear ;
-        newNode -> token = token ;
-        if ( nodeBefore == root ) {
-            newNode -> next = root ;
-            newNode -> prev = root ;
-            newNode -> next -> prev = newNode ;
-            root = newNode ;
-        } // if()
-        else {
-            newNode -> next = nodeBefore -> next ;
-            newNode -> prev = nodeBefore ;
-            newNode -> next -> prev = newNode ;
-            nodeBefore -> next = newNode ;
-        } // else()
+    // assert: all information for this token has done
         
-    } // insertNode()
+    Node_Linear* newNode = new Node_Linear ;
+    newNode -> token = token ;
+    newNode -> prev = NULL ;
+    newNode -> next = NULL ;
+    if ( nodeBefore == mRoot ) {
+      newNode -> next = mRoot ;
+      newNode -> prev = mRoot ;
+      newNode -> next -> prev = newNode ;
+      mRoot = newNode ;
+    } // if()
+    else {
+      newNode -> next = nodeBefore -> next ;
+      newNode -> prev = nodeBefore ;
+      newNode -> next -> prev = newNode ;
+      nodeBefore -> next = newNode ;
+    } // else()
+        
+  } // InsertNode()
     
-    void print() {
-        for ( Node_Linear* walk = root ; walk != NULL ; walk = walk -> next ) {
-            cout << walk -> token.str << "  (" << walk -> token.line << ", " << walk -> token.column << " ) " << enumToStr( walk -> token.type ) << endl ;
-        } // for()
-        cout << endl ;
-    } // print()
+  void Print() {
+    for ( Node_Linear* walk = mRoot ; walk != NULL ; walk = walk -> next ) {
+      cout << walk -> token.str << "  (" << walk -> token.line ;
+      cout << ", " << walk -> token.column << " ) " << EnumToStr( walk -> token.type ) << endl ;
+    } // for()
     
-    void printForward() {
-        cout << endl << "*** Print forward ***" << endl ;
-        for ( Node_Linear* walk = root ; walk != NULL ; walk = walk -> next ) {
-            cout << walk -> token.str << " " ;
-        } // for()
-    } // printForward()
+    cout << endl ;
+  } // Print()
     
-    void printBackforward() {
-        bool finish = false ;
-        cout << endl << "*** Print backward ***" << endl ;
-        for ( Node_Linear* walk = tail ; !finish ; walk = walk -> prev ) {
-            cout << walk -> token.str << " " ;
-            if ( walk == root ) finish = true ;
-        } // for()
-    } // printBackforward()
+  void PrintForward() {
+    cout << endl << "*** Print forward ***" << endl ;
+    for ( Node_Linear* walk = mRoot ; walk != NULL ; walk = walk -> next ) {
+      cout << walk -> token.str << " " ;
+    } // for()
+  } // PrintForward()
     
-    void clear() {
-        while ( root != NULL ) {
-            Node_Linear* current = root ;
-            root = root -> next ;
-            delete current ;
-            current = NULL ;
-        } // while()
-        root = NULL ;
-    } // clear()
+  void PrintBackforward() {
+    bool finish = false ;
+    cout << endl << "*** Print backward ***" << endl ;
+    for ( Node_Linear* walk = mTail ; !finish ; walk = walk -> prev ) {
+      cout << walk -> token.str << " " ;
+      if ( walk == mRoot ) finish = true ;
+    } // for()
+  } // PrintBackforward()
+    
+  void Clear() {
+    while ( mRoot != NULL ) {
+      Node_Linear* current = mRoot ;
+      mRoot = mRoot -> next ;
+      delete current ;
+      current = NULL ;
+    } // while()
+    
+    mRoot = NULL ;
+  } // Clear()
     
 } ;
 
-SingleList originalList ;
+SingleList gOriginalList ;
 
 class GlobalFunction { // the functions that may be used in anywhere
     
 public:
-    string intToStr( int num ) {
-        string str = "" ;
-        if ( num == 0 ) return "0" ;
+  string IntToStr( int num ) {
+    string str = "" ;
+    if ( num == 0 ) return "0" ;
         
-        while ( num != 0 ) {
-            str = ( char ) ( '0' + ( num % 10 ) ) + str ;
-            num /= 10 ;
-        } // while()
+    while ( num != 0 ) {
+      str = ( char ) ( '0' + ( num % 10 ) ) + str ;
+      num /= 10 ;
+    } // while()
         
-        return str ;
-    } // intToStr()
+    return str ;
+  } // IntToStr()
     
-    int getValueOfIntStr( string str ) {
-        int num = 0 ;
-        char sign = '\0' ;
+  int GetValueOfIntStr( string str ) {
+    int num = 0 ;
+    char sign = '\0' ;
         
-        if ( str[ 0 ] == '+' || str[ 0 ] == '-' ) {
-            sign = str[ 0 ] ;
-            str.erase( str.begin(), str.begin() + 1 ) ; // take off the sign char
+    if ( str[ 0 ] == '+' || str[ 0 ] == '-' ) {
+      sign = str[ 0 ] ;
+      str.erase( str.begin(), str.begin() + 1 ) ; // take off the sign char
+    } // if()
+        
+    num = atoi( str.c_str() ) ;
+        
+    if ( sign == '-' ) {
+      num *= -1 ;
+    } // if()
+        
+    return num ;
+  } // GetValueOfIntStr()
+    
+  float GetValueOfFloatStr( string str ) {
+    float num = 0.0 ;
+    char sign = '\0' ;
+        
+    if ( str[ 0 ] == '+' || str[ 0 ] == '-' ) {
+      sign = str[ 0 ] ;
+      str.erase( str.begin(), str.begin() + 1 ) ; // take off the sign char
+    } // if()
+        
+    num = atof( str.c_str() ) ;
+        
+    if ( sign == '-' ) {
+      num *= -1.0 ;
+    } // if()
+        
+    return num ;
+  } // GetValueOfFloatStr()
+    
+  void Reset() {
+    gLine = 1 ;
+    gColumn = 0 ;
+    gOriginalList.Clear() ;
+  } // Reset()
+    
+  void SkipLine() {
+    char ch = cin.peek() ;
+    while ( ch != '\n' ) {
+      ch = cin.get() ;
+      ch = cin.peek() ;
+    } // while()
+        
+    gPeekToken = "" ;
+  } // SkipLine()
+    
+  void PrintStr( string str ) {
+    // \n \" \t \\
+        
+    for ( int i = 0 ; i < str.length() ; i ++ ) {
+      // this char is a '\\' and still has next char  behind
+      if ( str[ i ] == '\\' && i < str.length() - 1 ) {
+        i ++ ; // skip '\\'
+        if ( str[ i ] == 'n' ) {
+          cout << endl ;
         } // if()
+        else if ( str[ i ] == 't' ) {
+          cout << '\t' ;
+        } // else if()
+        else if  ( str[ i ] == '"' ) {
+          cout << '"' ;
+        } // else if()
+        else if ( str[ i ] == '\\' ) {
+          cout << '\\' ;
+        } // else if()
+        else { // simple '\'
+          cout << str[ i ] ;
+          i -- ;
+        } // else()
+        // i ++ ; // skip the char right behind '\\'
+      } // if()
+      else {
+        cout << str[ i ] ;
+      } // else()
+    } // for()
         
-        num = atoi( str.c_str() ) ;
-        
-        if ( sign == '-' ) {
-            num *= -1 ;
-        } // if()
-        
-        return num ;
-    } // getValueOfIntStr()
-    
-    float getValueOfFloatStr( string str ) {
-        float num = 0.0 ;
-        char sign = '\0' ;
-        
-        if ( str[ 0 ] == '+' || str[ 0 ] == '-' ) {
-            sign = str[ 0 ] ;
-            str.erase( str.begin(), str.begin() + 1 ) ; // take off the sign char
-        } // if()
-        
-        num = atof( str.c_str() ) ;
-        
-        if ( sign == '-' ) {
-            num *= -1.0 ;
-        } // if()
-        
-        return num ;
-    } // getValueOfFloatStr
-    
-    void reset() {
-        gLine = 1 ;
-        gColumn = 0 ;
-        originalList.clear() ;
-    } // reset()
-    
-    void skipLine() {
-        char ch = cin.peek() ;
-        while ( ch != '\n' ) {
-            ch = cin.get() ;
-            ch = cin.peek() ;
-        } // while()
-        
-        gPeekToken = "" ;
-    } // skipLine()
-    
-    void printStr( string str ) {
-        // \n \" \t \\
-        
-        for ( int i = 0 ; i < str.length() ; i ++ ) {
-            if ( str[ i ] == '\\' && i < str.length() - 1 ) { // this char is a '\\' and still has next char  behind
-                i ++ ; // skip '\\'
-                if ( str[ i ] == 'n' ) {
-                    cout << endl ;
-                } // if()
-                else if ( str[ i ] == 't' ) {
-                    cout << '\t' ;
-                } // else if()
-                else if  ( str[ i ] == '"') {
-                    cout << '"' ;
-                } // else if()
-                else if ( str[ i ] == '\\' ) {
-                    cout << '\\' ;
-                } // else if()
-                else { // simple '\'
-                    cout << str[ i ] ;
-                    i -- ;
-                } // else()
-                //i ++ ; // skip the char right behind '\\'
-            } // if()
-            else {
-                cout << str[ i ] ;
-            } //
-        } // for()
-        
-        cout << endl ;
-    } // printStr()
+    cout << endl ;
+  } // PrintStr()
     
 } ;
 
 GlobalFunction g ;
 
-class MissingAtomOrLeftParException : public exception {
+class MissingAtomOrLeftParException {
 private:
-    int line ;
-    int col ;
-    string str ;
+  int mLine ;
+  int mCol ;
+  string mStr ;
     
 public:
-    MissingAtomOrLeftParException( int l, int c, string s ) : line( l ), col( c ), str( s ) {}
-    string err_mesg() {
-        string mesg = "" ;
-        mesg = "ERROR (unexpected token) : atom or '(' expected when token at Line " + g.intToStr( line ) + " Column " + g.intToStr( col - ( int ) str.length() + 1 ) + " is >>" + str + "<<" ;
-        g.skipLine() ;
-        int tmpGLine = gLine ;
-        g.reset() ;
-        gLine = tmpGLine ;
+  MissingAtomOrLeftParException( int l, int c, string s ) {
+    mLine = l ;
+    mCol = c ;
+    mStr = s ;
+  } // MissingAtomOrLeftParException()
+    
+  string Err_mesg() {
+    string mesg = "" ;
+    mesg = "ERROR (unexpected token) : atom or '(' expected when token at Line " + g.IntToStr( mLine )
+    + " Column " + g.IntToStr( mCol - ( int ) mStr.length() + 1 ) + " is >>" + mStr + "<<" ;
+    g.SkipLine() ;
+    int tmpGLine = gLine ;
+    g.Reset() ;
+    gLine = tmpGLine ;
         
-        return mesg ;
-    } // err_mesg()
+    return mesg ;
+  } // Err_mesg()
 } ; // MissingAtomOrLeftParException
 
-class MissingRightParException : public exception {
+class MissingRightParException {
 private:
-    int line ;
-    int col ;
-    string str ;
+  int mLine ;
+  int mCol ;
+  string mStr ;
     
 public:
-    MissingRightParException( int l, int c, string s ) : line( l ), col( c ), str( s ) {}
-    string err_mesg() {
-        string mesg = "" ;
-        mesg = "ERROR (unexpected token) : ')' expected when token at Line " + g.intToStr( line ) + " Column " + g.intToStr( col - ( int ) str.length() + 1 ) + " is >>" + str + "<<" ;
-        g.skipLine() ;
-        int tmpGLine = gLine ;
-        g.reset() ;
-        gLine = tmpGLine ;
+  MissingRightParException( int l, int c, string s ) {
+    mLine = l ;
+    mCol = c ;
+    mStr = s ;
+  } // MissingRightParException()
+    
+  string Err_mesg() {
+    string mesg = "" ;
+    mesg = "ERROR (unexpected token) : ')' expected when token at Line " + g.IntToStr( mLine )
+    + " Column " + g.IntToStr( mCol - ( int ) mStr.length() + 1 ) + " is >>" + mStr + "<<" ;
+    g.SkipLine() ;
+    int tmpGLine = gLine ;
+    g.Reset() ;
+    gLine = tmpGLine ;
         
-        return mesg ;
-    } // err_mesg()
+    return mesg ;
+  } // Err_mesg()
 } ; // MissingRightParException
 
-class NoClosingQuoteException : public exception {
+class NoClosingQuoteException {
 private:
-    int line ;
-    int col ;
+  int mLine ;
+  int mCol ;
     
 public:
-    NoClosingQuoteException( int l, int c ) : line( l ), col( c ) {}
-    string err_mesg() {
-        string mesg = "" ;
-        mesg = "ERROR (no closing quote) : END-OF-LINE encountered at Line " + g.intToStr( line ) + " Column " + g.intToStr( col ) ;
-        int tmpGLine = gLine ;
-        g.reset() ;
-        gLine = tmpGLine ;
+  NoClosingQuoteException( int l, int c ) {
+    mLine = l ;
+    mCol = c ;
+  } // NoClosingQuoteException()
+    
+  string Err_mesg() {
+    string mesg = "" ;
+    mesg = "ERROR (no closing quote) : END-OF-LINE encountered at Line " + g.IntToStr( mLine )
+    + " Column " + g.IntToStr( mCol ) ;
+    int tmpGLine = gLine ;
+    g.Reset() ;
+    gLine = tmpGLine ;
         
-        return mesg ;
-    } // err_mesg()
+    return mesg ;
+  } // Err_mesg()
 } ; // NoClosingQuoteException
 
-class EOFException : public exception {
+class EOFException {
 public:
-    string err_mesg() {
-        string mesg = "" ;
-        mesg = "ERROR (no more input) : END-OF-FILE encountered" ;
-        int tmpGLine = gLine ;
-        g.reset() ;
-        gLine = tmpGLine ;
+  string Err_mesg() {
+    string mesg = "" ;
+    mesg = "ERROR (no more input) : END-OF-FILE encountered" ;
+    int tmpGLine = gLine ;
+    g.Reset() ;
+    gLine = tmpGLine ;
         
-        return mesg ;
-    } // err_mesg()
+    return mesg ;
+  } // Err_mesg()
 } ; // EOFException
 
 class LexicalAnalyzer {
     
 private:
 
-    bool isSeparator( char ch ) {
-        if ( ch == '(' || ch == ')' || ch == '\'' || ch == '\"' || ch == ';' ) {
-            return true ;
-        } // if()
+  bool IsSeparator( char ch ) {
+    if ( ch == '(' || ch == ')' || ch == '\'' || ch == '\"' || ch == ';' ) {
+      return true ;
+    } // if()
 
-        return false ;
-    } // isSepatator()
+    return false ;
+  } // IsSeparator()
     
-    bool isReturnLine( char ch ) {
-        if ( ch == '\n' || ch == '\r' ) {  // Because Linux has '\r' character, I added '\r' as one circumstance
-            return true ;
-        } // if()
+  bool IsReturnLine( char ch ) {
+    // Because Linux has '\r' character, I added '\r' as one circumstance
+    if ( ch == '\n' || ch == '\r' ) {
+      return true ;
+    } // if()
             
-        return false ;
-    } // isReturnLine()
+    return false ;
+  } // IsReturnLine()
     
-    bool isWhiteSpace( char ch ) {
-        if ( ch == ' '|| ch == '\t' || isReturnLine( ch )) {  // Because Linux has '\r' character, I added '\r' as one circumstance
-            return true ;
-        } // if()
+  bool IsWhiteSpace( char ch ) {
+    // Because Linux has '\r' character, I added '\r' as one circumstance
+    if ( ch == ' ' || ch == '\t' || IsReturnLine( ch ) ) {
+      return true ;
+    } // if()
 
-        return false ;
-    } // isWhiteSpace()
+    return false ;
+  } // IsWhiteSpace()
     
-    string formatFloat( string str ) {
-        string formatStr = "" ;
+  string FormatFloat( string str ) {
+    string formatStr = "" ;
         
-        if ( str[ str.length() - 1 ] == '.' ) { // float num end with a dot
-            formatStr = str + "000" ; // put some zero in it
-        } // if()
-        else if ( str[ 0 ] == '.' ) { // float num start with the dot
-            formatStr = "0" + str ;
-        } // else if()
-        else {
-            int dotIndex = ( int ) str.find( '.' ) ;
-            int count = ( int )str.length() - dotIndex ;
-            formatStr = str ;
-            for ( int i = 0 ; i < count ; i ++ ) {
-                formatStr = formatStr + "0" ;
-            } //  for()
+    if ( str[ str.length() - 1 ] == '.' ) { // float num end with a dot
+      formatStr = str + "000" ; // put some zero in it
+    } // if()
+    else if ( str[ 0 ] == '.' ) { // float num start with the dot
+      formatStr = "0" + str ;
+    } // else if()
+    else {
+      int dotIndex = ( int ) str.find( '.' ) ;
+      int count = ( int ) str.length() - dotIndex ;
+      formatStr = str ;
+      for ( int i = 0 ; i < count ; i ++ ) {
+        formatStr = formatStr + "0" ;
+      } // for()
             
-        } // else()
+    } // else()
         
-        return formatStr ;
-    } // formatFloat()
+    return formatStr ;
+  } // FormatFloat()
         
-    // Purpose: not only call the func. cin.get(), but also increase the column or line
-    char getChar() {
-        char ch = '\0' ;
-        ch = cin.get() ;
-        if ( isReturnLine( ch ) ) {
-            gLine ++ ;
-            gColumn = 0 ;
-        } // if()
-        else  {
-            gColumn ++ ;
-        } // else()
+  // Purpose: not only call the func. cin.get(), but also increase the column or line
+  char GetChar() {
+    char ch = '\0' ;
+    ch = cin.get() ;
+    if ( IsReturnLine( ch ) ) {
+      gLine ++ ;
+      gColumn = 0 ;
+    } // if()
+    else  {
+      gColumn ++ ;
+    } // else()
         
-        return ch ;
-    } // getChar()
+    return ch ;
+  } // GetChar()
     
-    string getFullStr( string fullStr ) {
-        // assert: 'ch' must be a peeked char which is '\"'
-        bool keepRead = true ;
-        char ch_get = '\0' ;
-        char ch_peek = '\0' ;
+  string GetFullStr( string fullStr ) {
+    // assert: 'ch' must be a peeked char which is '\"'
+    bool keepRead = true ;
+    char ch_get = '\0' ;
+    char ch_peek = '\0' ;
             
-        ch_peek = cin.peek() ;
-        // because we need to get a string, keep reading the input until encounter the next '\"' or return-line
-        while ( keepRead && !isReturnLine( ch_peek ) ) {
-            ch_get = getChar() ;
-            fullStr += ch_get ;
-            ch_peek = cin.peek() ;
+    ch_peek = cin.peek() ;
+    // because we need to get a string, keep reading the input until
+    // encounter the next '\"' or return-line
+    while ( keepRead && !IsReturnLine( ch_peek ) ) {
+      ch_get = GetChar() ;
+      fullStr += ch_get ;
+      ch_peek = cin.peek() ;
             
-            if ( ch_peek == '\"' && ch_get != '\\' )  { // >"< stands alone
-                keepRead = false ;
-            } // if()
-        } // while()
+      if ( ch_peek == '\"' && ch_get != '\\' )  { // >"< stands alone
+        keepRead = false ;
+      } // if()
+    } // while()
             
-        if ( ch_peek == '\"' ) {  // a complete string with a correct syntax
-            ch_get = getChar() ;
-            fullStr += ch_get ;
-        } // if()
-        else { // miss the ending quote
-            throw NoClosingQuoteException( gLine, gColumn + 1 ) ;
-        } // else()
+    if ( ch_peek == '\"' ) {  // a complete string with a correct syntax
+      ch_get = GetChar() ;
+      fullStr += ch_get ;
+    } // if()
+    else { // miss the ending quote
+      throw NoClosingQuoteException( gLine, gColumn + 1 ) ;
+    } // else()
         
-        return fullStr ;
-    } // getFullStr()
+    return fullStr ;
+  } // GetFullStr()
     
-    Token lexToToken( string lex ) {
-        Token token ;
-        if ( lex != "." && isFLOAT( lex ) ) {
-            // assert: float with a original format
-            // now  can start trandfer the float into the format which (int).(3 chars)
-            token.str = formatFloat( lex ) ;
-        } // if()
-        else {
-            token.str = lex ;
-        } // else()
-        token.line = gLine ;
-        token.column = gColumn - ( int ) lex.length() + 1 ;
-        token.type = getTokenType( lex ) ;
+  Token LexToToken( string lex ) {
+    Token token ;
+    token.str = "" ;
+    token.line = 0 ;
+    token.column = 0 ;
+    if ( lex != "." && IsFLOAT( lex ) ) {
+      // assert: float with a original format
+      // now  can start trandfer the float into the format which (int).(3 chars)
+      token.str = FormatFloat( lex ) ;
+    } // if()
+    else {
+      token.str = lex ;
+    } // else()
+    
+    token.line = gLine ;
+    token.column = gColumn - ( int ) lex.length() + 1 ;
+    token.type = GetTokenType( lex ) ;
         
-        return token ;
-    } // setTokenInfo()
+    return token ;
+  } // LexToToken()
 
 public:
     
-    bool isINT( string str ) {
-        // Mark1: there might be a sign char, such as '+' or '-'
-        // Mark2: except the sign char, other char should be a number
-        // Mark3: the  whole string cannot contain the dot
-        int startIndex = 0 ;  // to avoid the sign char if there has one
+  bool IsINT( string str ) {
+    // Mark1: there might be a sign char, such as '+' or '-'
+    // Mark2: except the sign char, other char should be a number
+    // Mark3: the  whole string cannot contain the dot
+    int startIndex = 0 ;  // to avoid the sign char if there has one
             
-        if ( str[ 0 ] == '+' || str[ 0 ] == '-' ) {
-            startIndex = 1 ;  // the checking process start after the sign char
-        } // if()
+    if ( str[ 0 ] == '+' || str[ 0 ] == '-' ) {
+      startIndex = 1 ;  // the checking process start after the sign char
+    } // if()
             
-        for ( int i = startIndex ;  i < str.length() ; i ++ ) {
-            if ( !( str[ i ] <= '9' && str[ i ] >= '0' ) ) {
-                return false ;
-            } // if()
-        } // for()
-            
-        return true ;
-    } // isINT()
-    
-    // Purpose: recognize whether this string is a FLOAT
-    // Return: true or false
-    bool isFLOAT( string &str ) {
-        // Mark1: there might be a sign char, such as '+' or '-'
-        // Mark2: except the sign char, other char should be a number
-        // Mark3: the whole string SHOULD contain the dot, NO MATTER the position of the dot is, but should be only dot
-        // Mark4: if there appear another dot after already get one, then might be a SYMBOL
-        int dotNum = 0 ;  // only can have ONE dot
-        int startIndex = 0 ;  // the checking process start after the sign char
-        
-        if ( str[ 0 ] == '+' || str[ 0 ] == '-' ) {
-            startIndex = 1 ;  // the checking process start after the sign char
-        } // if()
-            
-        for ( int i = startIndex ;  i < str.length() ; i ++ ) {
-            if ( str[ i ] == '.' ) {
-                dotNum ++ ;  // every time we encounter a dot, count it
-            } // if()
-                
-            if ( !( str[ i ] <= '9' && str[ i ] >= '0' ) && str[ i ] != '.' ) {
-                return false ;
-            } // if()
-        } // for()
-            
-        if ( dotNum != 1 ) {
-            return false ;
-        } // if()
-        
-        return true ;
-    } // isFLOAT()
-    
-    bool isStr( string str ) {
-        if ( str[ 0 ] == '"' && str[ str.length() - 1 ] == '"' ) {
-            return true ;
-        } // if()
-        
+    for ( int i = startIndex ;  i < str.length() ; i ++ ) {
+      if ( ! ( str[ i ] <= '9' && str[ i ] >= '0' ) ) {
         return false ;
-    } // isStr()
-    
-    // Purpose: accept the token string from func. getToken(), and response the corresponding token value
-    TokenType getTokenType( string str ) {
-        
-        if ( str == "(" ) {  // Left parameter
-            return LPAREN ;
-        } // if()
-        else if ( str == ")" ) {  // Right parameter
-            return RPAREN ;
-        } // else if()
-        else if ( str == "." ) {  // Dot
-            return DOT ;
-        } // else if()
-        else if ( str == "\'" ) {  // Quote
-            return QUOTE ;
-        } // else if()
-        else if ( str == "nil" || str == "#f" ) {  // NIL
-            return NIL ;
-        } // else if()
-        else if ( str == "t" || str == "#t" ) {  // T
-            return T ;
-        } // else if()
-        else if ( isINT( str ) ) {
-            return INT ;
-        } // else if()
-        else if ( isFLOAT( str ) ) {
-            return FLOAT ;
-        } // else if()
-        else if ( str[ 0 ] == '\"' ) {
-            return STRING ;
-        } // else if()
-        
-        return SYMBOL ;  // none of the above, then assume it's symbol
-    } // getTokenType()
-    
-    string peekToken() {
-        string tokenStrWeGet = "" ;
-        
-        if ( gPeekToken == "" ) {
-            char ch = '\0' ;
-
-            ch = cin.peek() ;  // peek whether the next char is in input
-            if ( ch == EOF ) {
-                throw EOFException() ;
-            } // if()
+      } // if()
+    } // for()
             
-            while ( isWhiteSpace( ch ) ) {  // before get a actual char, we need to skip all the white-spaces first
-                ch = cin.get() ;  // take away this white-space
-                gColumn ++ ;
+    return true ;
+  } // IsINT()
+    
+  // Purpose: recognize whether this string is a FLOAT
+  // Return: true or false
+  bool IsFLOAT( string &str ) {
+    // Mark1: there might be a sign char, such as '+' or '-'
+    // Mark2: except the sign char, other char should be a number
+    // Mark3: the whole string SHOULD contain the dot,
+    // NO MATTER the position of the dot is, but should be only dot
+    // Mark4: if there appear another dot after already get one,
+    // then might be a SYMBOL
+    int dotNum = 0 ;  // only can have ONE dot
+    int startIndex = 0 ;  // the checking process start after the sign char
+        
+    if ( str[ 0 ] == '+' || str[ 0 ] == '-' ) {
+      startIndex = 1 ;  // the checking process start after the sign char
+    } // if()
+            
+    for ( int i = startIndex ;  i < str.length() ; i ++ ) {
+      if ( str[ i ] == '.' ) {
+        dotNum ++ ;  // every time we encounter a dot, count it
+      } // if()
                 
-                if ( isReturnLine( ch ) ) {
-                    gLine ++ ;
-                    gColumn = 0 ;
-                } // if()
+      if ( ! ( str[ i ] <= '9' && str[ i ] >= '0' ) && str[ i ] != '.' ) {
+        return false ;
+      } // if()
+    } // for()
+            
+    if ( dotNum != 1 ) {
+      return false ;
+    } // if()
+        
+    return true ;
+  } // IsFLOAT()
+    
+  bool IsStr( string str ) {
+    if ( str[ 0 ] == '"' && str[ str.length() - 1 ] == '"' ) {
+      return true ;
+    } // if()
+        
+    return false ;
+  } // IsStr()
+    
+  // Purpose: accept the token string from func. GetToken(), and response the corresponding token value
+  TokenType GetTokenType( string str ) {
+        
+    if ( str == "(" ) {  // Left parameter
+      return LPAREN ;
+    } // if()
+    else if ( str == ")" ) {  // Right parameter
+      return RPAREN ;
+    } // else if()
+    else if ( str == "." ) {  // Dot
+      return DOT ;
+    } // else if()
+    else if ( str == "\'" ) {  // Quote
+      return QUOTE ;
+    } // else if()
+    else if ( str == "nil" || str == "#f" ) {  // NIL
+      return NIL ;
+    } // else if()
+    else if ( str == "t" || str == "#t" ) {  // T
+      return T ;
+    } // else if()
+    else if ( IsINT( str ) ) {
+      return INT ;
+    } // else if()
+    else if ( IsFLOAT( str ) ) {
+      return FLOAT ;
+    } // else if()
+    else if ( str[ 0 ] == '\"' ) {
+      return STRING ;
+    } // else if()
+        
+    return SYMBOL ;  // none of the above, then assume it's symbol
+  } // GetTokenType()
+    
+  string PeekToken() {
+    string tokenStrWeGet = "" ;
+        
+    if ( gPeekToken == "" ) {
+      char ch = '\0' ;
+
+      ch = cin.peek() ;  // peek whether the next char is in input
+      if ( ch == -1 ) { // -1 means EOF for cin.peek
+        gIsEOF = true ;
+        throw EOFException() ;
+      } // if()
+            
+      // before get a actual char, we need to skip all the white-spaces first
+      while ( IsWhiteSpace( ch ) ) {
+        ch = cin.get() ;  // take away this white-space
+        gColumn ++ ;
                 
-                ch = cin.peek() ;  // keep peeking next char
-            } // while()
-
-            // assert: finally get a char which is not a white-space, now can start to construct a token
-            ch = getChar() ;  // since this char is not a white-space, we can get it from the input
-            tokenStrWeGet += ch ;  // directly add the first non-white-space char into the token string
-
-            // if this char is already a separator then STOP reading, or keep getting the next char
-            if ( !isSeparator( ch ) && ch != '\"' ) {  // 'ch' here is the first char overall
-                ch = cin.peek() ;
-
-                while ( !isSeparator( ch ) && !isWhiteSpace( ch ) ) {
-                    ch = getChar() ;
-                    tokenStrWeGet += ch ;
-                    ch = cin.peek() ;
-                } // while()
-                
-            } // if()
-            else if ( ch == '\"' ) {
-                // assert: we get the whole token
-                tokenStrWeGet = getFullStr( tokenStrWeGet ) ;
-            } // else if()
-
-            // assert: we get the whole token
-            gPeekToken = tokenStrWeGet ;
+        if ( IsReturnLine( ch ) ) {
+          gLine ++ ;
+          gColumn = 0 ;
         } // if()
-        
-        return gPeekToken ;
-        
-    } // peekToken()
+                
+        ch = cin.peek() ;  // keep peeking next char
+      } // while()
 
-    Token getToken() {
-        if ( gPeekToken == "" ) peekToken() ;
-        
-        if ( gPeekToken == ";" ) { // encounter a line comment
-            char ch = getchar() ;
-            while ( !isReturnLine( ch ) ) {
-                ch = getchar() ;
-            } // while()
-            gLine ++ ;
-            gColumn = 0 ;
-            gPeekToken = "" ;
-            peekToken() ;
-        } // if()
-        
-        Token tokenWeWant = lexToToken( gPeekToken ) ;
-        gPeekToken = "" ;
-        originalList.addNode( tokenWeWant ) ;
+      // assert: finally get a char which is not a white-space, now can start to construct a token
+      ch = GetChar() ;  // since this char is not a white-space, we can get it from the input
+      tokenStrWeGet += ch ;  // directly add the first non-white-space char into the token string
 
-        return tokenWeWant ;
-    } // getToken()
+      // if this char is already a separator then STOP reading, or keep getting the next char
+      if ( !IsSeparator( ch ) && ch != '\"' ) {  // 'ch' here is the first char overall
+        ch = cin.peek() ;
+
+        while ( !IsSeparator( ch ) && !IsWhiteSpace( ch ) ) {
+          ch = GetChar() ;
+          tokenStrWeGet += ch ;
+          ch = cin.peek() ;
+        } // while()
+                
+      } // if()
+      else if ( ch == '\"' ) {
+        // assert: we get the whole token
+        tokenStrWeGet = GetFullStr( tokenStrWeGet ) ;
+      } // else if()
+
+      // assert: we get the whole token
+      gPeekToken = tokenStrWeGet ;
+    } // if()
+        
+    return gPeekToken ;
+        
+  } // PeekToken()
+
+  Token GetToken() {
+    if ( gPeekToken == "" ) PeekToken() ;
+        
+    if ( gPeekToken == ";" ) { // encounter a line comment
+      char ch = GetChar() ;
+      while ( !IsReturnLine( ch ) ) {
+        ch = GetChar() ;
+      } // while()
+      
+      gLine ++ ;
+      gColumn = 0 ;
+      gPeekToken = "" ;
+      PeekToken() ;
+    } // if()
+      
+    Token tokenWeWant = LexToToken( gPeekToken ) ;
+    gPeekToken = "" ;
+    gOriginalList.AddNode( tokenWeWant ) ;
+
+    return tokenWeWant ;
+  } // GetToken()
 
 };
 
-// Purpose: Check the statement, if nothin wrong the build the tree, else print the error
+// Purpose: Check the statement, if nothin wrong the build the tree, else Print the error
 class SyntaxAnalyzer {
     
 private:
     
-    LexicalAnalyzer la ;
+  LexicalAnalyzer mLa ;
     
 public:
     
-    bool checkSExp( Token startToken ) {
-        // assert: startToken can only has three possibility
-        // 1.Atom 2.LP 3.Quote *4.LR RP
+  bool CheckSExp( Token startToken ) {
+    // assert: startToken can only has three possibility
+    // 1.Atom 2.LP 3.Quote *4.LR RP
         
-        if ( startToken.type == LPAREN && la.getTokenType( la.peekToken() ) == RPAREN ) { // this is a NIL with special format >()<
-            la.getToken() ; // take away the RP from the input
+    // this is a NIL with special format >()<
+    if ( startToken.type == LPAREN && mLa.GetTokenType( mLa.PeekToken() ) == RPAREN ) {
+      mLa.GetToken() ; // take away the RP from the input
             
-            return true ; // one of an ATOM
-        } // if()
-        else if ( isATOM( startToken ) ) {
-            return true ;
-        } // else if()
-        else if ( startToken.type == QUOTE ) {
-            Token token = la.getToken() ; // get the next token, suppose to be the start of a S-exp
+      return true ; // one of an ATOM
+    } // if()
+    else if ( IsATOM( startToken ) ) {
+      return true ;
+    } // else if()
+    else if ( startToken.type == QUOTE ) {
+      Token token = mLa.GetToken() ; // get the next token, suppose to be the start of a S-exp
             
-            return  checkSExp( token ) ;
-        } // else if()
-        else if ( startToken.type == LPAREN ) {
-            // suppose to have at least ONE S-exp
-            bool hasOneSExpCorrect = false ;
-            bool moreSExpCorrect = true ;
+      return  CheckSExp( token ) ;
+    } // else if()
+    else if ( startToken.type == LPAREN ) {
+      // suppose to have at least ONE S-exp
+      bool hasOneSExpCorrect = false ;
+      bool moreSExpCorrect = true ;
             
-            Token token = la.getToken() ; // get the next token, suppose to be the start of a S-exp
-            hasOneSExpCorrect = checkSExp( token ) ;
+      Token token = mLa.GetToken() ; // get the next token, suppose to be the start of a S-exp
+      hasOneSExpCorrect = CheckSExp( token ) ;
             
-            if ( hasOneSExpCorrect ) {
+      if ( hasOneSExpCorrect ) {
                 
-                while ( ( la.getTokenType( la.peekToken() ) == LPAREN || isATOM( la.peekToken() ) || la.getTokenType( la.peekToken() ) == QUOTE ) && moreSExpCorrect ) {
-                    token = la.getToken() ;
-                    moreSExpCorrect = checkSExp( token ) ;
+        while ( ( mLa.GetTokenType( mLa.PeekToken() ) == LPAREN
+                  || IsATOM( mLa.PeekToken() )
+                  || mLa.GetTokenType( mLa.PeekToken() ) == QUOTE )
+                && moreSExpCorrect ) {
+          token = mLa.GetToken() ;
+          moreSExpCorrect = CheckSExp( token ) ;
                     
-                    la.peekToken() ; // maybe successfully check a correct S-exp, keep peeking the next one
-                } // if()
+          mLa.PeekToken() ; // maybe successfully check a correct S-exp, keep peeking the next one
+        } // while()
                 
-                if ( !moreSExpCorrect ) { // there are more S-exp, but not all correct
-                    return false ;
-                } // if()
-                else {
-                    if ( la.getTokenType( la.peekToken() ) == DOT ) { // means only one S-exp in this left S-exp
-                        token = la.getToken() ; // must be DOT
-                        token = la.getToken() ; // must be the start of the next S-exp according to the grammer
+        if ( !moreSExpCorrect ) { // there are more S-exp, but not all correct
+          return false ;
+        } // if()
+        else {
+          // means only one S-exp in this left S-exp
+          if ( mLa.GetTokenType( mLa.PeekToken() ) == DOT ) {
+            token = mLa.GetToken() ; // must be DOT
+            // must be the start of the next S-exp according to the grammer
+            token = mLa.GetToken() ;
                         
-                        hasOneSExpCorrect = checkSExp( token ) ;
-                        if ( !hasOneSExpCorrect ) {
-                            throw MissingAtomOrLeftParException( gLine, gColumn, gPeekToken ) ;
-                            return false ;
-                        } // if()
-                        else {
-                            if ( la.getTokenType( la.peekToken() ) == RPAREN ) {
-                                token = la.getToken() ; // must be >)<
-                                
-                                return true ;
-                            } // if()
-                            else {
-                                throw MissingRightParException( gLine, gColumn, gPeekToken ) ;
-                                return false ;
-                            } // else()
-                        } // else()
-                        
-                    } // if()
-                    else if ( la.getTokenType( la.peekToken() ) == RPAREN ) {
-                        token = la.getToken() ; // must be >)<
-                        
-                        return true ;
-                    } // else if()
-                } // else()
-                
+            hasOneSExpCorrect = CheckSExp( token ) ;
+            if ( !hasOneSExpCorrect ) {
+              throw MissingAtomOrLeftParException( gLine, gColumn, gPeekToken ) ;
+              return false ;
             } // if()
             else {
-                throw MissingAtomOrLeftParException( gLine, gColumn, token.str ) ;
+              if ( mLa.GetTokenType( mLa.PeekToken() ) == RPAREN ) {
+                token = mLa.GetToken() ; // must be >)<
+                                
+                return true ;
+              } // if()
+              else {
+                throw MissingRightParException( gLine, gColumn, gPeekToken ) ;
+                return false ;
+              } // else()
             } // else()
+                        
+          } // if()
+          else if ( mLa.GetTokenType( mLa.PeekToken() ) == RPAREN ) {
+            token = mLa.GetToken() ; // must be >)<
+                        
+            return true ;
+          } // else if()
+        } // else()
+      } // if()
+      else {
+        throw MissingAtomOrLeftParException( gLine, gColumn, token.str ) ;
+      } // else()
             
-            return false ;
-        } // else if()
+      return false ;
+      
+    } // else if()
         
-        throw MissingAtomOrLeftParException( gLine, gColumn, startToken.str ) ;
+    throw MissingAtomOrLeftParException( gLine, gColumn, startToken.str ) ;
         
-        return false ; // none of the above begining
+    return false ; // none of the above begining
         
-    } // checkSExp()
+  } // CheckSExp()
 
-    bool isATOM( Token token ) {
-        TokenType type = token.type ;
-        if ( type == SYMBOL || type == INT || type == FLOAT || type == STRING || type == NIL || type == T ) {
-            return true ;
-        } // if()
+  bool IsATOM( Token token ) {
+    TokenType type = token.type ;
+    if ( type == SYMBOL || type == INT || type == FLOAT || type == STRING || type == NIL || type == T ) {
+      return true ;
+    } // if()
         
-        return false ;
-    } // checkATOM()
+    return false ;
+  } // IsATOM()
     
-    bool isATOM( string str ) {
-        TokenType type = la.getTokenType( str ) ;
-        if ( type == SYMBOL || type == INT || type == FLOAT || type == STRING || type == NIL || type == T ) {
-            return true ;
-        } // if()
+  bool IsATOM( string str ) {
+    TokenType type = mLa.GetTokenType( str ) ;
+    if ( type == SYMBOL || type == INT || type == FLOAT || type == STRING || type == NIL || type == T ) {
+      return true ;
+    } // if()
         
-        return false ;
-    } // isATOM()
+    return false ;
+  } // IsATOM()
 
 } ;
 
 struct Node {
-    string lex ; // the string (what it looks in the input file) of this token
-    NodeType type ; // Three possibility: 1.Atom  2.Special(NIL)  3.Cons
-    Node* left ;
-    Node* right ;
-    Node* parent ;
+  string lex ; // the string (what it looks in the input file) of this token
+  NodeType type ; // Three possibility: 1.Atom  2.Special(NIL)  3.Cons
+  Node* left ;
+  Node* right ;
+  Node* parent ;
 
-    Node() : lex(""), type(EMPTY), left(NULL), right(NULL), parent(NULL) {} ;
+    // Node() : lex(""), type(EMPTY), left(NULL), right(NULL), parent(NULL) {} ;
 };
 
 class Tree {
     
 private:
     
-    Node *root ;
-    SingleList copyList ;
+  Node *mRoot ;
+  SingleList mCopyList ;
     
-    LexicalAnalyzer la ;
-    SyntaxAnalyzer s ;
+  LexicalAnalyzer mLa ;
+  SyntaxAnalyzer mS ;
     
-    enum Direction { RIGHT = 1234, LEFT = 4321 } ;
+  enum Direction { RIGHT = 1234, LEFT = 4321 } ;
     
-    void transferNIL( Node_Linear* root, Node_Linear* tail ) {
-        bool finish = false ;
+  void TransferNIL( Node_Linear* root, Node_Linear* tail ) {
+    bool finish = false ;
         
-        // only ()
-        if ( root -> token.type == LPAREN && root -> next -> token.type == RPAREN ) {
-            Node_Linear* nilNode = new Node_Linear ;
-            nilNode -> token.str = "nil" ;
-            nilNode -> token.type = NIL ;
-            nilNode -> token.line = root -> token.line ;
-            nilNode -> token.column = root -> token.column ;
+    // only ()
+    if ( root -> token.type == LPAREN && root -> next -> token.type == RPAREN ) {
+      Node_Linear* nilNode = new Node_Linear ;
+      nilNode -> prev = NULL ;
+      nilNode -> next = NULL ;
+      nilNode -> token.str = "nil" ;
+      nilNode -> token.type = NIL ;
+      nilNode -> token.line = root -> token.line ;
+      nilNode -> token.column = root -> token.column ;
             
-            nilNode -> next = root -> next -> next ;
+      nilNode -> next = root -> next -> next ;
             
-            // Delete >)<
-            delete root -> next ;
-            root -> next = NULL ;
-            // Delete >(<
-            delete root ;
-            root = NULL ;
+      // Delete >)<
+      delete root -> next ;
+      root -> next = NULL ;
+      // Delete >(<
+      delete root ;
+      root = NULL ;
             
-            root = nilNode ;
-        } // if()
+      root = nilNode ;
+    } // if()
         
-        for ( Node_Linear* walk = root ; walk -> next != NULL && walk -> next -> next != NULL && !finish ; walk = walk -> next ) {
+    for ( Node_Linear* walk = root ;
+          walk -> next != NULL && walk -> next -> next != NULL && !finish ;
+          walk = walk -> next ) {
             
-            if ( walk -> next -> token.type == LPAREN && walk -> next -> next -> token.type == RPAREN ) {
-                Node_Linear* nilNode = new Node_Linear ;
-                nilNode -> token.str = "nil" ;
-                nilNode -> token.type = NIL ;
-                nilNode -> token.line = walk -> next -> token.line ;
-                nilNode -> token.column = walk -> next -> token.column ;
+      if ( walk -> next -> token.type == LPAREN && walk -> next -> next -> token.type == RPAREN ) {
+        Node_Linear* nilNode = new Node_Linear ;
+        nilNode -> prev = NULL ;
+        nilNode -> next = NULL ;
+        nilNode -> token.str = "nil" ;
+        nilNode -> token.type = NIL ;
+        nilNode -> token.line = walk -> next -> token.line ;
+        nilNode -> token.column = walk -> next -> token.column ;
                 
-                nilNode -> next = walk -> next -> next -> next ;
-                walk -> next -> next -> next -> prev = nilNode ;
+        nilNode -> next = walk -> next -> next -> next ;
+        walk -> next -> next -> next -> prev = nilNode ;
                 
-                // Delete >)<
-                delete walk -> next -> next ;
-                walk -> next -> next = NULL ;
-                // Delete >(<
-                delete walk -> next ;
-                walk -> next = nilNode ;
-                nilNode -> prev = walk ;
-            } // if()
+        // Delete >)<
+        delete walk -> next -> next ;
+        walk -> next -> next = NULL ;
+        // Delete >(<
+        delete walk -> next ;
+        walk -> next = nilNode ;
+        nilNode -> prev = walk ;
+      } // if()
+    } // for()
+  } // TransferNIL()
+    
+  Node_Linear* FindStrAndGetPreviousNode( Node_Linear* root, Node_Linear* tail, string str ) {
+        
+    Node_Linear* target = NULL ;
+        
+    if ( str == root -> token.str ) {
+      target = root ;
+      return target ;
+    } // if()
+        
+    for ( Node_Linear* walk = root ; walk != tail && target == NULL ; walk = walk -> next ) {
+      if ( str == walk -> token.str ) {
+        target = walk -> prev ;
+      } // if()
+    } // for()
+        
+    return target ;
+        
+  } // FindStrAndGetPreviousNode()
+    
+  Node_Linear* FindCorrespondPar( Node_Linear* par_L ) {
+    stack<Node_Linear*> nodeStack ;
+    Node_Linear* target = NULL ; // the pointer that pointed to the Right parathesis
+        
+    nodeStack.push( par_L ) ; // put the first left parathesis in the stack
+    for ( Node_Linear* walk = par_L -> next ;
+          target == NULL && !nodeStack.empty() ;
+          walk = walk -> next ) {
             
-        } // for()
+      if ( walk -> token.type == RPAREN ) {
+        // when encounter a right par,
+        // then keep pop out the items util meet the first left par
+        Node_Linear* node_pop = nodeStack.top() ;
+        while ( node_pop -> token.type != LPAREN ) {
+          nodeStack.pop() ;
+          node_pop = nodeStack.top() ;
+        } // while()
         
-    } // transferNIL()
-    
-    Node_Linear* findStrAndGetPreviousNode( Node_Linear* root, Node_Linear* tail, string str ) {
-        
-        Node_Linear* target = NULL ;
-        
-        if ( str == root -> token.str ) {
-            target = root ;
-            return target ;
-        } // if()
-        
-        for ( Node_Linear* walk = root ; walk != tail && target == NULL ; walk = walk -> next ) {
-            if ( str == walk -> token.str ) {
-                target = walk -> prev ;
-            } // if()
-        } // for()
-        
-        return target ;
-        
-    } // findStrAndGetPreviousNode()
-    
-    Node_Linear* findCorrespondPar( Node_Linear* par_L ) {
-        stack<Node_Linear*> nodeStack ;
-        Node_Linear* target = NULL ; // the pointer that pointed to the Right parathesis
-        
-        nodeStack.push( par_L ) ; // put the first left parathesis in the stack
-        for ( Node_Linear* walk = par_L -> next ; target == NULL && !nodeStack.empty() ; walk = walk -> next ) {
-            if ( walk -> token.type == RPAREN ) {
-                // when encounter a right par, then keep pop out the items util meet the first left par
-                Node_Linear* node_pop = nodeStack.top() ;
-                while ( node_pop -> token.type != LPAREN ) {
-                    nodeStack.pop() ;
-                    node_pop = nodeStack.top() ;
-                } // while()
-                nodeStack.pop() ; // pop out the left par
+        nodeStack.pop() ; // pop out the left par
                 
-                if ( nodeStack.empty() ) { // this left par is the last one
-                    target = walk ;
-                } // if()
-            } // if()
-            else {
-                nodeStack.push( walk ) ;
-            } // else()
-        } // for()
+        if ( nodeStack.empty() ) { // this left par is the last one
+          target = walk ;
+        } // if()
+      } // if()
+      else {
+        nodeStack.push( walk ) ;
+      } // else()
+    } // for()
         
-        return target ;
-    } // findCorrespondPar()
+    return target ;
+  } // FindCorrespondPar()
     
-    Node_Linear* findDOT( Node_Linear* root, Node_Linear* tail ) {
-        stack<Node_Linear*> s ;
-        int count = 0 ;
+  Node_Linear* FindDOT( Node_Linear* root, Node_Linear* tail ) {
+    stack<Node_Linear*> s ;
+    int count = 0 ;
         
-        s.push( tail ) ;
-        if ( tail -> prev != NULL && tail -> prev -> token.type != RPAREN ) {
-            if (  tail -> prev -> prev != NULL && tail -> prev -> prev -> token.type != DOT ) {
-                return NULL ;
-            } // if()
-            else {
-                return tail -> prev -> prev ;
-            } // else()
-        } // if()
-        
-        Node_Linear* walk ;
-        for ( walk = tail -> prev ; walk != root ; ) {
-            if ( walk -> token.type == LPAREN ) {
-                while (  s.top() -> token.type != RPAREN ) {
-                    if ( s.top() -> token.type == DOT ) count -- ;
-                    s.pop() ;
-                } // while()
-                s.pop() ; // last right par
-            } // if()
-            else {
-                if ( walk -> token.type == DOT ) count ++ ;
-                s.push( walk ) ;
-            } // else()
-            
-            if ( walk != root ) walk = walk -> prev ;
-            
-        } // for()
-        
-        if ( count == 1 ) {
-            while ( s.top() -> token.type != DOT ) { // right part of the cons is a list
-                s.pop() ;
-            } // if()
-            
-            return s.top() ;
-        } // if()
-        
+    s.push( tail ) ;
+    if ( tail -> prev != NULL && tail -> prev -> token.type != RPAREN ) {
+      if (  tail -> prev -> prev != NULL && tail -> prev -> prev -> token.type != DOT ) {
         return NULL ;
+      } // if()
+      else {
+        return tail -> prev -> prev ;
+      } // else()
+    } // if()
         
-    } // findDOT()
+    Node_Linear* walk ;
+    for ( walk = tail -> prev ; walk != root ; ) {
+      if ( walk -> token.type == LPAREN ) {
+        while (  s.top() -> token.type != RPAREN ) {
+          if ( s.top() -> token.type == DOT ) count -- ;
+          s.pop() ;
+        } // while()
+        
+        s.pop() ; // last right par
+      } // if()
+      else {
+        if ( walk -> token.type == DOT ) count ++ ;
+        s.push( walk ) ;
+      } // else()
+            
+      if ( walk != root ) walk = walk -> prev ;
+            
+    } // for()
+        
+    if ( count == 1 ) {
+      while ( s.top() -> token.type != DOT ) { // right part of the cons is a list
+        s.pop() ;
+      } // while()
+            
+      return s.top() ;
+    } // if()
+        
+    return NULL ;
+        
+  } // FindDOT()
     
-    // Purpose: focus on one S-exp and give it the parathesis
-    // Only list can call this function
-    void translate( Node_Linear* root, Node_Linear* tail ) {
+  // Purpose: focus on one S-exp and give it the parathesis
+  // Only list can call this function
+  void Translate( Node_Linear* root, Node_Linear* tail ) {
         
-        if ( copyList.root -> token.type == LPAREN && copyList.root -> next -> token.type == RPAREN && copyList.root -> next -> next == NULL ) {
-            Node_Linear* nilNode = new Node_Linear ;
-            nilNode -> token.str = "nil" ;
-            nilNode -> token.type = NIL ;
-            nilNode -> token.line = copyList.root -> token.line ;
-            nilNode -> token.column = copyList.root -> token.column ;
-            nilNode -> next = NULL ;
+    if ( mCopyList.mRoot -> token.type == LPAREN
+         && mCopyList.mRoot -> next -> token.type == RPAREN
+         && mCopyList.mRoot -> next -> next == NULL ) {
+          
+      Node_Linear* nilNode = new Node_Linear ;
+      nilNode -> prev = NULL ;
+      nilNode -> next = NULL ;
+      nilNode -> token.str = "nil" ;
+      nilNode -> token.type = NIL ;
+      nilNode -> token.line = mCopyList.mRoot -> token.line ;
+      nilNode -> token.column = mCopyList.mRoot -> token.column ;
+      nilNode -> next = NULL ;
             
-            while ( copyList.root != NULL ) { // clear ( )
-                Node_Linear* current = copyList.root ;
-                copyList.root = copyList.root -> next ;
-                delete current ;
-                current = NULL ;
-            } // while()
+      while ( mCopyList.mRoot != NULL ) { // Clear ( )
+        Node_Linear* current = mCopyList.mRoot ;
+        mCopyList.mRoot = mCopyList.mRoot -> next ;
+        delete current ;
+        current = NULL ;
+      } // while()
             
-            copyList.root = nilNode ; // connect nil node
-            copyList.tail = copyList.root ;
-            originalList.root = copyList.root ;
-            copyList.tail = originalList.root ;
-            return ;
-        } // if()
-        else {
-            transferNIL( root, tail ) ; // put a NIL in this list if needed
-        } // else()
+      mCopyList.mRoot = nilNode ; // connect nil node
+      mCopyList.mTail = mCopyList.mRoot ;
+      gOriginalList.mRoot = mCopyList.mRoot ;
+      mCopyList.mTail = gOriginalList.mRoot ;
+      return ;
+    } // if()
+    else {
+      TransferNIL( root, tail ) ; // put a NIL in this list if needed
+    } // else()
         
-        int countPar = 0 ; // increase when manually add DOT and Paranthesis
+    int countPar = 0 ; // increase when manually add DOT and Paranthesis
         
-        Node_Linear* dotPointer = findDOT( root, tail ) ;
-        if ( dotPointer == NULL ) { // there is no DOT, so put it on manually
-        // if ( findStrAndGetPreviousNode( root, tail, "." ) == NULL || !findDOT( root, tail ) ) { // there is no DOT, so put it on manually
-            // assert: there is no DOT so need to add DOT and nil
-            copyList.insertNode( tail -> prev, DOT ) ;
-            copyList.insertNode( tail -> prev, NIL ) ;
-        } // if()
+    Node_Linear* dotPointer = FindDOT( root, tail ) ;
+    if ( dotPointer == NULL ) { // there is no DOT, so put it on manually
+      // assert: there is no DOT so need to add DOT and nil
+      mCopyList.InsertNode( tail -> prev, DOT ) ;
+      mCopyList.InsertNode( tail -> prev, NIL ) ;
+    } // if()
         
-        // assert: there must be at least one dot in this S-exp
-        bool hasFinish = false ;
-        for ( Node_Linear* walk = root -> next ; !hasFinish && walk != tail ; ) {
-            if ( walk -> token.type == LPAREN ) {
-                Node_Linear* corRightPar = findCorrespondPar( walk ) ;
-                translate( walk, corRightPar ) ;
-                walk = corRightPar ;
-            } // if()
+    // assert: there must be at least one dot in this S-exp
+    bool hasFinish = false ;
+    for ( Node_Linear* walk = root -> next ; !hasFinish && walk != tail ; ) {
+      if ( walk -> token.type == LPAREN ) {
+        Node_Linear* corRightPar = FindCorrespondPar( walk ) ;
+        Translate( walk, corRightPar ) ;
+        walk = corRightPar ;
+      } // if()
             
-            if ( walk -> next -> token.type != DOT ) { // manually add DOT and keep counting
-                copyList.insertNode( walk, DOT ) ;
-                walk = walk -> next ;
-                copyList.insertNode( walk, LPAREN ) ;
-                walk = walk -> next ;
-                countPar ++ ;
-            } // if()
-            else {
-                walk = walk -> next ; // skip the atom before the DOT
-                if ( walk -> next -> token.type == LPAREN ) {
-                    Node_Linear* corRightPar = findCorrespondPar( walk -> next ) ;
-                    translate( walk -> next, corRightPar ) ;
-                    walk = corRightPar ;
+      if ( walk -> next -> token.type != DOT ) { // manually add DOT and keep counting
+        mCopyList.InsertNode( walk, DOT ) ;
+        walk = walk -> next ;
+        mCopyList.InsertNode( walk, LPAREN ) ;
+        walk = walk -> next ;
+        countPar ++ ;
+      } // if()
+      else {
+        walk = walk -> next ; // skip the atom before the DOT
+        if ( walk -> next -> token.type == LPAREN ) {
+          Node_Linear* corRightPar = FindCorrespondPar( walk -> next ) ;
+          Translate( walk -> next, corRightPar ) ;
+          walk = corRightPar ;
                     
-                    for ( int i = 0 ; i < countPar ; i ++ ) {
-                        copyList.insertNode( walk, RPAREN ) ;
-                    } // for()
-                } // if()
-                else { // only an atom
-                    walk = walk -> next ; // skip DOT
-                    for ( int i = 0 ; i < countPar ; i ++ ) {
-                        copyList.insertNode( walk, RPAREN ) ;
-                    } // for()
-                } // else()
+          for ( int i = 0 ; i < countPar ; i ++ ) {
+            mCopyList.InsertNode( walk, RPAREN ) ;
+          } // for()
+        } // if()
+        else { // only an atom
+          walk = walk -> next ; // skip DOT
+          for ( int i = 0 ; i < countPar ; i ++ ) {
+            mCopyList.InsertNode( walk, RPAREN ) ;
+          } // for()
+        } // else()
                 
-                hasFinish = true ;
-            } // else()
+        hasFinish = true ;
+      } // else()
             
-            if ( walk != NULL ) walk = walk -> next ;
-        } // for()
+      if ( walk != NULL ) walk = walk -> next ;
+    } // for()
         
-    } // translate
+  } // Translate()
     
-    void printWhite( int num ) {
-        for ( int i = 0 ; i < num ; i ++ ) {
-            cout << " " ;
-        } // for()
-    } // printWhite()
+  void PrintWhite( int num ) {
+    for ( int i = 0 ; i < num ; i ++ ) {
+      cout << " " ;
+    } // for()
+  } // PrintWhite()
     
 public:
-    Tree( SingleList list ) : root(NULL), copyList( list ) {
-        if ( copyList.root -> token.type == QUOTE ) {
-            copyList.root -> token.str = "quote" ;
-            copyList.insertNode( copyList.root, LPAREN ) ;
-            Token token ;
-            token.str = ")" ;
-            token.type = RPAREN ;
-            token.line = -1 ;
-            token.column = -1 ;
-            copyList.addNode( token ) ;
-        } //  if()
-    } ;
+  Tree( SingleList list ) {
+    mRoot = NULL ;
+    mCopyList = list ;
+        
+    if ( mCopyList.mRoot -> token.type == QUOTE ) {
+      mCopyList.mRoot -> token.str = "quote" ;
+      mCopyList.InsertNode( mCopyList.mRoot, LPAREN ) ;
+      Token token ;
+      token.str = ")" ;
+      token.type = RPAREN ;
+      token.line = -1 ;
+      token.column = -1 ;
+      mCopyList.AddNode( token ) ;
+    } // if()
+  } // Tree()
     
-    // Purpose: Transfer the DS from list to pointer (tree)
-    // Pre-request: tokens in vector construct a S-exp with correct grammer
-    // Return the root of this tree
-    Node* build( Node_Linear* leftPointer, Node_Linear* rightPointer ) {
+  // Purpose: Transfer the DS from list to pointer (tree)
+  // Pre-request: tokens in vector construct a S-exp with correct grammer
+  // Return the root of this tree
+  Node* Build( Node_Linear* leftPointer, Node_Linear* rightPointer ) {
         
-        if ( leftPointer -> token.type == LPAREN && rightPointer -> token.type == DOT ) { // left part if the cons
-            Node* atomNode = new Node ;
-            atomNode -> lex = leftPointer -> next -> token.str ;
-            if ( leftPointer -> next -> token.type == NIL || leftPointer -> next -> token.type == T ) {
-                atomNode -> type = SPECIAL ;
-            } // if()
-            else {
-                atomNode -> type = ATOM ;
-            } // else()
-            atomNode -> left = NULL ;
-            atomNode -> right = NULL ;
+    if ( leftPointer -> token.type == LPAREN &&
+         rightPointer -> token.type == DOT ) { // left part if the cons
+      Node* atomNode = new Node ;
+      atomNode -> lex = "" ;
+      atomNode -> left = NULL ;
+      atomNode -> right = NULL ;
+      atomNode -> parent = NULL ;
+      atomNode -> type = EMPTY ;
             
-            return atomNode ;
-        } // if()
-        else if ( leftPointer == rightPointer ) { // right part of the cons
-            Node* atomNode = new Node ;
-            atomNode -> lex = leftPointer -> token.str ;
-            if ( leftPointer -> token.type == NIL || leftPointer -> token.type == T ) {
-                atomNode -> type = SPECIAL ;
-            } // if()
-            else {
-                atomNode -> type = ATOM ;
-            } // else()
-            atomNode -> left = NULL ;
-            atomNode -> right = NULL ;
+      atomNode -> lex = leftPointer -> next -> token.str ;
+      if ( leftPointer -> next -> token.type == NIL || leftPointer -> next -> token.type == T ) {
+        atomNode -> type = SPECIAL ;
+      } // if()
+      else {
+        atomNode -> type = ATOM ;
+      } // else()
+      
+      atomNode -> left = NULL ;
+      atomNode -> right = NULL ;
             
-            return atomNode ;
-        } // else if()
-        else { // Now is still in ( ) form
-            Node_Linear* dotPointer = findDOT( leftPointer, rightPointer ) ;
-            Node* leftSubTree = build( leftPointer -> next, dotPointer -> prev ) ;
-            Node* rightSubTree = build( dotPointer -> next, rightPointer -> prev ) ;
+      return atomNode ;
+    } // if()
+    else if ( leftPointer == rightPointer ) { // right part of the cons
+      Node* atomNode = new Node ;
+      atomNode -> lex = "" ;
+      atomNode -> left = NULL ;
+      atomNode -> right = NULL ;
+      atomNode -> parent = NULL ;
+      atomNode -> type = EMPTY ;
             
-            Node* cons = new Node ;
-            cons -> type = CONS ;
-            cons -> left = leftSubTree ;
-            cons -> left -> parent = cons ;
-            cons -> right = rightSubTree ;
-            cons -> right -> parent = cons ;
+      atomNode -> lex = leftPointer -> token.str ;
+      if ( leftPointer -> token.type == NIL || leftPointer -> token.type == T ) {
+        atomNode -> type = SPECIAL ;
+      } // if()
+      else {
+        atomNode -> type = ATOM ;
+      } // else()
+      
+      atomNode -> left = NULL ;
+      atomNode -> right = NULL ;
             
-            return cons ;
-        } // else()
+      return atomNode ;
+    } // else if()
+    else { // Now is still in ( ) form
+      Node_Linear* dotPointer = FindDOT( leftPointer, rightPointer ) ;
+      Node* leftSubTree = Build( leftPointer -> next, dotPointer -> prev ) ;
+      Node* rightSubTree = Build( dotPointer -> next, rightPointer -> prev ) ;
+            
+      Node* cons = new Node ;
+      cons -> lex = "" ;
+      cons -> left = NULL ;
+      cons -> right = NULL ;
+      cons -> parent = NULL ;
+      cons -> type = EMPTY ;
+            
+      cons -> type = CONS ;
+      cons -> left = leftSubTree ;
+      cons -> left -> parent = cons ;
+      cons -> right = rightSubTree ;
+      cons -> right -> parent = cons ;
+            
+      return cons ;
+    } // else()
         
-        return NULL ;
-    } // build()
+    return NULL ;
+  } // Build()
 
-    void prettyPrintAtom( Node* r ) {
-        if ( r -> type == SPECIAL ) {
-            if ( r -> lex == "nil" || r -> lex == "#f" ) {
-                cout << "nil" << endl ;
-            } // if()
-            else {
-                cout << "#t" << endl ;
-            } // else()
-        } // if()
-        else if ( la.isINT( r -> lex ) ) {
-            cout << g.getValueOfIntStr( r -> lex ) << endl ;
-        } // else()
-        else if ( la.isFLOAT( r -> lex ) ) {
-            cout << fixed << setprecision( 3 ) << g.getValueOfFloatStr( r -> lex ) << endl ;
-        } // else if()
-        else if ( la.isStr( r -> lex ) ) {
-            g.printStr( r -> lex ) ;
-        } // else if()
-        else cout << r -> lex << endl ;
-    } // prettyPrintAtom()
+  void PrettyPrintAtom( Node* r ) {
+    if ( r -> type == SPECIAL ) {
+      if ( r -> lex == "nil" || r -> lex == "#f" ) {
+        cout << "nil" << endl ;
+      } // if()
+      else {
+        cout << "#t" << endl ;
+      } // else()
+    } // if()
+    else if ( mLa.IsINT( r -> lex ) ) {
+      cout << g.GetValueOfIntStr( r -> lex ) << endl ;
+    } // else if()
+    else if ( mLa.IsFLOAT( r -> lex ) ) {
+      cout << fixed << setprecision( 3 ) << g.GetValueOfFloatStr( r -> lex ) << endl ;
+    } // else if()
+    else if ( mLa.IsStr( r -> lex ) ) {
+      g.PrintStr( r -> lex ) ;
+    } // else if()
+    else cout << r -> lex << endl ;
+  } // PrettyPrintAtom()
     
-    void prettyPrintSExp( Node* r, Direction dir, int level, bool rightPart ) {
+  void PrettyPrintSExp( Node* r, Direction dir, int level, bool rightPart ) {
         
-        int curLevel = level ;
+    int curLevel = level ;
         
-        if ( r -> type == ATOM || r -> type == SPECIAL ) {
+    if ( r -> type == ATOM || r -> type == SPECIAL ) {
             // case1. LL case2. RL case3. RR
-            if ( dir == LEFT ) {
-                printWhite( curLevel + 2 ) ;
-                prettyPrintAtom( r -> left ) ;
-            } // if()
-            else {
-                if ( r -> lex != "nil" && r -> lex != "#f" ) {
-                    printWhite( curLevel + 2 ) ;
-                    cout << "." << endl ;
-                    printWhite( curLevel + 2 ) ;
-                    prettyPrintAtom( r ) ;
-                } // if()
-                
-                printWhite( curLevel ) ;
-                cout << ")" << endl ;
-            } // else()
-            
-            return ;
+      if ( dir == LEFT ) {
+        PrintWhite( curLevel + 2 ) ;
+        PrettyPrintAtom( r -> left ) ;
+      } // if()
+      else {
+        if ( r -> lex != "nil" && r -> lex != "#f" ) {
+          PrintWhite( curLevel + 2 ) ;
+          cout << "." << endl ;
+          PrintWhite( curLevel + 2 ) ;
+          PrettyPrintAtom( r ) ;
         } // if()
-        else { // CONS node
-            
-            if ( dir == LEFT ) {
-                if ( r -> left -> type != CONS ) {
-                    if ( rightPart ) {
-                        printWhite( curLevel ) ;
-                    } // if()
-                    cout << "(" << " " ;
-                    prettyPrintAtom( r -> left ) ;
-                } // if()
-                else {
-                    if ( rightPart ) {
-                        printWhite( curLevel ) ;
-                    } // if()
-                    cout << "(" << " " ;
-                    curLevel += 2 ; // A new group, level up
-                    prettyPrintSExp( r -> left, LEFT, curLevel, rightPart ) ;
-                    curLevel -= 2 ;  // End of a new group, level down
-                } // else()
                 
-                return prettyPrintSExp( r -> right, RIGHT, curLevel, true ) ;
-            } // if()
-            else if ( dir == RIGHT ){
-                if ( r -> left -> type != CONS ) {
-                    printWhite( curLevel + 2 ) ;
-                    prettyPrintAtom( r -> left ) ;
-                } // if()
-                else {
-                    curLevel += 2 ; // A new group, level up
-                    prettyPrintSExp( r -> left, LEFT, curLevel, rightPart ) ;
-                    curLevel -= 2 ;  // End of a new group, level down
-                } // else()
-                
-                return prettyPrintSExp( r -> right, RIGHT, curLevel, true ) ;
-            } // else()
+        PrintWhite( curLevel ) ;
+        cout << ")" << endl ;
+      } // else()
             
-            return prettyPrintSExp( r -> right, RIGHT, curLevel, true ) ;
+      return ;
+    } // if()
+    else { // CONS node
             
+      if ( dir == LEFT ) {
+        if ( r -> left -> type != CONS ) {
+          if ( rightPart ) {
+            PrintWhite( curLevel ) ;
+          } // if()
+          
+          cout << "(" << " " ;
+          PrettyPrintAtom( r -> left ) ;
+        } // if()
+        else {
+          if ( rightPart ) {
+            PrintWhite( curLevel ) ;
+          } // if()
+          
+          cout << "(" << " " ;
+          curLevel += 2 ; // A new group, level up
+          PrettyPrintSExp( r -> left, LEFT, curLevel, rightPart ) ;
+          curLevel -= 2 ;  // End of a new group, level down
         } // else()
+                
+        return PrettyPrintSExp( r -> right, RIGHT, curLevel, true ) ;
+      } // if()
+      else if ( dir == RIGHT ) {
+        if ( r -> left -> type != CONS ) {
+          PrintWhite( curLevel + 2 ) ;
+          PrettyPrintAtom( r -> left ) ;
+        } // if()
+        else {
+          curLevel += 2 ; // A new group, level up
+          PrettyPrintSExp( r -> left, LEFT, curLevel, rightPart ) ;
+          curLevel -= 2 ;  // End of a new group, level down
+        } // else()
+                
+        return PrettyPrintSExp( r -> right, RIGHT, curLevel, true ) ;
+      } // else if()
+            
+      return PrettyPrintSExp( r -> right, RIGHT, curLevel, true ) ;
+            
+    } // else()
         
-    } // prettyPrint()
+  } // PrettyPrintSExp()
     
-    void prettyPrint( Node* r ) {
-        if ( r -> type == ATOM || r -> type == SPECIAL ) { // this S-exp is an atom
-            prettyPrintAtom( r ) ;
-        } // if()
-        else if ( r -> right -> lex == "nil" ) {
-            prettyPrintAtom( r -> left ) ;
-        }  // else if()
-        else {
-            prettyPrintSExp( r, LEFT, 0, false ) ;
-        } // else()
-    } // printTree()
+  void PrettyPrint( Node* r ) {
+    if ( r -> type == ATOM || r -> type == SPECIAL ) { // this S-exp is an atom
+      PrettyPrintAtom( r ) ;
+    } // if()
+    else if ( r -> right -> lex == "nil" ) {
+      PrettyPrintAtom( r -> left ) ;
+    }  // else if()
+    else {
+      PrettyPrintSExp( r, LEFT, 0, false ) ;
+    } // else()
+  } // PrettyPrint()
     
-    void buildTree() {
-        // Substitude () with nil and put on the ( )
-        if ( s.isATOM( copyList.root -> token ) ) {
-            Node* leaf = new Node ;
-            leaf -> lex = copyList.root -> token.str ;
-            if ( copyList.root -> token.type == NIL || copyList.root -> token.type == T ) {
-                leaf -> type = SPECIAL ;
-            } // if()
-            else {
-                leaf -> type = ATOM ;
-            } // else()
-            leaf -> left = NULL ;
-            leaf -> right = NULL ;
-            root = leaf ;
-            leaf -> parent = root ;
+  void BuildTree() {
+    // Substitude () with nil and put on the ( )
+    if ( mS.IsATOM( mCopyList.mRoot -> token ) ) {
+      Node* leaf = new Node ;
+      leaf -> lex = "" ;
+      leaf -> left = NULL ;
+      leaf -> right = NULL ;
+      leaf -> parent = NULL ;
+      leaf -> type = EMPTY ;
             
-        } // if((
-        else {
-            translate( copyList.root, copyList.tail ) ;
-            // copyList.printForward() ;
+      leaf -> lex = mCopyList.mRoot -> token.str ;
+      if ( mCopyList.mRoot -> token.type == NIL || mCopyList.mRoot -> token.type == T ) {
+        leaf -> type = SPECIAL ;
+      } // if()
+      else {
+        leaf -> type = ATOM ;
+      } // else()
+      
+      leaf -> left = NULL ;
+      leaf -> right = NULL ;
+      mRoot = leaf ;
+      leaf -> parent = mRoot ;
             
-            root = build( copyList.root, copyList.tail ) ;
+    } // if((
+    else {
+      Translate( mCopyList.mRoot, mCopyList.mTail ) ;
+      // mCopyList.PrintForward() ;
             
-            if ( root -> type == CONS && root -> left -> lex == "exit" && root -> right -> lex == "nil" ) {
-                gIsEOF = true ;
-            } // if()
-            // originalList.print() ;
-            // copyList.printForward() ;
-            // copyList.printBackforward() ;
-        } // else()
-    } // buildTree()
+      mRoot = Build( mCopyList.mRoot, mCopyList.mTail ) ;
+            
+      if ( mRoot -> type == CONS && mRoot -> left -> lex == "exit"
+           && mRoot -> right -> lex == "nil" ) {
+        gIsEOF = true ;
+      } // if()
+      // gOriginalList.Print() ;
+      // mCopyList.PrintForward() ;
+      // mCopyList.PrintBackforward() ;
+    } // else()
+  } // BuildTree()
     
-    Node* getRoot() {
-        return root ;
-    } // getRoor()
+  Node* GetRoot() {
+    return mRoot ;
+  } // GetRoot()
 
 };
 
 int main() {
     
-    LexicalAnalyzer la ;
-    SyntaxAnalyzer sa ;
-    bool grammerCorrect = false ;
+  LexicalAnalyzer la ;
+  SyntaxAnalyzer sa ;
+  bool grammerCorrect = false ;
+  
+  cin >> uTestNum ;
+  
+  if ( uTestNum == 1 ) {
+    cout << "Test1" << endl ;
+    exit( 0 ) ;
+  } // if()
     
-    cout << "Welcome to OurScheme!" << endl ;
-    string inputStr = "" ;
+  cout << "Welcome to OurScheme!" << endl ;
+  string inputStr = "" ;
     
-    while ( !gIsEOF ) {
+  while ( !gIsEOF ) {
         
-        try {
+    try {
             
-            cout << "> " ;
-            la.peekToken() ;
-            Token token = la.getToken() ;
+      cout << "> " ;
+      la.PeekToken() ;
+      Token token = la.GetToken() ;
               
-            grammerCorrect = sa.checkSExp( token ) ;
-            if ( grammerCorrect ) {
-                Tree tree( originalList ) ;
-                tree.buildTree() ;
-                if ( !gIsEOF ) tree.prettyPrint( tree.getRoot() ) ;
-            } // if()
+      grammerCorrect = sa.CheckSExp( token ) ;
+      if ( grammerCorrect ) {
+        Tree tree( gOriginalList ) ;
+        tree.BuildTree() ;
+        if ( !gIsEOF ) tree.PrettyPrint( tree.GetRoot() ) ;
+      } // if()
             
-            originalList.clear() ;
-            g.reset() ;
+      gOriginalList.Clear() ;
+      g.Reset() ;
             
-        } catch ( MissingAtomOrLeftParException e ) {
-            cout << e.err_mesg() << endl ;
-        } catch ( MissingRightParException e ) {
-            cout << e.err_mesg() << endl ;
-        } catch ( NoClosingQuoteException e ) {
-            cout << e.err_mesg() << endl ;
-        } catch ( EOFException e ) {
-            cout << e.err_mesg() << endl ;
-        }
+    } // catch()
+    catch ( MissingAtomOrLeftParException e ) {
+      cout << e.Err_mesg() << endl ;
+    } // catch()
+    catch ( MissingRightParException e ) {
+      cout << e.Err_mesg() << endl ;
+    } // catch()
+    catch ( NoClosingQuoteException e ) {
+      cout << e.Err_mesg() << endl ;
+    } // catch()
+    catch ( EOFException e ) {
+      cout << e.Err_mesg() << endl ;
+    } // catch()
         
-    } // while()
+  } // while()
     
-    cout << endl << "Thanks for using OurScheme!" << endl ;
+  cout << endl << "Thanks for using OurScheme!" << endl ;
 
 } // main()

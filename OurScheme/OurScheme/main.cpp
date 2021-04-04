@@ -268,8 +268,10 @@ public:
       ch = cin.get() ;
       ch = cin.peek() ;
     } // while()
-        
+    
+    ch = cin.get() ; // return-line
     gPeekToken = "" ;
+    gLine ++ ;
   } // SkipLine()
     
   void PrintStr( string str ) {
@@ -292,8 +294,8 @@ public:
           cout << '\\' ;
         } // else if()
         else { // simple '\'
-          cout << str[ i ] ;
           i -- ;
+          cout << str[ i ] ;
         } // else()
         // i ++ ; // skip the char right behind '\\'
       } // if()
@@ -547,6 +549,7 @@ public:
     // then might be a SYMBOL
     int dotNum = 0 ;  // only can have ONE dot
     int startIndex = 0 ;  // the checking process start after the sign char
+    bool hasNum = false ;
         
     if ( str[ 0 ] == '+' || str[ 0 ] == '-' ) {
       startIndex = 1 ;  // the checking process start after the sign char
@@ -560,9 +563,12 @@ public:
       if ( ! ( str[ i ] <= '9' && str[ i ] >= '0' ) && str[ i ] != '.' ) {
         return false ;
       } // if()
+      else if ( str[ i ] <= '9' && str[ i ] >= '0' ) {
+        hasNum = true ;
+      } // else if()
     } // for()
             
-    if ( dotNum != 1 ) {
+    if ( dotNum != 1 || !hasNum ) {
       return false ;
     } // if()
         
@@ -622,6 +628,10 @@ public:
         gIsEOF = true ;
         throw EOFException() ;
       } // if()
+      else if ( ch == ';' ) { // peek there is a comment
+        g.SkipLine() ;
+        ch = cin.peek() ;
+      } // else if()
             
       // before get a actual char, we need to skip all the white-spaces first
       while ( IsWhiteSpace( ch ) ) {
@@ -666,19 +676,20 @@ public:
 
   Token GetToken() {
     if ( gPeekToken == "" ) PeekToken() ;
-        
+    /*
     if ( gPeekToken == ";" ) { // encounter a line comment
       char ch = GetChar() ;
       while ( !IsReturnLine( ch ) ) {
         ch = GetChar() ;
       } // while()
+      ch = GetChar() ; // get the last \n
       
       gLine ++ ;
       gColumn = 0 ;
       gPeekToken = "" ;
-      PeekToken() ;
+      // PeekToken() ;
     } // if()
-      
+    */
     Token tokenWeWant = LexToToken( gPeekToken ) ;
     gPeekToken = "" ;
     gOriginalList.AddNode( tokenWeWant ) ;
@@ -1308,11 +1319,7 @@ int main() {
   bool grammerCorrect = false ;
   
   cin >> uTestNum ;
-  
-  if ( uTestNum == 1 ) {
-    cout << "Test1" << endl ;
-    exit( 0 ) ;
-  } // if()
+  char retuenLine = cin.get() ;
     
   cout << "Welcome to OurScheme!" << endl ;
   string inputStr = "" ;
@@ -1324,14 +1331,14 @@ int main() {
       cout << "> " ;
       la.PeekToken() ;
       Token token = la.GetToken() ;
-              
+      
       grammerCorrect = sa.CheckSExp( token ) ;
       if ( grammerCorrect ) {
         Tree tree( gOriginalList ) ;
         tree.BuildTree() ;
         if ( !gIsEOF ) tree.PrettyPrint( tree.GetRoot() ) ;
       } // if()
-            
+      
       gOriginalList.Clear() ;
       g.Reset() ;
             

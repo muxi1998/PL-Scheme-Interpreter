@@ -29,7 +29,7 @@ enum TokenType {
 enum NodeType { EMPTY = 0, ATOM = 1, CONS = 2, SPECIAL = 3 } ;
 
 static int uTestNum = 0 ;  // test num from PAL
-int gLine = 1 ;  // the line of the token we recently "GET"
+int gLine = 0 ;  // the line of the token we recently "GET"
 int gColumn = 0 ; // // the golumn of the token we recently "GET"
 string gPeekToken = "" ;  // the recent token we peek BUT haven't "GET"
 bool gIsEOF = false ; // if is TRUE means there doesn't have '(exit)'
@@ -260,16 +260,20 @@ public:
     gLine = 1 ;
     gColumn = 0 ;
     gOriginalList.Clear() ;
+    gPeekToken = "" ;
   } // Reset()
     
   void SkipLine() {
     char ch = cin.peek() ;
-    while ( ch != '\n' ) {
+    while ( ch != '\n' && ( int ) ch != -1 ) {
       ch = cin.get() ;
       ch = cin.peek() ;
     } // while()
     
-    ch = cin.get() ; // return-line
+    if ( ( int ) ch != -1 ) {
+      ch = cin.get() ; // return-line
+    } // if()
+    
     gPeekToken = "" ;
     gLine ++ ;
   } // SkipLine()
@@ -475,7 +479,7 @@ private:
     ch_peek = cin.peek() ;
     // because we need to get a string, keep reading the input until
     // encounter the next '\"' or return-line
-    while ( keepRead && !IsReturnLine( ch_peek ) ) {
+    while ( keepRead && !IsReturnLine( ch_peek ) && ( int ) ch_peek != -1 ) {
       ch_get = GetChar() ;
       fullStr += ch_get ;
       ch_peek = cin.peek() ;
@@ -623,8 +627,9 @@ public:
     if ( gPeekToken == "" ) {
       char ch = '\0' ;
 
-      ch = cin.peek() ;  // peek whether the next char is in input
-      if ( ( ch = cin.peek() ) == EOF ) { // -1 means EOF for cin.peek
+      // peek whether the next char is in input
+      ch = cin.peek() ;
+      if ( ( int ) ch == -1 ) { // -1 means -1 for cin.peek
         gIsEOF = true ;
         throw EOFException() ;
       } // if()
@@ -641,6 +646,12 @@ public:
                 
         ch = cin.peek() ;  // keep peeking next char
       } // while()
+      
+      if ( ch == ';' ) {
+        g.SkipLine() ;
+        gLine -- ; // doesn't count the comment line
+        return PeekToken() ;
+      } // if()
 
       // assert: finally get a char which is not a white-space, now can start to construct a token
       ch = GetChar() ;  // since this char is not a white-space, we can get it from the input
@@ -650,7 +661,8 @@ public:
       if ( !IsSeparator( ch ) && ch != '\"' ) {  // 'ch' here is the first char overall
         ch = cin.peek() ;
 
-        while ( !IsSeparator( ch ) && !IsWhiteSpace( ch ) ) {
+        // check whether EOF because we may encounter EOF while making a peek token
+        while ( !IsSeparator( ch ) && !IsWhiteSpace( ch ) && ( int ) ch != -1 ) {
           ch = GetChar() ;
           tokenStrWeGet += ch ;
           ch = cin.peek() ;
@@ -672,21 +684,8 @@ public:
 
   Token GetToken() {
     if ( gPeekToken == "" ) PeekToken() ;
-    /*
-    if ( gPeekToken == ";" ) { // encounter a line comment
-      char ch = GetChar() ;
-      while ( !IsReturnLine( ch ) ) {
-        ch = GetChar() ;
-      } // while()
-      ch = GetChar() ; // get the last \n
-      
-      gLine ++ ;
-      gColumn = 0 ;
-      gPeekToken = "" ;
-      // PeekToken() ;
-    } // if()
-    */
-    while ( gPeekToken == ";") {
+    
+    while ( gPeekToken == ";" ) {
       g.SkipLine() ;
       gLine -- ; // doesn't count the comment line
       PeekToken() ;
@@ -1260,9 +1259,9 @@ public:
     if ( r -> type == ATOM || r -> type == SPECIAL ) { // this S-exp is an atom
       PrettyPrintAtom( r ) ;
     } // if()
-    else if ( r -> right -> lex == "nil" ) {
-      PrettyPrintAtom( r -> left ) ;
-    }  // else if()
+    // else if ( r -> right -> lex == "nil" ) {
+    //  PrettyPrintAtom( r -> left ) ;
+    // }  // else if()
     else {
       PrettyPrintSExp( r, LEFT, 0, false ) ;
     } // else()
@@ -1323,14 +1322,14 @@ int main() {
   cin >> uTestNum ;
   // char retuenLine = cin.get() ;
     
-  cout << "Welcome to OurScheme!" << endl ;
+  cout << "Welcome to OurScheme!" ;
   string inputStr = "" ;
     
   while ( !gIsEOF ) {
         
     try {
             
-      cout << "> " ;
+      cout << endl << "> " ;
       la.PeekToken() ;
       Token token = la.GetToken() ;
       
@@ -1343,6 +1342,7 @@ int main() {
       
       gOriginalList.Clear() ;
       g.Reset() ;
+      
     } // catch()
     catch ( MissingAtomOrLeftParException e ) {
       cout << e.Err_mesg() << endl ;
@@ -1357,7 +1357,6 @@ int main() {
       cout << e.Err_mesg() << endl ;
     } // catch()
         
-    cout << endl ;
   } // while()
     
   cout << endl << "Thanks for using OurScheme!" << endl ;

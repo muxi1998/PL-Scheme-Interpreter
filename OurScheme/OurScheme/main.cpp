@@ -29,10 +29,11 @@ enum TokenType {
 enum NodeType { EMPTY = 0, ATOM = 1, CONS = 2, SPECIAL = 3 } ;
 
 static int uTestNum = 0 ;  // test num from PAL
-int gLine = 0 ;  // the line of the token we recently "GET"
+int gLine = 1 ;  // the line of the token we recently "GET"
 int gColumn = 0 ; // // the golumn of the token we recently "GET"
 string gPeekToken = "" ;  // the recent token we peek BUT haven't "GET"
 bool gIsEOF = false ; // if is TRUE means there doesn't have '(exit)'
+bool gJustFinishAExp = false ;
 
 struct Token {
   string str ;  // the original apperance read from input
@@ -156,6 +157,13 @@ public:
       newNode -> next -> prev = newNode ;
       mRoot = newNode ;
     } // if()
+    else if ( nodeBefore == mTail ) {
+      newNode -> next = nodeBefore -> next ;
+      newNode -> prev = nodeBefore ;
+      newNode -> next = NULL ;
+      nodeBefore -> next = newNode ;
+      mTail = newNode ;
+    } // else if()
     else {
       newNode -> next = nodeBefore -> next ;
       newNode -> prev = nodeBefore ;
@@ -335,7 +343,7 @@ public:
     g.SkipLine() ;
     int tmpGLine = gLine ;
     g.Reset() ;
-    gLine = tmpGLine ;
+    // gLine = tmpGLine ;
         
     return mesg ;
   } // Err_mesg()
@@ -361,7 +369,7 @@ public:
     g.SkipLine() ;
     int tmpGLine = gLine ;
     g.Reset() ;
-    gLine = tmpGLine ;
+    // gLine = tmpGLine ;
         
     return mesg ;
   } // Err_mesg()
@@ -384,7 +392,7 @@ public:
     + " Column " + g.IntToStr( mCol ) ;
     int tmpGLine = gLine ;
     g.Reset() ;
-    gLine = tmpGLine ;
+    // gLine = tmpGLine ;
         
     return mesg ;
   } // Err_mesg()
@@ -397,7 +405,7 @@ public:
     mesg = "ERROR (no more input) : END-OF-FILE encountered" ;
     int tmpGLine = gLine ;
     g.Reset() ;
-    gLine = tmpGLine ;
+    // gLine = tmpGLine ;
         
     return mesg ;
   } // Err_mesg()
@@ -528,6 +536,7 @@ public:
     // Mark2: except the sign char, other char should be a number
     // Mark3: the  whole string cannot contain the dot
     int startIndex = 0 ;  // to avoid the sign char if there has one
+    bool hasNum = false ;
             
     if ( str[ 0 ] == '+' || str[ 0 ] == '-' ) {
       startIndex = 1 ;  // the checking process start after the sign char
@@ -537,7 +546,14 @@ public:
       if ( ! ( str[ i ] <= '9' && str[ i ] >= '0' ) ) {
         return false ;
       } // if()
+      else if ( str[ i ] <= '9' && str[ i ] >= '0' ) {
+        hasNum = true ;
+      } // else if()
     } // for()
+    
+    if ( ! hasNum ) {
+      return false ;
+    } // if()
             
     return true ;
   } // IsINT()
@@ -640,8 +656,10 @@ public:
         gColumn ++ ;
                 
         if ( IsReturnLine( ch ) ) {
-          gLine ++ ;
+          if ( gJustFinishAExp ) gLine = 1 ;
+          else gLine ++ ;
           gColumn = 0 ;
+          gJustFinishAExp = false ;
         } // if()
                 
         ch = cin.peek() ;  // keep peeking next char
@@ -1076,6 +1094,44 @@ private:
       cout << " " ;
     } // for()
   } // PrintWhite()
+  
+  void TranslateQuote() { // process mCopyList
+    Node_Linear* leftPar = new Node_Linear ;
+    Node_Linear* quote = new Node_Linear ;
+    
+    // make a left parathesis node
+    leftPar -> token.str = "(" ;
+    leftPar -> token.line = -1 ;
+    leftPar -> token.column = -1 ;
+    leftPar -> token.type = LPAREN ;
+    leftPar -> next = NULL ;
+    leftPar -> prev = NULL ;
+    
+    // make a quote node
+    quote -> token.str = "quote" ;
+    quote -> token.line = -1 ;
+    quote -> token.column = -1 ;
+    quote -> token.type = QUOTE ;
+    quote -> next = NULL ;
+    quote -> prev = NULL ;
+    
+    for ( Node_Linear* walk = mCopyList.mRoot ; walk != NULL ; walk = walk -> next ) {
+      if ( walk -> token.str == "'" ) { // should make the transfer
+        if ( walk -> next -> token.type == LPAREN ) {
+          Node_Linear* corRightPar = FindCorrespondPar( walk -> next ) ;
+          walk -> token.str = "quote" ;
+          mCopyList.InsertNode( walk -> prev, LPAREN ) ;
+          mCopyList.InsertNode( corRightPar, RPAREN ) ;
+        } // if()
+        else { // is a aimple symbol
+          // mCopyList.InsertNode( mCopyList.mRoot , QUOTE ) ;
+          walk -> token.str = "quote" ;
+          mCopyList.InsertNode( walk -> prev, LPAREN ) ;
+          mCopyList.InsertNode( walk -> next, RPAREN ) ;
+        } // else()
+      } // if()
+    } // for()
+  } // TranslateQuote()
     
 public:
   Tree( SingleList list ) {
@@ -1187,7 +1243,7 @@ public:
     else cout << r -> lex << endl ;
   } // PrettyPrintAtom()
     
-  void PrettyPrintSExp( Node* r, Direction dir, int level, bool rightPart ) {
+  void PrettyPrintSExp( Node* r, Direction dir, int level, bool inNewLine ) {
         
     int curLevel = level ;
         
@@ -1215,7 +1271,7 @@ public:
             
       if ( dir == LEFT ) {
         if ( r -> left -> type != CONS ) {
-          if ( rightPart ) {
+          if ( inNewLine ) {
             PrintWhite( curLevel ) ;
           } // if()
           
@@ -1223,13 +1279,13 @@ public:
           PrettyPrintAtom( r -> left ) ;
         } // if()
         else {
-          if ( rightPart ) {
+          if ( inNewLine ) {
             PrintWhite( curLevel ) ;
           } // if()
           
           cout << "(" << " " ;
           curLevel += 2 ; // A new group, level up
-          PrettyPrintSExp( r -> left, LEFT, curLevel, rightPart ) ;
+          PrettyPrintSExp( r -> left, LEFT, curLevel, false ) ;
           curLevel -= 2 ;  // End of a new group, level down
         } // else()
                 
@@ -1242,7 +1298,7 @@ public:
         } // if()
         else {
           curLevel += 2 ; // A new group, level up
-          PrettyPrintSExp( r -> left, LEFT, curLevel, rightPart ) ;
+          PrettyPrintSExp( r -> left, LEFT, curLevel, inNewLine ) ;
           curLevel -= 2 ;  // End of a new group, level down
         } // else()
                 
@@ -1268,6 +1324,8 @@ public:
   } // PrettyPrint()
     
   void BuildTree() {
+    TranslateQuote() ;
+    
     // Substitude () with nil and put on the ( )
     if ( mS.IsATOM( mCopyList.mRoot -> token ) ) {
       Node* leaf = new Node ;
@@ -1342,7 +1400,7 @@ int main() {
       
       gOriginalList.Clear() ;
       g.Reset() ;
-      
+      gJustFinishAExp = true ;
     } // catch()
     catch ( MissingAtomOrLeftParException e ) {
       cout << e.Err_mesg() << endl ;

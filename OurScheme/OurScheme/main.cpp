@@ -1833,7 +1833,6 @@ public:
           Define( treeRoot ) ;
           return NULL ;
         } // else if()
-        
       } // if()
       else if ( definedFuncIndex != -1 ) { // this user-defined function exist
         // process the user defined function

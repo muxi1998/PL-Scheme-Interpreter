@@ -1670,84 +1670,121 @@ private:
     return consNode ;
   } // EvaluateCONS()
   
+  vector<Node*> GetArgumentList( Node* inTree ) {
+    vector<Node*> list ;
+    for ( Node* walk = inTree -> right ; walk -> right != NULL ; walk = walk -> right ) {
+      if ( walk != NULL ) {
+        list.push_back( walk -> left ) ;
+      } // if()
+    } // for()
+    
+    return list ;
+  } // GetArgumentList()
+  
   Node* EvaluateLIST( Node* inTree ) {
     Node* result = NULL ;
     vector<Node*> augList ;
     if ( CountArgument( inTree ) > 0 ) {
-      if ( IsList( inTree, inTree ) ) {
-        // Step1. find out all the arguments and put them in a list
-        for ( Node* walk = inTree -> right ; walk -> right != NULL ; walk = walk -> right ) {
-          if ( walk != NULL ) {
-            augList.push_back( walk -> left ) ;
-          } // if()
-        } // for()
-        // Step2. start to check the type and mean time replace the symbol
-        for ( int i = 0 ; i < augList.size() ; i ++ ) {
-          if ( IsList( augList[ i ], augList[ i ] ) ) {
-            if ( augList[ i ] -> type == ATOM
-                && IsSymbol( augList[ i ] -> lex ) ) {
-              int symIndex = FindDefinedSymbol( augList[ i ] -> lex ) ;
-              if ( symIndex != -1 ) {
-                augList[ i ] = EvaluateSExp( mSymbolTable[ symIndex ].tree ) ;
-              } // if()
-              else {
-                throw UnboundValueException( augList[ i ] -> lex ) ;
-              } // else()
+      // Step1. find out all the arguments and put them in a list
+      augList = GetArgumentList( inTree )  ;
+      // Step2. start to check the type and mean time replace the symbol
+      for ( int i = 0 ; i < augList.size() ; i ++ ) {
+        if ( IsList( augList[ i ], augList[ i ] ) ) {
+          if ( augList[ i ] -> type == ATOM
+              && IsSymbol( augList[ i ] -> lex ) ) {
+            int symIndex = FindDefinedSymbol( augList[ i ] -> lex ) ;
+            if ( symIndex != -1 ) {
+              augList[ i ] = EvaluateSExp( mSymbolTable[ symIndex ].tree ) ;
             } // if()
-            else { // this is a list, but need to check more detail
-              augList[ i ] = EvaluateSExp( augList[ i ] ) ;
+            else {
+              throw UnboundValueException( augList[ i ] -> lex ) ;
             } // else()
           } // if()
-          else {
-            throw NonListException( augList[ i ] ) ;
+          else { // this is a list, but need to check more detail
+            augList[ i ] = EvaluateSExp( augList[ i ] ) ;
           } // else()
-        } // for()
-        // Step3. All the arguments are correct, now combined them
-        Node* prevNode = NULL ;
-        for ( int i = 0 ; i < augList.size() ; i ++ ) {
-          Node* node = new Node ;
-          node -> lex = "" ;
-          node -> type = CONS ;
-          node -> parent = NULL ;
-          node -> left = NULL ;
-          node -> right = NULL ;
+        } // if()
+        else {
+          throw NonListException( augList[ i ] ) ;
+        } // else()
+      } // for()
+      // Step3. All the arguments are correct, now combined them
+      Node* prevNode = NULL ;
+      for ( int i = 0 ; i < augList.size() ; i ++ ) {
+        Node* node = new Node ;
+        node -> lex = "" ;
+        node -> type = CONS ;
+        node -> parent = NULL ;
+        node -> left = NULL ;
+        node -> right = NULL ;
+        
+        node -> left = augList[ i ] ;
+        
+        if ( i == 0 ) {
+          result = node ;
+          prevNode = node ;
+        } // if()
+        else if ( i == augList.size() - 1 ){
+          prevNode -> right = node ;
+          node -> parent = prevNode ;
           
-          node -> left = augList[ i ] ;
+          Node* nilNode = new Node ;
+          nilNode -> lex = "nil" ;
+          nilNode -> type = ATOM ;
+          nilNode -> parent = node ;
+          nilNode -> left = NULL ;
+          nilNode -> right = NULL ;
+          node -> right = nilNode ;
           
-          if ( i == 0 ) {
-            result = node ;
-            prevNode = node ;
-          } // if()
-          else if ( i == augList.size() - 1 ){
-            prevNode -> right = node ;
-            node -> parent = prevNode ;
-            
-            Node* nilNode = new Node ;
-            nilNode -> lex = "nil" ;
-            nilNode -> type = ATOM ;
-            nilNode -> parent = node ;
-            nilNode -> left = NULL ;
-            nilNode -> right = NULL ;
-            node -> right = nilNode ;
-            
-          } // else if()
-          else {
-            prevNode -> right = node ;
-            node -> parent = prevNode ;
-            
-            prevNode = node ;
-          } // else()
-        } // for()
-      } // if()
-      else {
-        throw NonListException( inTree ) ;
-      } // else()
+        } // else if()
+        else {
+          prevNode -> right = node ;
+          node -> parent = prevNode ;
+          
+          prevNode = node ;
+        } // else()
+      } // for()
 
       return result ;
     } // if()
     
     return NULL ; // it is empty in the argument
   } // EvaluateLIST()
+  
+  void Define( Node* inTree ) {
+    vector<Node*> augList = GetArgumentList( inTree ) ;
+    
+    if ( CountArgument( inTree ) == 2 ) {
+      // the first argument should be a symbol
+      if ( augList[ 0 ] -> type == ATOM ) {
+        if ( g.GetTokenType( augList[ 0 ] -> lex ) == SYMBOL ) {
+          Node* value = augList[ 1 ] ; // copy
+          
+          int symIndex = FindDefinedSymbol( augList[ 0 ] -> lex ) ;
+          Symbol newSymbol ;
+          newSymbol.name = augList[ 0 ] -> lex ;
+          newSymbol.tree = value ;
+          if ( symIndex != -1 ) { // this symbol has already exist, update it
+            mSymbolTable[ symIndex ].tree = value ;
+          } // if()
+          else {
+            mSymbolTable.push_back( newSymbol ) ;
+          } // else()
+          
+          cout << newSymbol.name << " defined" << endl ;
+        } // if()
+        else {
+          throw IncorrectArgumentTypeException( "define", augList[ 0 ] -> lex ) ;
+        } // else()
+      } // if()
+      else { //
+        throw IncorrectArgumentTypeException( "define", augList[ 0 ] -> left -> lex ) ;
+      } // else()
+    } // if()
+    else {
+      throw IncorrectNumberArgumentException( "define" ) ;
+    } // else()
+  } // Define()
   
 public:
   
@@ -1766,7 +1803,7 @@ public:
       if ( g.GetTokenType( treeRoot -> lex ) == SYMBOL ) {
         int symbolIndex = FindDefinedSymbol( treeRoot -> lex ) ;
         if ( symbolIndex != -1 ) { // this symbol exist in the symbol table
-          EvaluateSExp( mSymbolTable[ symbolIndex ].tree ) ;
+          return EvaluateSExp( mSymbolTable[ symbolIndex ].tree ) ;
         } // if()
         else {
           throw UnboundValueException( treeRoot -> lex ) ;
@@ -1791,6 +1828,10 @@ public:
           Node* result = EvaluateLIST( treeRoot ) ;
           // g.PrettyPrint( result ) ;
           return result ;
+        } // else if()
+        else if ( funcName == "define" ) {
+          Define( treeRoot ) ;
+          return NULL ;
         } // else if()
         
       } // if()
@@ -1847,7 +1888,9 @@ int main() {
           // g.PrettyPrint( tree.GetRoot() ) ; // proj.1
           try {
             Node* result = eval.EvaluateSExp( tree.GetRoot() ) ;
-            g.PrettyPrint( result ) ;
+            if ( result != NULL ) {
+              g.PrettyPrint( result ) ;
+            } // if()
           } // try
           catch ( NonListException e ) {
             cout << e.Err_mesg() ;

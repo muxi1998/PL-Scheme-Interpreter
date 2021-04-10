@@ -344,6 +344,8 @@ public:
 
 GlobalFunction g ;
 
+// --------------------- Error Definition Proj.1 (start) ---------------------
+
 class MissingAtomOrLeftParException {
 private:
   int mLine ;
@@ -432,6 +434,8 @@ public:
     return mesg ;
   } // Err_mesg()
 } ; // EOFException
+
+// --------------------- Error Definition Proj.1 (end) ---------------------
 
 class LexicalAnalyzer {
   
@@ -1397,10 +1401,129 @@ public:
   
 };
 
+// --------------------- Error Definition Proj.2 (start) ---------------------
+
+class NonListException {
+public:
+  string Err_mesg() {
+    string mesg = "ERROR (non-list): " ;
+    return mesg ;
+  } // Err_mesg()
+} ; // NonListException
+
+class IncorrectNumberArgumentException {
+private:
+  string mLex ;
+public:
+  IncorrectNumberArgumentException( string s ) {
+    mLex = s ;
+  } // IncorrectNumberArgumentException()
+  
+  string Err_mesg() {
+    string mesg = "ERROR (incorrect number of arguments) : " + mLex ;
+    return mesg ;
+  } // Err_mesg()
+} ; // IncorrectNumberArgumentException
+
+class IncorrectArgumentTypeException {
+private:
+  string mFuncName ;
+  string mLex ;
+  
+public:
+  IncorrectArgumentTypeException( string func, string l ) {
+    mFuncName = func ;
+    mLex = l ;
+  } // IncorrectArgumentTypeException()
+  
+  string Err_mesg() {
+    string mesg = "ERROR (" + mFuncName + " with incorrect argument type) : " + mLex ;
+    return mesg ;
+  } // Err_mesg()
+} ; // IncorrectArgumentTypeException
+
+class ApplyNonFunctionException {
+private:
+  string mLex ;
+  
+public:
+  ApplyNonFunctionException( string l ) {
+    mLex = l ;
+  } // ApplyNonFunctionException()
+  
+  string Err_mesg() {
+    string mesg = "ERROR (attempt to apply non-function) : " + mLex ;
+    return mesg ;
+  } // Err_mesg()
+} ; // ApplyNonFunctionException
+
+class NoReturnValueException {
+public:
+  string Err_mesg() {
+    string mesg = "ERROR (no return value) : " ;
+    return mesg ;
+  } // Err_mesg()
+} ; // NoReturnValueException
+
+class UnboundValueException {
+private:
+  string mLex ;
+  
+public:
+  UnboundValueException( string l ) {
+    mLex = l ;
+  } // UnboundValueException()
+  
+  string Err_mesg() {
+    string mesg = "ERROR (unbound symbol) : " + mLex ;
+    return mesg ;
+  } // Err_mesg()
+} ; // UnboundValueException
+
+class DivideByZeroException {
+public:
+  string Err_mesg() {
+    string mesg = "ERROR (division by zero) : /" ;
+    return mesg ;
+  } // Err_mesg()
+} ; // DivideByZeroException
+
+class DefineFormatException {
+public:
+  string Err_mesg() {
+    string mesg = "ERROR (DEFINE format) : " ;
+    return mesg ;
+  } // Err_mesg()
+} ; // DefineFormatException
+
+class CondFormatException {
+public:
+  string Err_mesg() {
+    string mesg = "ERROR (COND format) : " ;
+    return mesg ;
+  } // Err_mesg()
+} ; // CondFormatException
+
+// --------------------- Error Definition Proj.2 (end) ---------------------
+
+// Purpose: Do the evaluation and store the user definitions
+class Evaluator {
+private:
+  
+public:
+  void EvaluateSExp( Node* treeRoot ) {
+    throw CondFormatException() ;
+  } // EvaluateSExp()
+  
+} ; // Evaluator
+
+// isList()
+
 int main() {
   
   LexicalAnalyzer la ;
   SyntaxAnalyzer sa ;
+  Evaluator eval ;
   bool grammerCorrect = false ;
   
   cin >> uTestNum ;
@@ -1421,7 +1544,47 @@ int main() {
       if ( grammerCorrect ) {
         Tree tree( gOriginalList ) ;
         tree.BuildTree() ;
-        if ( !gIsEOF ) tree.PrettyPrint( tree.GetRoot() ) ;
+        if ( !gIsEOF ) {
+          // tree.PrettyPrint( tree.GetRoot() ) ; // proj.1
+          try {
+            eval.EvaluateSExp( tree.GetRoot() ) ;
+          } // try
+          catch ( NonListException e ) {
+            cout << e.Err_mesg() ;
+            tree.PrettyPrint( tree.GetRoot() ) ;
+            cout << endl ;
+          } // catch()
+          catch ( IncorrectNumberArgumentException e ) {
+            cout << e.Err_mesg() << endl ;
+          } // catch()
+          catch ( IncorrectArgumentTypeException e ) {
+            cout << e.Err_mesg() << endl ;
+          } // catch()
+          catch ( ApplyNonFunctionException e ) {
+            cout << e.Err_mesg() << endl ;
+          } // catch()
+          catch ( NoReturnValueException e ) {
+            cout << e.Err_mesg() ;
+            tree.PrettyPrint( tree.GetRoot() ) ;
+            cout << endl ;
+          } // catch()
+          catch ( UnboundValueException e ) {
+            cout << e.Err_mesg() << endl ;
+          } // catch()
+          catch ( DivideByZeroException e ) {
+            cout << e.Err_mesg() << endl ;
+          } // catch()
+          catch ( DefineFormatException e ) {
+            cout << e.Err_mesg() ;
+            tree.PrettyPrint( tree.GetRoot() ) ;
+            cout << endl ;
+          } // catch()
+          catch ( CondFormatException e ) {
+            cout << e.Err_mesg() ;
+            tree.PrettyPrint( tree.GetRoot() ) ;
+            cout << endl ;
+          } // catch()
+        } // if()
       } // if()
       
       gOriginalList.Clear() ;

@@ -29,6 +29,16 @@ enum TokenType {
 
 enum NodeType { EMPTY = 0, ATOM = 1, CONS = 2, SPECIAL = 3 } ;
 
+struct Node {
+  string lex ; // the string (what it looks in the input file) of this token
+  NodeType type ; // Three possibility: 1.Atom  2.Special(NIL)  3.Cons
+  Node* left ;
+  Node* right ;
+  Node* parent ;
+  
+  // Node() : lex(""), type(EMPTY), left(NULL), right(NULL), parent(NULL) {} ;
+};
+
 static int uTestNum = 0 ;  // test num from PAL
 int gLine = 1 ;  // the line of the token we recently "GET"
 int gColumn = 0 ; // // the golumn of the token we recently "GET"
@@ -220,8 +230,116 @@ public:
 SingleList gOriginalList ;
 
 class GlobalFunction { // the functions that may be used in anywhere
+private:
+  enum Direction { RIGHT = 1234, LEFT = 4321 } ;
   
 public:
+  
+  bool IsINT( string str ) {
+    // Mark1: there might be a sign char, such as '+' or '-'
+    // Mark2: except the sign char, other char should be a number
+    // Mark3: the  whole string cannot contain the dot
+    int startIndex = 0 ;  // to avoid the sign char if there has one
+    bool hasNum = false ;
+    
+    if ( str[ 0 ] == '+' || str[ 0 ] == '-' ) {
+      startIndex = 1 ;  // the checking process start after the sign char
+    } // if()
+    
+    for ( int i = startIndex ;  i < str.length() ; i ++ ) {
+      if ( ! ( str[ i ] <= '9' && str[ i ] >= '0' ) ) {
+        return false ;
+      } // if()
+      else if ( str[ i ] <= '9' && str[ i ] >= '0' ) {
+        hasNum = true ;
+      } // else if()
+    } // for()
+    
+    if ( ! hasNum ) {
+      return false ;
+    } // if()
+    
+    return true ;
+  } // IsINT()
+  
+  // Purpose: recognize whether this string is a FLOAT
+  // Return: true or false
+  bool IsFLOAT( string &str ) {
+    // Mark1: there might be a sign char, such as '+' or '-'
+    // Mark2: except the sign char, other char should be a number
+    // Mark3: the whole string SHOULD contain the dot,
+    // NO MATTER the position of the dot is, but should be only dot
+    // Mark4: if there appear another dot after already get one,
+    // then might be a SYMBOL
+    int dotNum = 0 ;  // only can have ONE dot
+    int startIndex = 0 ;  // the checking process start after the sign char
+    bool hasNum = false ;
+    
+    if ( str[ 0 ] == '+' || str[ 0 ] == '-' ) {
+      startIndex = 1 ;  // the checking process start after the sign char
+    } // if()
+    
+    for ( int i = startIndex ;  i < str.length() ; i ++ ) {
+      if ( str[ i ] == '.' ) {
+        dotNum ++ ;  // every time we encounter a dot, count it
+      } // if()
+      
+      if ( ! ( str[ i ] <= '9' && str[ i ] >= '0' ) && str[ i ] != '.' ) {
+        return false ;
+      } // if()
+      else if ( str[ i ] <= '9' && str[ i ] >= '0' ) {
+        hasNum = true ;
+      } // else if()
+    } // for()
+    
+    if ( dotNum != 1 || !hasNum ) {
+      return false ;
+    } // if()
+    
+    return true ;
+  } // IsFLOAT()
+  
+  bool IsStr( string str ) {
+    if ( str[ 0 ] == '"' && str[ str.length() - 1 ] == '"' ) {
+      return true ;
+    } // if()
+    
+    return false ;
+  } // IsStr()
+  
+  TokenType GetTokenType( string str ) {
+    
+    if ( str == "(" ) {  // Left parameter
+      return LPAREN ;
+    } // if()
+    else if ( str == ")" ) {  // Right parameter
+      return RPAREN ;
+    } // else if()
+    else if ( str == "." ) {  // Dot
+      return DOT ;
+    } // else if()
+    else if ( str == "\'" ) {  // Quote
+      return QUOTE ;
+    } // else if()
+    else if ( str == "nil" || str == "#f" ) {  // NIL
+      return NIL ;
+    } // else if()
+    else if ( str == "t" || str == "#t" ) {  // T
+      return T ;
+    } // else if()
+    else if ( IsINT( str ) ) {
+      return INT ;
+    } // else if()
+    else if ( IsFLOAT( str ) ) {
+      return FLOAT ;
+    } // else if()
+    else if ( str[ 0 ] == '\"' ) {
+      return STRING ;
+    } // else if()
+    
+    return SYMBOL ;  // none of the above, then assume it's symbol
+  } // GetTokenType()
+  
   string IntToStr( int num ) {
     string str = "" ;
     if ( num == 0 ) return "0" ;
@@ -339,6 +457,110 @@ public:
     
     return false ;
   } // IsEOF()
+  
+  void PrintWhite( int num ) {
+    for ( int i = 0 ; i < num ; i ++ ) {
+      cout << " " ;
+    } // for()
+  } // PrintWhite()
+  
+  void PrettyPrintAtom( Node* r ) {
+    if ( r -> type == SPECIAL ) {
+      if ( r -> lex == "nil" || r -> lex == "#f" ) {
+        cout << "nil" << endl ;
+      } // if()
+      else {
+        cout << "#t" << endl ;
+      } // else()
+    } // if()
+    else if ( IsINT( r -> lex ) ) {
+      cout << GetValueOfIntStr( r -> lex ) << endl ;
+    } // else if()
+    else if ( IsFLOAT( r -> lex ) ) {
+      cout << fixed << setprecision( 3 ) << GetValueOfFloatStr( r -> lex ) << endl ;
+    } // else if()
+    else if ( IsStr( r -> lex ) ) {
+      PrintStr( r -> lex ) ;
+    } // else if()
+    else cout << r -> lex << endl ;
+  } // PrettyPrintAtom()
+  
+  void PrettyPrintSExp( Node* r, Direction dir, int level, bool inNewLine ) {
+    
+    int curLevel = level ;
+    
+    if ( r -> type == ATOM || r -> type == SPECIAL ) {
+      // case1. LL case2. RL case3. RR
+      if ( dir == LEFT ) {
+        PrintWhite( curLevel + 2 ) ;
+        PrettyPrintAtom( r -> left ) ;
+      } // if()
+      else {
+        if ( r -> lex != "nil" && r -> lex != "#f" ) {
+          PrintWhite( curLevel + 2 ) ;
+          cout << "." << endl ;
+          PrintWhite( curLevel + 2 ) ;
+          PrettyPrintAtom( r ) ;
+        } // if()
+        
+        PrintWhite( curLevel ) ;
+        cout << ")" << endl ;
+      } // else()
+      
+      return ;
+    } // if()
+    else { // CONS node
+      
+      if ( dir == LEFT ) {
+        if ( r -> left -> type != CONS ) {
+          if ( inNewLine ) {
+            PrintWhite( curLevel ) ;
+          } // if()
+          
+          cout << "(" << " " ;
+          PrettyPrintAtom( r -> left ) ;
+        } // if()
+        else {
+          if ( inNewLine ) {
+            PrintWhite( curLevel ) ;
+          } // if()
+          
+          cout << "(" << " " ;
+          curLevel += 2 ; // A new group, level up
+          PrettyPrintSExp( r -> left, LEFT, curLevel, false ) ;
+          curLevel -= 2 ;  // End of a new group, level down
+        } // else()
+        
+        return PrettyPrintSExp( r -> right, RIGHT, curLevel, true ) ;
+      } // if()
+      else if ( dir == RIGHT ) {
+        if ( r -> left -> type != CONS ) {
+          PrintWhite( curLevel + 2 ) ;
+          PrettyPrintAtom( r -> left ) ;
+        } // if()
+        else {
+          curLevel += 2 ; // A new group, level up
+          PrettyPrintSExp( r -> left, LEFT, curLevel, inNewLine ) ;
+          curLevel -= 2 ;  // End of a new group, level down
+        } // else()
+        
+        return PrettyPrintSExp( r -> right, RIGHT, curLevel, true ) ;
+      } // else if()
+      
+      return PrettyPrintSExp( r -> right, RIGHT, curLevel, true ) ;
+      
+    } // else()
+    
+  } // PrettyPrintSExp()
+  
+  void PrettyPrint( Node* r ) {
+    if ( r -> type == ATOM || r -> type == SPECIAL ) { // this S-exp is an atom
+      PrettyPrintAtom( r ) ;
+    } // if()
+    else {
+      PrettyPrintSExp( r, LEFT, 0, false ) ;
+    } // else()
+  } // PrettyPrint()
   
 } ;
 
@@ -539,7 +761,7 @@ private:
     token.str = "" ;
     token.line = 0 ;
     token.column = 0 ;
-    if ( lex != "." && IsFLOAT( lex ) ) {
+    if ( lex != "." && g.IsFLOAT( lex ) ) {
       // assert: float with a original format
       // now  can start trandfer the float into the format which (int).(3 chars)
       token.str = FormatFloat( lex ) ;
@@ -550,118 +772,14 @@ private:
     
     token.line = gLine ;
     token.column = gColumn - ( int ) lex.length() + 1 ;
-    token.type = GetTokenType( lex ) ;
+    token.type = g.GetTokenType( lex ) ;
     
     return token ;
   } // LexToToken()
   
 public:
   
-  bool IsINT( string str ) {
-    // Mark1: there might be a sign char, such as '+' or '-'
-    // Mark2: except the sign char, other char should be a number
-    // Mark3: the  whole string cannot contain the dot
-    int startIndex = 0 ;  // to avoid the sign char if there has one
-    bool hasNum = false ;
-    
-    if ( str[ 0 ] == '+' || str[ 0 ] == '-' ) {
-      startIndex = 1 ;  // the checking process start after the sign char
-    } // if()
-    
-    for ( int i = startIndex ;  i < str.length() ; i ++ ) {
-      if ( ! ( str[ i ] <= '9' && str[ i ] >= '0' ) ) {
-        return false ;
-      } // if()
-      else if ( str[ i ] <= '9' && str[ i ] >= '0' ) {
-        hasNum = true ;
-      } // else if()
-    } // for()
-    
-    if ( ! hasNum ) {
-      return false ;
-    } // if()
-    
-    return true ;
-  } // IsINT()
-  
-  // Purpose: recognize whether this string is a FLOAT
-  // Return: true or false
-  bool IsFLOAT( string &str ) {
-    // Mark1: there might be a sign char, such as '+' or '-'
-    // Mark2: except the sign char, other char should be a number
-    // Mark3: the whole string SHOULD contain the dot,
-    // NO MATTER the position of the dot is, but should be only dot
-    // Mark4: if there appear another dot after already get one,
-    // then might be a SYMBOL
-    int dotNum = 0 ;  // only can have ONE dot
-    int startIndex = 0 ;  // the checking process start after the sign char
-    bool hasNum = false ;
-    
-    if ( str[ 0 ] == '+' || str[ 0 ] == '-' ) {
-      startIndex = 1 ;  // the checking process start after the sign char
-    } // if()
-    
-    for ( int i = startIndex ;  i < str.length() ; i ++ ) {
-      if ( str[ i ] == '.' ) {
-        dotNum ++ ;  // every time we encounter a dot, count it
-      } // if()
-      
-      if ( ! ( str[ i ] <= '9' && str[ i ] >= '0' ) && str[ i ] != '.' ) {
-        return false ;
-      } // if()
-      else if ( str[ i ] <= '9' && str[ i ] >= '0' ) {
-        hasNum = true ;
-      } // else if()
-    } // for()
-    
-    if ( dotNum != 1 || !hasNum ) {
-      return false ;
-    } // if()
-    
-    return true ;
-  } // IsFLOAT()
-  
-  bool IsStr( string str ) {
-    if ( str[ 0 ] == '"' && str[ str.length() - 1 ] == '"' ) {
-      return true ;
-    } // if()
-    
-    return false ;
-  } // IsStr()
-  
   // Purpose: accept the token string from func. GetToken(), and response the corresponding token value
-  TokenType GetTokenType( string str ) {
-    
-    if ( str == "(" ) {  // Left parameter
-      return LPAREN ;
-    } // if()
-    else if ( str == ")" ) {  // Right parameter
-      return RPAREN ;
-    } // else if()
-    else if ( str == "." ) {  // Dot
-      return DOT ;
-    } // else if()
-    else if ( str == "\'" ) {  // Quote
-      return QUOTE ;
-    } // else if()
-    else if ( str == "nil" || str == "#f" ) {  // NIL
-      return NIL ;
-    } // else if()
-    else if ( str == "t" || str == "#t" ) {  // T
-      return T ;
-    } // else if()
-    else if ( IsINT( str ) ) {
-      return INT ;
-    } // else if()
-    else if ( IsFLOAT( str ) ) {
-      return FLOAT ;
-    } // else if()
-    else if ( str[ 0 ] == '\"' ) {
-      return STRING ;
-    } // else if()
-    
-    return SYMBOL ;  // none of the above, then assume it's symbol
-  } // GetTokenType()
   
   string PeekToken() {
     string tokenStrWeGet = "" ;
@@ -772,7 +890,7 @@ public:
     // 1.Atom 2.LP 3.Quote *4.LR RP
     
     // this is a NIL with special format >()<
-    if ( startToken.type == LPAREN && mLa.GetTokenType( mLa.PeekToken() ) == RPAREN ) {
+    if ( startToken.type == LPAREN && g.GetTokenType( mLa.PeekToken() ) == RPAREN ) {
       mLa.GetToken() ; // take away the RP from the input
       
       return true ; // one of an ATOM
@@ -795,9 +913,9 @@ public:
       
       if ( hasOneSExpCorrect ) {
         
-        while ( ( mLa.GetTokenType( mLa.PeekToken() ) == LPAREN
+        while ( ( g.GetTokenType( mLa.PeekToken() ) == LPAREN
                   || IsATOM( mLa.PeekToken() )
-                  || mLa.GetTokenType( mLa.PeekToken() ) == QUOTE )
+                  || g.GetTokenType( mLa.PeekToken() ) == QUOTE )
                 && moreSExpCorrect ) {
           token = mLa.GetToken() ;
           moreSExpCorrect = CheckSExp( token ) ;
@@ -810,7 +928,7 @@ public:
         } // if()
         else {
           // means only one S-exp in this left S-exp
-          if ( mLa.GetTokenType( mLa.PeekToken() ) == DOT ) {
+          if ( g.GetTokenType( mLa.PeekToken() ) == DOT ) {
             token = mLa.GetToken() ; // must be DOT
             // must be the start of the next S-exp according to the grammer
             token = mLa.GetToken() ;
@@ -821,7 +939,7 @@ public:
               return false ;
             } // if()
             else {
-              if ( mLa.GetTokenType( mLa.PeekToken() ) == RPAREN ) {
+              if ( g.GetTokenType( mLa.PeekToken() ) == RPAREN ) {
                 token = mLa.GetToken() ; // must be >)<
                 
                 return true ;
@@ -833,7 +951,7 @@ public:
             } // else()
             
           } // if()
-          else if ( mLa.GetTokenType( mLa.PeekToken() ) == RPAREN ) {
+          else if ( g.GetTokenType( mLa.PeekToken() ) == RPAREN ) {
             token = mLa.GetToken() ; // must be >)<
             
             return true ;
@@ -864,7 +982,7 @@ public:
   } // IsATOM()
   
   bool IsATOM( string str ) {
-    TokenType type = mLa.GetTokenType( str ) ;
+    TokenType type = g.GetTokenType( str ) ;
     if ( type == SYMBOL || type == INT || type == FLOAT || type == STRING || type == NIL || type == T ) {
       return true ;
     } // if()
@@ -873,16 +991,6 @@ public:
   } // IsATOM()
   
 } ;
-
-struct Node {
-  string lex ; // the string (what it looks in the input file) of this token
-  NodeType type ; // Three possibility: 1.Atom  2.Special(NIL)  3.Cons
-  Node* left ;
-  Node* right ;
-  Node* parent ;
-  
-  // Node() : lex(""), type(EMPTY), left(NULL), right(NULL), parent(NULL) {} ;
-};
 
 class Tree {
   
@@ -893,8 +1001,6 @@ private:
   
   LexicalAnalyzer mLa ;
   SyntaxAnalyzer mS ;
-  
-  enum Direction { RIGHT = 1234, LEFT = 4321 } ;
   
   void TransferNIL( Node_Linear* root, Node_Linear* tail ) {
     bool finish = false ;
@@ -1129,12 +1235,6 @@ private:
     
   } // Translate()
   
-  void PrintWhite( int num ) {
-    for ( int i = 0 ; i < num ; i ++ ) {
-      cout << " " ;
-    } // for()
-  } // PrintWhite()
-  
   void TranslateQuote() { // process mCopyList
     Node_Linear* leftPar = new Node_Linear ;
     Node_Linear* quote = new Node_Linear ;
@@ -1252,107 +1352,6 @@ public:
     return NULL ;
   } // Build()
   
-  void PrettyPrintAtom( Node* r ) {
-    if ( r -> type == SPECIAL ) {
-      if ( r -> lex == "nil" || r -> lex == "#f" ) {
-        cout << "nil" << endl ;
-      } // if()
-      else {
-        cout << "#t" << endl ;
-      } // else()
-    } // if()
-    else if ( mLa.IsINT( r -> lex ) ) {
-      cout << g.GetValueOfIntStr( r -> lex ) << endl ;
-    } // else if()
-    else if ( mLa.IsFLOAT( r -> lex ) ) {
-      cout << fixed << setprecision( 3 ) << g.GetValueOfFloatStr( r -> lex ) << endl ;
-    } // else if()
-    else if ( mLa.IsStr( r -> lex ) ) {
-      g.PrintStr( r -> lex ) ;
-    } // else if()
-    else cout << r -> lex << endl ;
-  } // PrettyPrintAtom()
-  
-  void PrettyPrintSExp( Node* r, Direction dir, int level, bool inNewLine ) {
-    
-    int curLevel = level ;
-    
-    if ( r -> type == ATOM || r -> type == SPECIAL ) {
-      // case1. LL case2. RL case3. RR
-      if ( dir == LEFT ) {
-        PrintWhite( curLevel + 2 ) ;
-        PrettyPrintAtom( r -> left ) ;
-      } // if()
-      else {
-        if ( r -> lex != "nil" && r -> lex != "#f" ) {
-          PrintWhite( curLevel + 2 ) ;
-          cout << "." << endl ;
-          PrintWhite( curLevel + 2 ) ;
-          PrettyPrintAtom( r ) ;
-        } // if()
-        
-        PrintWhite( curLevel ) ;
-        cout << ")" << endl ;
-      } // else()
-      
-      return ;
-    } // if()
-    else { // CONS node
-      
-      if ( dir == LEFT ) {
-        if ( r -> left -> type != CONS ) {
-          if ( inNewLine ) {
-            PrintWhite( curLevel ) ;
-          } // if()
-          
-          cout << "(" << " " ;
-          PrettyPrintAtom( r -> left ) ;
-        } // if()
-        else {
-          if ( inNewLine ) {
-            PrintWhite( curLevel ) ;
-          } // if()
-          
-          cout << "(" << " " ;
-          curLevel += 2 ; // A new group, level up
-          PrettyPrintSExp( r -> left, LEFT, curLevel, false ) ;
-          curLevel -= 2 ;  // End of a new group, level down
-        } // else()
-        
-        return PrettyPrintSExp( r -> right, RIGHT, curLevel, true ) ;
-      } // if()
-      else if ( dir == RIGHT ) {
-        if ( r -> left -> type != CONS ) {
-          PrintWhite( curLevel + 2 ) ;
-          PrettyPrintAtom( r -> left ) ;
-        } // if()
-        else {
-          curLevel += 2 ; // A new group, level up
-          PrettyPrintSExp( r -> left, LEFT, curLevel, inNewLine ) ;
-          curLevel -= 2 ;  // End of a new group, level down
-        } // else()
-        
-        return PrettyPrintSExp( r -> right, RIGHT, curLevel, true ) ;
-      } // else if()
-      
-      return PrettyPrintSExp( r -> right, RIGHT, curLevel, true ) ;
-      
-    } // else()
-    
-  } // PrettyPrintSExp()
-  
-  void PrettyPrint( Node* r ) {
-    if ( r -> type == ATOM || r -> type == SPECIAL ) { // this S-exp is an atom
-      PrettyPrintAtom( r ) ;
-    } // if()
-    // else if ( r -> right -> lex == "nil" ) {
-    //  PrettyPrintAtom( r -> left ) ;
-    // }  // else if()
-    else {
-      PrettyPrintSExp( r, LEFT, 0, false ) ;
-    } // else()
-  } // PrettyPrint()
-  
   void BuildTree() {
     TranslateQuote() ;
     
@@ -1375,8 +1374,8 @@ public:
       
       leaf -> left = NULL ;
       leaf -> right = NULL ;
+      leaf -> parent = NULL ;
       mRoot = leaf ;
-      leaf -> parent = mRoot ;
       
     } // if((
     else {
@@ -1404,19 +1403,29 @@ public:
 // --------------------- Error Definition Proj.2 (start) ---------------------
 
 class NonListException {
+private:
+  Node* errNode ;
 public:
+  NonListException( Node* errTree ) {
+    errNode = errTree ;
+  } // NonListException()
+  
   string Err_mesg() {
     string mesg = "ERROR (non-list): " ;
     return mesg ;
   } // Err_mesg()
+  
+  Node* Err_node() {
+    return errNode ;
+  } // Err_node()
 } ; // NonListException
 
 class IncorrectNumberArgumentException {
 private:
   string mLex ;
 public:
-  IncorrectNumberArgumentException( string s ) {
-    mLex = s ;
+  IncorrectNumberArgumentException( string funcName ) {
+    mLex = funcName ;
   } // IncorrectNumberArgumentException()
   
   string Err_mesg() {
@@ -1431,9 +1440,9 @@ private:
   string mLex ;
   
 public:
-  IncorrectArgumentTypeException( string func, string l ) {
-    mFuncName = func ;
-    mLex = l ;
+  IncorrectArgumentTypeException( string errFuncName, string errLex ) {
+    mFuncName = errFuncName ;
+    mLex = errLex ;
   } // IncorrectArgumentTypeException()
   
   string Err_mesg() {
@@ -1447,8 +1456,8 @@ private:
   string mLex ;
   
 public:
-  ApplyNonFunctionException( string l ) {
-    mLex = l ;
+  ApplyNonFunctionException( string errLex ) {
+    mLex = errLex ;
   } // ApplyNonFunctionException()
   
   string Err_mesg() {
@@ -1470,8 +1479,8 @@ private:
   string mLex ;
   
 public:
-  UnboundValueException( string l ) {
-    mLex = l ;
+  UnboundValueException( string errLex ) {
+    mLex = errLex ;
   } // UnboundValueException()
   
   string Err_mesg() {
@@ -1509,10 +1518,300 @@ public:
 // Purpose: Do the evaluation and store the user definitions
 class Evaluator {
 private:
+  string mReserveWord[ 34 ] = { "cons", "list", "quote", "define", "car", "cdr", "not", "and", "or", "begin", "if", "cond", "clean-environment", "quote", "'", "atom?", "pair?", "list?", "null?", "integer?", "real?", "number?", "string?", "boolean?", "symbol?", "+", "-", "*", "\\", "eqv?", "equal?", "begin", "if", "cond" } ;
+  
+  struct Symbol {
+    string name ;
+    Node* tree ;
+  } ; //SymbolInfo
+  
+  struct Function {
+    string name ;
+    int augNum ;
+    Node* tree ;
+  } ; // Function
+  
+  vector<Symbol> mSymbolTable ;
+  vector<Function> mFunctionTable ;
+  
+  void AddSymbol( string symName, Node* assignedTree ) {
+    Symbol symbol ;
+    symbol.name = "" ;
+    symbol.tree = NULL ;
+    
+    symbol.name = symName ;
+    symbol.tree = assignedTree ;
+    
+    mSymbolTable.push_back( symbol ) ; // add this new symbol to the table
+  } // AddSymbol()
+  
+  void AddFunction( string funcName, int numberOfAug, Node* assignedTree ) {
+    Function func ;
+    func.name = "" ;
+    func.augNum = 0 ;
+    func.tree = NULL ;
+    
+    func.name = funcName ;
+    func.augNum = numberOfAug ;
+    func.tree = assignedTree ;
+    
+    mFunctionTable.push_back( func ) ;
+  } // AddFunction()
+  
+  bool IsReserveWord( string str ) {
+    if ( str == "cons" || str == "list" || str == "quote" || str == "define" || str == "car" || str == "cdr" || str == "not" || str == "and" || str == "or" || str == "begin" || str == "if" || str == "cond" || str == "clean-environment" || str == "quote" || str == "'" || str == "atom?" || str == "pair?" || str == "list?" || str == "null?" || str == "integer?" || str == "real?" || str == "number?" || str == "string?" || str == "boolean?" || str == "symbol?" || str == "+" || str == "-" || str == "*" || str == "\\" || str == "eqv?" || str == "equal?" || str == "begin" || str == "if" || str == "cond" ) {
+      return true ;
+    } // if()
+    
+    return false ;
+  } // IsReserveWord()
+  
+  int FindDefinedSymbol( string str ) {
+    int index = -1 ;
+    
+    for ( int i = 0 ; i < mSymbolTable.size() && index == -1 ; i ++ ) {
+      if ( str == mSymbolTable[ i ].name ) {
+        index = i ;
+      } // if()
+    } // for()
+    
+    return index ;
+  } // FindDefinedSymbol()
+  
+  int FindDefinedFunc( string str ) {
+    int index = -1 ;
+    
+    for ( int i = 0 ; i < mFunctionTable.size() && index == -1 ; i ++ ) {
+      if ( str == mFunctionTable[ i ].name ) {
+        index = i ;
+      } // if()
+    } // for()
+    
+    return index ;
+  } // FindDefinedFunc()
+  
+  bool IsList( Node* originRoot, Node* root ) {
+    if ( root -> type == ATOM || root -> type == SPECIAL ) { // the last node (should be an atom)
+      if ( root -> lex == "nil" || root == originRoot ) {
+        return true ;
+      } // if()
+      
+      return false ;
+    } // if()
+    
+    return IsList( originRoot, root -> right ) ;
+  } // IsList()
+  
+  int CountArgument( Node* tree ) {
+    if ( tree -> right == NULL ) {
+      return -1 ;
+    } // if()
+    
+    return CountArgument( tree -> right ) + 1 ;
+  } // CountArgument()
+  
+  bool IsSymbol( string str ) {
+    if ( g.GetTokenType( str ) == SYMBOL ) {
+      return true ;
+    } // if()
+    
+    return false ;
+  } // IsSymbol()
+  
+  // Purpose combined the trees
+  Node* EvaluateCONS( Node* inTree ) {
+    Node* consNode = NULL ;
+    // Step1. check argument num ( cons can only have 2 )
+    if ( CountArgument( inTree ) == 2 ) {
+      // Step2. check argument type
+      // in CONS case, both arguments of CONS should be a tree (list)
+      Node* firstArg = inTree -> right -> left ; // assume aug1 is a list
+      Node* secondArg = inTree -> right -> right -> left ; // assume aug2 is a list
+      
+      if ( IsList( firstArg, firstArg ) ) {
+        if ( firstArg -> type == ATOM
+             && IsSymbol( firstArg -> lex  )
+             && FindDefinedSymbol( firstArg -> lex ) == -1 ) {
+          throw UnboundValueException( firstArg -> lex ) ;
+        } // if()
+        else {
+          if ( IsList( secondArg, secondArg ) ) {
+            if ( secondArg -> type == ATOM
+                 && IsSymbol( secondArg -> lex )
+                 && FindDefinedSymbol( secondArg -> lex ) == -1 ) {
+              throw UnboundValueException( secondArg -> lex ) ;
+            } // if()
+            else {
+              // Step3. If no error create a new Node
+              consNode = new Node ;
+              consNode -> lex = "" ;
+              consNode -> type = CONS ;
+              consNode -> left = NULL ;
+              consNode -> right = NULL ;
+              consNode -> parent = NULL ;
+              
+              consNode -> left = EvaluateSExp( firstArg ) ;
+              consNode -> right = EvaluateSExp( secondArg ) ;
+            } // else()
+          } // if()
+          else {
+            throw NonListException( secondArg ) ;
+          } // else()
+        } // else()
+      } // if()
+      else {
+        throw NonListException( firstArg ) ;
+      } // else()
+    } // if()
+    else {
+      throw IncorrectNumberArgumentException( "cons" ) ;
+    } // else()
+    
+    return consNode ;
+  } // EvaluateCONS()
+  
+  Node* EvaluateLIST( Node* inTree ) {
+    Node* result = NULL ;
+    vector<Node*> augList ;
+    if ( CountArgument( inTree ) > 0 ) {
+      if ( IsList( inTree, inTree ) ) {
+        // Step1. find out all the arguments and put them in a list
+        for ( Node* walk = inTree -> right ; walk -> right != NULL ; walk = walk -> right ) {
+          if ( walk != NULL ) {
+            augList.push_back( walk -> left ) ;
+          } // if()
+        } // for()
+        // Step2. start to check the type and mean time replace the symbol
+        for ( int i = 0 ; i < augList.size() ; i ++ ) {
+          if ( IsList( augList[ i ], augList[ i ] ) ) {
+            if ( augList[ i ] -> type == ATOM
+                && IsSymbol( augList[ i ] -> lex ) ) {
+              int symIndex = FindDefinedSymbol( augList[ i ] -> lex ) ;
+              if ( symIndex != -1 ) {
+                augList[ i ] = EvaluateSExp( mSymbolTable[ symIndex ].tree ) ;
+              } // if()
+              else {
+                throw UnboundValueException( augList[ i ] -> lex ) ;
+              } // else()
+            } // if()
+            else { // this is a list, but need to check more detail
+              augList[ i ] = EvaluateSExp( augList[ i ] ) ;
+            } // else()
+          } // if()
+          else {
+            throw NonListException( augList[ i ] ) ;
+          } // else()
+        } // for()
+        // Step3. All the arguments are correct, now combined them
+        Node* prevNode = NULL ;
+        for ( int i = 0 ; i < augList.size() ; i ++ ) {
+          Node* node = new Node ;
+          node -> lex = "" ;
+          node -> type = CONS ;
+          node -> parent = NULL ;
+          node -> left = NULL ;
+          node -> right = NULL ;
+          
+          node -> left = augList[ i ] ;
+          
+          if ( i == 0 ) {
+            result = node ;
+            prevNode = node ;
+          } // if()
+          else if ( i == augList.size() - 1 ){
+            prevNode -> right = node ;
+            node -> parent = prevNode ;
+            
+            Node* nilNode = new Node ;
+            nilNode -> lex = "nil" ;
+            nilNode -> type = ATOM ;
+            nilNode -> parent = node ;
+            nilNode -> left = NULL ;
+            nilNode -> right = NULL ;
+            node -> right = nilNode ;
+            
+          } // else if()
+          else {
+            prevNode -> right = node ;
+            node -> parent = prevNode ;
+            
+            prevNode = node ;
+          } // else()
+        } // for()
+      } // if()
+      else {
+        throw NonListException( inTree ) ;
+      } // else()
+
+      return result ;
+    } // if()
+    
+    return NULL ; // it is empty in the argument
+  } // EvaluateLIST()
   
 public:
-  void EvaluateSExp( Node* treeRoot ) {
-    throw CondFormatException() ;
+  
+  Node* EvaluateSExp( Node* treeRoot ) {
+    // the first left atom should be the func name
+    Node* result = NULL ;
+    string funcName = "" ;
+    int definedFuncIndex = -1 ;
+    
+    if ( treeRoot -> type == CONS ) {
+      funcName = treeRoot -> left -> lex ;
+      definedFuncIndex = FindDefinedFunc( funcName ) ;
+    } // if()
+    
+    if ( treeRoot -> type != CONS ) {
+      if ( g.GetTokenType( treeRoot -> lex ) == SYMBOL ) {
+        int symbolIndex = FindDefinedSymbol( treeRoot -> lex ) ;
+        if ( symbolIndex != -1 ) { // this symbol exist in the symbol table
+          EvaluateSExp( mSymbolTable[ symbolIndex ].tree ) ;
+        } // if()
+        else {
+          throw UnboundValueException( treeRoot -> lex ) ;
+        } // else()
+      } // if()
+      
+      return treeRoot ;
+    } // if()
+    
+    if ( IsList( treeRoot, treeRoot ) ) { // keep doing the evaluation
+      if ( IsReserveWord( funcName ) ) {
+        if ( funcName == "quote" ) {
+          // g.PrettyPrint( treeRoot -> right -> left ) ;
+          return treeRoot -> right -> left ;
+        } // if()
+        else if ( funcName == "cons" ) {
+          Node* result = EvaluateCONS( treeRoot ) ;
+          // g.PrettyPrint( result ) ;
+          return result ;
+        } // else if()
+        else if ( funcName == "list" ) {
+          Node* result = EvaluateLIST( treeRoot ) ;
+          // g.PrettyPrint( result ) ;
+          return result ;
+        } // else if()
+        
+      } // if()
+      else if ( definedFuncIndex != -1 ) { // this user-defined function exist
+        // process the user defined function
+      } // else if()
+      else {
+        if ( ! g.IsINT( funcName ) && ! g.IsFLOAT( funcName )
+             && FindDefinedSymbol( funcName ) == -1 ) {
+          throw UnboundValueException( funcName ) ;
+        } // if()
+        else {
+          throw ApplyNonFunctionException( funcName ) ;
+        } // else()
+      } // else()
+    } // if()
+    else {
+      throw NonListException( treeRoot ) ;
+    } // else()
+    
+    return result ;
   } // EvaluateSExp()
   
 } ; // Evaluator
@@ -1545,14 +1844,21 @@ int main() {
         Tree tree( gOriginalList ) ;
         tree.BuildTree() ;
         if ( !gIsEOF ) {
-          // tree.PrettyPrint( tree.GetRoot() ) ; // proj.1
+          // g.PrettyPrint( tree.GetRoot() ) ; // proj.1
           try {
-            eval.EvaluateSExp( tree.GetRoot() ) ;
+            Node* result = eval.EvaluateSExp( tree.GetRoot() ) ;
+            g.PrettyPrint( result ) ;
           } // try
           catch ( NonListException e ) {
             cout << e.Err_mesg() ;
-            tree.PrettyPrint( tree.GetRoot() ) ;
+            g.PrettyPrint( e.Err_node() ) ;
             cout << endl ;
+          } // catch()
+          catch ( UnboundValueException e ) {
+            cout << e.Err_mesg() << endl ;
+          } // catch()
+          catch ( ApplyNonFunctionException e ) {
+            cout << e.Err_mesg() << endl ;
           } // catch()
           catch ( IncorrectNumberArgumentException e ) {
             cout << e.Err_mesg() << endl ;
@@ -1560,28 +1866,22 @@ int main() {
           catch ( IncorrectArgumentTypeException e ) {
             cout << e.Err_mesg() << endl ;
           } // catch()
-          catch ( ApplyNonFunctionException e ) {
-            cout << e.Err_mesg() << endl ;
-          } // catch()
           catch ( NoReturnValueException e ) {
             cout << e.Err_mesg() ;
-            tree.PrettyPrint( tree.GetRoot() ) ;
+            g.PrettyPrint( tree.GetRoot() ) ;
             cout << endl ;
-          } // catch()
-          catch ( UnboundValueException e ) {
-            cout << e.Err_mesg() << endl ;
           } // catch()
           catch ( DivideByZeroException e ) {
             cout << e.Err_mesg() << endl ;
           } // catch()
           catch ( DefineFormatException e ) {
             cout << e.Err_mesg() ;
-            tree.PrettyPrint( tree.GetRoot() ) ;
+            g.PrettyPrint( tree.GetRoot() ) ;
             cout << endl ;
           } // catch()
           catch ( CondFormatException e ) {
             cout << e.Err_mesg() ;
-            tree.PrettyPrint( tree.GetRoot() ) ;
+            g.PrettyPrint( tree.GetRoot() ) ;
             cout << endl ;
           } // catch()
         } // if()

@@ -342,12 +342,21 @@ public:
   
   string IntToStr( int num ) {
     string str = "" ;
+    bool isNegative = false ;
     if ( num == 0 ) return "0" ;
+    else if ( num < 0 ) {
+      isNegative = true ;
+      num *= -1 ; // change it to positive for calculating
+    } // else()
     
     while ( num != 0 ) {
       str = ( char ) ( '0' + ( num % 10 ) ) + str ;
       num /= 10 ;
     } // while()
+    
+    if ( isNegative ) {
+      str = "-" + str ;
+    } // if()
     
     return str ;
   } // IntToStr()
@@ -1578,7 +1587,7 @@ private:
   } // AddFunction()
   
   bool IsReserveWord( string str ) {
-    if ( str == "cons" || str == "list" || str == "quote" || str == "define" || str == "car" || str == "cdr" || str == "not" || str == "and" || str == "or" || str == "begin" || str == "if" || str == "cond" || str == "clean-environment" || str == "quote" || str == "'" || str == "atom?" || str == "pair?" || str == "list?" || str == "null?" || str == "integer?" || str == "real?" || str == "number?" || str == "string?" || str == "boolean?" || str == "symbol?" || str == "+" || str == "-" || str == "*" || str == "\\" || str == "eqv?" || str == "equal?" || str == "begin" || str == "if" || str == "cond" ) {
+    if ( str == "cons" || str == "list" || str == "quote" || str == "define" || str == "car" || str == "cdr" || str == "not" || str == "and" || str == "or" || str == "begin" || str == "if" || str == "cond" || str == "clean-environment" || str == "quote" || str == "'" || str == "atom?" || str == "pair?" || str == "list?" || str == "null?" || str == "integer?" || str == "real?" || str == "number?" || str == "string?" || str == "boolean?" || str == "symbol?" || str == "+" || str == "-" || str == "*" || str == "/" || str == "eqv?" || str == "equal?" || str == "begin" || str == "if" || str == "cond" ) {
       return true ;
     } // if()
     
@@ -1930,7 +1939,7 @@ private:
   } // CleanEnvironment()
   
   bool IsMathOperator( string str ) {
-    if ( str == "+" || str == "-" || str == "*" || str == "\\" ) {
+    if ( str == "+" || str == "-" || str == "*" || str == "/" ) {
       return true ;
     } // if()
     
@@ -1971,8 +1980,95 @@ private:
   } // IsBasicOperation()
   
   Node* ProcessOperation( string funcName, Node* inTree ) {
+    Node* ansNode = new Node ;
+    ansNode -> lex = "" ;
+    ansNode -> type = ATOM ;
+    ansNode -> parent = NULL ;
+    ansNode -> left = NULL ;
+    ansNode -> right = NULL ;
+    
+    vector<Node*> augList = GetArgumentList( inTree ) ;
+    
     if ( IsMathOperator( funcName ) ) { // need to have more than two arguments
-      
+      if ( CountArgument( inTree ) >= 2 ) {
+        // check whether all the arguments are numbers
+        for ( int i = 0 ; i < augList.size() ; i ++ ) {
+          Node* currentAug = EvaluateSExp( augList[ i ] ) ;
+          if ( currentAug -> type == ATOM
+               && ( g.IsINT( currentAug -> lex )
+                   || g.IsFLOAT( currentAug -> lex ) ) ) {
+            augList[ i ] = EvaluateSExp( augList[ i ] ) ;
+          } // if()
+          else { // a non number atom exist
+            throw IncorrectArgumentTypeException( funcName, currentAug -> lex ) ;
+          } // else()
+        } // for()
+        
+        double ans = 0.0 ; // in case the result bigger than the range of INT
+        bool hasFloatExist = false ;
+        
+        if ( g.IsINT( augList[ 0 ] -> lex ) ) {
+          ans = g.GetValueOfIntStr( augList[ 0 ] -> lex ) ;
+        } // if()
+        else if ( g.IsFLOAT( augList[ 0 ] -> lex ) ) {
+          hasFloatExist = true ;
+          ans = g.GetValueOfFloatStr( augList[ 0 ] -> lex ) ;
+        } // else if()
+        
+        for ( int i = 1 ; i < augList.size() ; i ++ ) {
+          if ( g.IsINT( augList[ i ] -> lex ) ) {
+            if ( funcName == "+" ) {
+              ans += g.GetValueOfIntStr( augList[ i ] -> lex ) ;
+            } // if()
+            else if ( funcName == "-" ) {
+              ans -= g.GetValueOfIntStr( augList[ i ] -> lex ) ;
+            } // else if()
+            else if ( funcName == "*" ) {
+              ans *= g.GetValueOfIntStr( augList[ i ] -> lex ) ;
+            } // else if()
+            else if ( funcName == "/" ) {
+              if ( g.GetValueOfIntStr( augList[ i ] -> lex ) != 0 ) {
+                ans /= g.GetValueOfIntStr( augList[ i ] -> lex ) ;
+              } // if()
+              else {
+                throw DivideByZeroException() ;
+              } // else()
+            } // else if()
+          } // if()
+          else if ( g.IsFLOAT( augList[ i ] -> lex ) ) {
+            hasFloatExist = true ;
+            if ( funcName == "+" ) {
+              ans += g.GetValueOfFloatStr( augList[ i ] -> lex ) ;
+            } // if()
+            else if ( funcName == "-" ) {
+              ans -= g.GetValueOfFloatStr( augList[ i ] -> lex ) ;
+            } // else if()
+            else if ( funcName == "*" ) {
+              ans *= g.GetValueOfFloatStr( augList[ i ] -> lex ) ;
+            } // else if()
+            else if ( funcName == "/" ) {
+              if ( g.GetValueOfFloatStr( augList[ i ] -> lex ) != 0 ) {
+                ans /= g.GetValueOfFloatStr( augList[ i ] -> lex ) ;
+              } // if()
+              else {
+                throw DivideByZeroException() ;
+              } // else()
+            } // else if()
+          } // else if()
+        } // for()
+        
+        if ( ! hasFloatExist ) {
+          ansNode -> lex = g.IntToStr( ( int ) ans ) ;
+        } // if()
+        else { // the final answer is a float
+          ansNode -> lex = to_string( ans ) ;
+        } // else()
+        
+        return ansNode ;
+      } // if()
+      else {
+        throw IncorrectNumberArgumentException( funcName ) ;
+      } // else()
     } // if()
     else if ( IsComparison( funcName ) ) { // need to have more than two arguments
       

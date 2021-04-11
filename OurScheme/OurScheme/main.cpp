@@ -1442,10 +1442,10 @@ public:
 
 class NonListException {
 private:
-  Node* errNode ;
+  Node* mErrNode ;
 public:
   NonListException( Node* errTree ) {
-    errNode = errTree ;
+    mErrNode = errTree ;
   } // NonListException()
   
   string Err_mesg() {
@@ -1454,7 +1454,7 @@ public:
   } // Err_mesg()
   
   Node* Err_node() {
-    return errNode ;
+    return mErrNode ;
   } // Err_node()
 } ; // NonListException
 
@@ -1516,11 +1516,21 @@ public:
 } ; // ApplyNonFunctionException
 
 class NoReturnValueException {
+private:
+  Node* mErrNode ;
 public:
+  NoReturnValueException( Node* err ) {
+    mErrNode = err ;
+  } // NoReturnValueException()
+  
   string Err_mesg() {
     string mesg = "ERROR (no return value) : " ;
     return mesg ;
   } // Err_mesg()
+  
+  Node* Err_node() {
+    return mErrNode ;
+  } // Err_node()
 } ; // NoReturnValueException
 
 class UnboundValueException {
@@ -1559,9 +1569,9 @@ public:
     return mesg ;
   } // Err_mesg()
   
-  void PrintErrAtom() {
-    g.PrettyPrint( mErrNode ) ;
-  } // PrintErrAtom()
+  Node* Err_node() {
+    return mErrNode ;
+  } // Err_node()
 } ; // DefineFormatException
 
 class CondFormatException {
@@ -2483,6 +2493,44 @@ private:
     return ansNode ;
   } // ProcessEqvAndEqual()
   
+  Node* ProcessIf( Node* inTree ) {
+    Node* emptyNode = g.GetNullNode() ;
+    // has two or three arguments
+    if ( CountArgument( inTree ) == 2 || CountArgument( inTree ) == 3 ) {
+      vector<Node*> argList = GetArgumentList( inTree ) ;
+      
+      // the first arguments should be the condition
+      // if the evaluate of argment 1 is NULL then the format is wrong
+      Node* condition = EvaluateSExp( argList[ 0 ] ) ;
+      if ( condition != NULL ) {
+        if ( CountArgument( inTree ) == 2 ) {
+          if ( condition -> lex != "#f" && condition -> lex != "nil" ) {
+            return EvaluateSExp( argList[ 1 ] ) ;
+          } // if()
+          else {
+            throw NoReturnValueException( inTree ) ;
+          } // else()
+        } // if()
+        else if ( CountArgument( inTree ) == 3 ) {
+          if ( condition -> lex != "#f" && condition -> lex != "nil" ) {
+            return EvaluateSExp( argList[ 1 ] ) ;
+          } // if()
+          else {
+            return EvaluateSExp( argList[ 2 ] ) ;
+          } // else()
+        } // else if()
+      } // if()
+      else {
+        throw IncorrectArgumentTypeException( "if", argList[ 0 ] -> lex ) ;
+      } // else()
+    } // if()
+    else {
+      throw IncorrectNumberArgumentException( "if" ) ;
+    } // else()
+    
+    return emptyNode ;
+  } // ProcessIf()
+  
 public:
   
   Node* EvaluateSExp( Node* treeRoot ) {
@@ -2538,6 +2586,12 @@ public:
         } // else if()
         else if ( funcName == "eqv?" || funcName == "equal?" ) {
           return ProcessEqvAndEqual( funcName, treeRoot );
+        } // else if()
+        else if ( funcName == "if" ) {
+          return ProcessIf( treeRoot ) ;
+        } // else if()
+        else if ( funcName == "cond" ) {
+          
         } // else if()
         
       } // if()
@@ -2621,7 +2675,7 @@ int main() {
           } // catch()
           catch ( NoReturnValueException e ) {
             cout << e.Err_mesg() ;
-            g.PrettyPrint( tree.GetRoot() ) ;
+            g.PrettyPrint( e.Err_node() ) ;
             cout << endl ;
           } // catch()
           catch ( DivideByZeroException e ) {
@@ -2629,7 +2683,7 @@ int main() {
           } // catch()
           catch ( DefineFormatException e ) {
             cout << e.Err_mesg() ;
-            e.PrintErrAtom() ;
+            g.PrettyPrint( e.Err_node() ) ;
             cout << endl ;
           } // catch()
           catch ( CondFormatException e ) {

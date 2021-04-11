@@ -1509,11 +1509,21 @@ public:
 } ; // DivideByZeroException
 
 class DefineFormatException {
+private:
+  Node* mErrNode ;
 public:
+  DefineFormatException( Node* err ) {
+    mErrNode = err ;
+  } // DefineFormatException()
+  
   string Err_mesg() {
     string mesg = "ERROR (DEFINE format) : " ;
     return mesg ;
   } // Err_mesg()
+  
+  void PrintErrAtom() {
+    g.PrettyPrint( mErrNode ) ;
+  } // PrintErrAtom()
 } ; // DefineFormatException
 
 class CondFormatException {
@@ -1529,8 +1539,6 @@ public:
 // Purpose: Do the evaluation and store the user definitions
 class Evaluator {
 private:
-  string mReserveWord[ 34 ] = { "cons", "list", "quote", "define", "car", "cdr", "not", "and", "or", "begin", "if", "cond", "clean-environment", "quote", "'", "atom?", "pair?", "list?", "null?", "integer?", "real?", "number?", "string?", "boolean?", "symbol?", "+", "-", "*", "\\", "eqv?", "equal?", "begin", "if", "cond" } ;
-  
   struct Symbol {
     string name ;
     Node* tree ;
@@ -1576,6 +1584,14 @@ private:
     
     return false ;
   } // IsReserveWord()
+  
+  bool IsPredicator( string str ) {
+    if ( str == "atom?" || str == "pair?" || str == "list?" || str == "null?" || str == "integer?" || str == "real?" || str == "number?" || str == "string?" || str == "boolean?" || str == "symbol?" ) {
+      return true ;
+    } // if()
+    
+    return false ;
+  } // IsPredicator()
   
   int FindDefinedSymbol( string str ) {
     int index = -1 ;
@@ -1768,24 +1784,29 @@ private:
     if ( CountArgument( inTree ) == 2 ) {
       // the first argument should be a symbol
       if ( augList[ 0 ] -> type == ATOM ) {
-        if ( g.GetTokenType( augList[ 0 ] -> lex ) == SYMBOL ) {
-          Node* value = augList[ 1 ] ; // copy
-          
-          int symIndex = FindDefinedSymbol( augList[ 0 ] -> lex ) ;
-          Symbol newSymbol ;
-          newSymbol.name = augList[ 0 ] -> lex ;
-          newSymbol.tree = value ;
-          if ( symIndex != -1 ) { // this symbol has already exist, update it
-            mSymbolTable[ symIndex ].tree = value ;
+        if ( ! IsReserveWord( augList[ 0 ] -> lex ) ) {
+          if ( g.GetTokenType( augList[ 0 ] -> lex ) == SYMBOL ) {
+            Node* value = augList[ 1 ] ; // copy
+            
+            int symIndex = FindDefinedSymbol( augList[ 0 ] -> lex ) ;
+            Symbol newSymbol ;
+            newSymbol.name = augList[ 0 ] -> lex ;
+            newSymbol.tree = value ;
+            if ( symIndex != -1 ) { // this symbol has already exist, update it
+              mSymbolTable[ symIndex ].tree = value ;
+            } // if()
+            else {
+              mSymbolTable.push_back( newSymbol ) ;
+            } // else()
+            
+            cout << newSymbol.name << " defined" << endl ;
           } // if()
           else {
-            mSymbolTable.push_back( newSymbol ) ;
+            throw IncorrectArgumentTypeException( "define", augList[ 0 ] -> lex ) ;
           } // else()
-          
-          cout << newSymbol.name << " defined" << endl ;
         } // if()
-        else {
-          throw IncorrectArgumentTypeException( "define", augList[ 0 ] -> lex ) ;
+        else { // user try to re-define the reserve word
+          throw DefineFormatException( inTree ) ;
         } // else()
       } // if()
       else { //
@@ -1793,9 +1814,178 @@ private:
       } // else()
     } // if()
     else {
-      throw IncorrectNumberArgumentException( "define" ) ;
+      throw DefineFormatException( inTree ) ;
     } // else()
   } // Define()
+  
+  Node* AccessList( string funcName, Node* inTree ) {
+    if ( CountArgument( inTree ) == 1 ){
+      Node* targetTree = EvaluateSExp( inTree -> right -> left ) ;
+      if ( targetTree -> type == ATOM || targetTree -> type == SPECIAL ) {
+        if ( g.IsINT( targetTree -> lex ) || g.IsFLOAT( targetTree -> lex ) ) {
+          throw IncorrectArgumentTypeException( funcName, targetTree -> lex ) ;
+        } // if()
+        else {
+          return targetTree ;
+        } // else()
+      } // if()
+      else {
+        if ( funcName == "car" ) {
+          return targetTree -> left ;
+        } // if()
+        else if ( funcName == "cdr" ) {
+          return targetTree -> right ;
+        } // else if()
+      } // else()
+    } // if()
+    else {
+      throw IncorrectNumberArgumentException( funcName ) ;
+    } // else()
+    
+    return NULL ;
+  } // AccessList()
+  
+  Node* PrimitivePredecates( string func, Node* inTree ) {
+    bool ans = false ;
+    Node* ansNode = new Node ;
+    ansNode -> lex="#t" ;
+    ansNode -> type=SPECIAL ;
+    ansNode -> parent=NULL ;
+    ansNode -> left=NULL ;
+    ansNode -> right=NULL ;
+    // can only have ONE argement
+    if ( CountArgument( inTree ) == 1 ) {
+      Node* target = EvaluateSExp( inTree -> right -> left ) ;
+      
+      if ( func == "atom?" ) {
+        if ( target -> type == ATOM ) {
+          ans = true ;
+        } // if()
+      } // if()
+      else if ( func == "pair?" ) {
+        if ( target -> type == CONS && CountArgument( target ) <= 1 ) {
+          ans = true ;
+        } // if()
+      } // else if()
+      else if ( func == "list?" ) {
+        if ( target -> type == CONS && IsList( target, target ) ) {
+          ans = true ;
+        } // if()
+      } // else if()
+      else if ( func == "null?" ) {
+        if ( target -> type == SPECIAL
+             && ( target -> lex == "nil" || target -> lex == "#f" ) ) {
+          ans = true ;
+        } // if()
+      } // else if()
+      else if ( func == "integer?" ) {
+        if ( target -> type == ATOM && g.IsINT( target -> lex ) ) {
+          ans = true ;
+        } // if()
+      } // else if()
+      else if ( func == "real?" || func == "number?" ) {
+        if ( target -> type == ATOM && ( g.IsINT( target -> lex ) || g.IsFLOAT( target -> lex ) ) ) {
+          ans = true ;
+        } // if()
+      } // else if()
+      else if ( func == "string?" ) {
+        if ( target -> type == ATOM && target -> lex[ 0 ] == '"'
+            && target -> lex[ target -> lex.length() - 1 ] == '"' ) {
+          ans = true ;
+        } // if()
+      } // else if()
+      else if ( func == "boolean?" ) {
+        if ( target -> type == SPECIAL ) {
+          ans = true ;
+        } // if()
+      } // else if()
+      else if ( func == "symbol?" ) {
+        if ( target -> type == ATOM && g.GetTokenType( func ) == SYMBOL ) {
+          ans = true ;
+        } // if()
+      } // else if()
+      
+      if ( ans ) {
+        ansNode -> lex = "#t" ;
+      } // if()
+      else {
+        ansNode -> lex = "nil" ;
+      } // else()
+      
+      return ansNode ;
+    } // if()
+    else {
+      throw IncorrectNumberArgumentException( func ) ;
+    } // else()
+    
+    return NULL ;
+  } // PrimitivePredecates()
+  
+  Node* CleanEnvironment() {
+    mSymbolTable.clear() ;
+    mFunctionTable.clear() ;
+    cout << "environment-cleaned" << endl ;
+    
+    return NULL ;
+  } // CleanEnvironment()
+  
+  bool IsMathOperator( string str ) {
+    if ( str == "+" || str == "-" || str == "*" || str == "\\" ) {
+      return true ;
+    } // if()
+    
+    return false ;
+  } // IsMathOperator()
+  
+  bool IsComparison( string str ) {
+    if ( str == ">" || str == "<" || str == ">=" || str == "<=" || str == "=" ) {
+      return true ;
+    } // if()
+    
+    return false ;
+  } // IsComparison()
+  
+  bool IsStringOperator( string str ) {
+    if ( str == "string-append" || str == "string>?" || str == "string<?" || str == "string=?" ) {
+      return true ;
+    } // if()
+    
+    return false ;
+  } // IsStringOperator()
+  
+  bool IsCondOperator( string str ) {
+    if ( str == "not" || str == "and" || str == "or" ) {
+      return true ;
+    } // if()
+    
+    return false ;
+  } // IsCondOperator()
+  
+  bool IsBasicOperation( string str ) {
+    if ( IsMathOperator( str ) || IsComparison( str )
+         || IsStringOperator( str ) || IsCondOperator( str ) ) {
+      return true ;
+    } // if()
+    
+    return false ;
+  } // IsBasicOperation()
+  
+  Node* ProcessOperation( string funcName, Node* inTree ) {
+    if ( IsMathOperator( funcName ) ) { // need to have more than two arguments
+      
+    } // if()
+    else if ( IsComparison( funcName ) ) { // need to have more than two arguments
+      
+    } // else if()
+    else if ( IsCondOperator( funcName ) ) { // not only need 1 argument
+      
+    } // else if()
+    else if ( IsStringOperator( funcName ) ) { // need to have more than two arguments
+      
+    } // else if()
+    
+    return NULL ;
+  } // ProcessOperation()
   
 public:
   
@@ -1805,13 +1995,12 @@ public:
     string funcName = "" ;
     int definedFuncIndex = -1 ;
     
-    if ( treeRoot -> type == CONS ) {
-      funcName = treeRoot -> left -> lex ;
-      definedFuncIndex = FindDefinedFunc( funcName ) ;
-    } // if()
-    
     if ( treeRoot -> type != CONS ) {
-      if ( g.GetTokenType( treeRoot -> lex ) == SYMBOL ) {
+      if ( treeRoot -> lex == "clean-environment" ) {
+        CleanEnvironment() ;
+        return NULL ; // no tree to return
+      } // if()
+      else if ( g.GetTokenType( treeRoot -> lex ) == SYMBOL ) {
         int symbolIndex = FindDefinedSymbol( treeRoot -> lex ) ;
         if ( symbolIndex != -1 ) { // this symbol exist in the symbol table
           return EvaluateSExp( mSymbolTable[ symbolIndex ].tree ) ;
@@ -1819,31 +2008,40 @@ public:
         else {
           throw UnboundValueException( treeRoot -> lex ) ;
         } // else()
-      } // if()
+      } // else if()
       
       return treeRoot ;
     } // if()
+    else { // this S-exp is a cons
+      funcName = treeRoot -> left -> lex ;
+      definedFuncIndex = FindDefinedFunc( funcName ) ;
+    } // else()
     
     if ( IsList( treeRoot, treeRoot ) ) { // keep doing the evaluation
       if ( IsReserveWord( funcName ) ) {
         if ( funcName == "quote" ) {
-          // g.PrettyPrint( treeRoot -> right -> left ) ;
           return treeRoot -> right -> left ;
         } // if()
         else if ( funcName == "cons" ) {
-          Node* result = EvaluateCONS( treeRoot ) ;
-          // g.PrettyPrint( result ) ;
-          return result ;
+          return EvaluateCONS( treeRoot ) ;
         } // else if()
         else if ( funcName == "list" ) {
-          Node* result = EvaluateLIST( treeRoot ) ;
-          // g.PrettyPrint( result ) ;
-          return result ;
+          return EvaluateLIST( treeRoot ) ;
         } // else if()
         else if ( funcName == "define" ) {
           Define( treeRoot ) ;
           return NULL ;
         } // else if()
+        else if ( funcName == "car" || funcName == "cdr" ) {
+          return AccessList( funcName, treeRoot ) ;
+        } // else if()
+        else if ( IsPredicator( funcName ) ) {
+          return PrimitivePredecates( funcName, treeRoot ) ;
+        } // else if()
+        else if ( IsBasicOperation( funcName ) ) {
+          return ProcessOperation( funcName, treeRoot );
+        } // else if()
+        
       } // if()
       else if ( definedFuncIndex != -1 ) { // this user-defined function exist
         // process the user defined function
@@ -1933,7 +2131,7 @@ int main() {
           } // catch()
           catch ( DefineFormatException e ) {
             cout << e.Err_mesg() ;
-            g.PrettyPrint( tree.GetRoot() ) ;
+            e.PrintErrAtom() ;
             cout << endl ;
           } // catch()
           catch ( CondFormatException e ) {

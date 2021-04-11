@@ -2378,6 +2378,24 @@ private:
     return NULL ;
   } // ProcessOperation()
   
+  bool TwoTreesAreTheSame( Node* tree1, Node* tree2 ) {
+    if ( tree1 == NULL || tree2 == NULL ) {
+      if ( tree1 == tree2 ) {
+        return true ;
+      } // if()
+      
+      return false ;
+    } // if()
+    else {
+      if ( tree1 -> lex == tree2 -> lex ) {
+        return ( TwoTreesAreTheSame( tree1 -> left, tree2 -> left )
+                 && TwoTreesAreTheSame( tree1 -> right, tree2 -> right ) ) ;
+      } // if()
+      
+      return false ;
+    } // else()
+  } // TwoTreesAreTheSame()
+  
   Node* ProcessEqvAndEqual( string funcName, Node* inTree ) {
     Node* ansNode = new Node ;
     ansNode -> lex = "#t" ;
@@ -2440,7 +2458,22 @@ private:
         } // else()
       } // if()
       else if ( funcName == "equal?" ) { // compare the context
+        string originArgStr1 = argList[ 0 ] -> lex ;
+        string originArgStr2 = argList[ 1 ] -> lex ;
+        argList[ 0 ] = EvaluateSExp( argList[ 0 ] ) ;
+        argList[ 1 ] = EvaluateSExp( argList[ 1 ] ) ;
         
+        if ( argList[ 0 ] == NULL ) {
+          throw IncorrectArgumentTypeException( funcName, originArgStr1 ) ;
+        } // if()
+        else if ( argList[ 1 ] == NULL ) {
+          throw IncorrectArgumentTypeException( funcName, originArgStr2 ) ;
+        } // else if()
+        else {
+          if ( ! TwoTreesAreTheSame( argList[ 0 ], argList[ 1 ] ) ) {
+            ansNode -> lex = "nil" ;
+          } // if()
+        } // else()
       } // else if()
     } // if()
     else {

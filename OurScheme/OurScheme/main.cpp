@@ -427,6 +427,13 @@ public:
     gColumn = 0 ;
   } // SkipLine()
   
+  string GetStrContent( string str ) {
+    string newString = "" ;
+    newString = str.substr( 1, str.length() - 2 ) ;
+    
+    return newString ;
+  } // GetStrContent()
+  
   void PrintStr( string str ) {
     
     for ( int i = 0 ; i < str.length() ; i ++ ) {
@@ -1587,7 +1594,7 @@ private:
   } // AddFunction()
   
   bool IsReserveWord( string str ) {
-    if ( str == "cons" || str == "list" || str == "quote" || str == "define" || str == "car" || str == "cdr" || str == "not" || str == "and" || str == "or" || str == "begin" || str == "if" || str == "cond" || str == "clean-environment" || str == "quote" || str == "'" || str == "atom?" || str == "pair?" || str == "list?" || str == "null?" || str == "integer?" || str == "real?" || str == "number?" || str == "string?" || str == "boolean?" || str == "symbol?" || str == "+" || str == "-" || str == "*" || str == "/" || str == "eqv?" || str == "equal?" || str == "begin" || str == "if" || str == "cond" ) {
+    if ( str == "cons" || str == "list" || str == "quote" || str == "define" || str == "car" || str == "cdr" || str == "not" || str == "and" || str == "or" || str == "begin" || str == "if" || str == "cond" || str == "clean-environment" || str == "quote" || str == "'" || str == "atom?" || str == "pair?" || str == "list?" || str == "null?" || str == "integer?" || str == "real?" || str == "number?" || str == "string?" || str == "boolean?" || str == "symbol?" || str == "+" || str == "-" || str == "*" || str == "/" || str == ">" || str == ">=" || str == "<" || str == "<=" || str == "=" || str == "and" || str == "not" || str == "or" || str == "string-append" || str == "string>?" || str == "string<?" || str == "string=?" || str == "eqv?" || str == "equal?" || str == "begin" || str == "if" || str == "cond" ) {
       return true ;
     } // if()
     
@@ -1719,34 +1726,34 @@ private:
   
   Node* EvaluateLIST( Node* inTree ) {
     Node* result = NULL ;
-    vector<Node*> augList ;
+    vector<Node*> argList ;
     if ( CountArgument( inTree ) > 0 ) {
       // Step1. find out all the arguments and put them in a list
-      augList = GetArgumentList( inTree )  ;
+      argList = GetArgumentList( inTree )  ;
       // Step2. start to check the type and mean time replace the symbol
-      for ( int i = 0 ; i < augList.size() ; i ++ ) {
-        if ( IsList( augList[ i ], augList[ i ] ) ) {
-          if ( augList[ i ] -> type == ATOM
-              && IsSymbol( augList[ i ] -> lex ) ) {
-            int symIndex = FindDefinedSymbol( augList[ i ] -> lex ) ;
+      for ( int i = 0 ; i < argList.size() ; i ++ ) {
+        if ( IsList( argList[ i ], argList[ i ] ) ) {
+          if ( argList[ i ] -> type == ATOM
+              && IsSymbol( argList[ i ] -> lex ) ) {
+            int symIndex = FindDefinedSymbol( argList[ i ] -> lex ) ;
             if ( symIndex != -1 ) {
-              augList[ i ] = EvaluateSExp( mSymbolTable[ symIndex ].tree ) ;
+              argList[ i ] = EvaluateSExp( mSymbolTable[ symIndex ].tree ) ;
             } // if()
             else {
-              throw UnboundValueException( augList[ i ] -> lex ) ;
+              throw UnboundValueException( argList[ i ] -> lex ) ;
             } // else()
           } // if()
           else { // this is a list, but need to check more detail
-            augList[ i ] = EvaluateSExp( augList[ i ] ) ;
+            argList[ i ] = EvaluateSExp( argList[ i ] ) ;
           } // else()
         } // if()
         else {
-          throw NonListException( augList[ i ] ) ;
+          throw NonListException( argList[ i ] ) ;
         } // else()
       } // for()
       // Step3. All the arguments are correct, now combined them
       Node* prevNode = NULL ;
-      for ( int i = 0 ; i < augList.size() ; i ++ ) {
+      for ( int i = 0 ; i < argList.size() ; i ++ ) {
         Node* node = new Node ;
         node -> lex = "" ;
         node -> type = CONS ;
@@ -1754,13 +1761,13 @@ private:
         node -> left = NULL ;
         node -> right = NULL ;
         
-        node -> left = augList[ i ] ;
+        node -> left = argList[ i ] ;
         
         if ( i == 0 ) {
           result = node ;
           prevNode = node ;
         } // if()
-        else if ( i == augList.size() - 1 ){
+        else if ( i == argList.size() - 1 ){
           prevNode -> right = node ;
           node -> parent = prevNode ;
           
@@ -1788,18 +1795,18 @@ private:
   } // EvaluateLIST()
   
   void Define( Node* inTree ) {
-    vector<Node*> augList = GetArgumentList( inTree ) ;
+    vector<Node*> argList = GetArgumentList( inTree ) ;
     
     if ( CountArgument( inTree ) == 2 ) {
       // the first argument should be a symbol
-      if ( augList[ 0 ] -> type == ATOM ) {
-        if ( ! IsReserveWord( augList[ 0 ] -> lex ) ) {
-          if ( g.GetTokenType( augList[ 0 ] -> lex ) == SYMBOL ) {
-            Node* value = augList[ 1 ] ; // copy
+      if ( argList[ 0 ] -> type == ATOM ) {
+        if ( ! IsReserveWord( argList[ 0 ] -> lex ) ) {
+          if ( g.GetTokenType( argList[ 0 ] -> lex ) == SYMBOL ) {
+            Node* value = argList[ 1 ] ; // copy
             
-            int symIndex = FindDefinedSymbol( augList[ 0 ] -> lex ) ;
+            int symIndex = FindDefinedSymbol( argList[ 0 ] -> lex ) ;
             Symbol newSymbol ;
-            newSymbol.name = augList[ 0 ] -> lex ;
+            newSymbol.name = argList[ 0 ] -> lex ;
             newSymbol.tree = value ;
             if ( symIndex != -1 ) { // this symbol has already exist, update it
               mSymbolTable[ symIndex ].tree = value ;
@@ -1811,7 +1818,7 @@ private:
             cout << newSymbol.name << " defined" << endl ;
           } // if()
           else {
-            throw IncorrectArgumentTypeException( "define", augList[ 0 ] -> lex ) ;
+            throw IncorrectArgumentTypeException( "define", argList[ 0 ] -> lex ) ;
           } // else()
         } // if()
         else { // user try to re-define the reserve word
@@ -1819,7 +1826,7 @@ private:
         } // else()
       } // if()
       else { //
-        throw IncorrectArgumentTypeException( "define", augList[ 0 ] -> left -> lex ) ;
+        throw IncorrectArgumentTypeException( "define", argList[ 0 ] -> left -> lex ) ;
       } // else()
     } // if()
     else {
@@ -1898,8 +1905,7 @@ private:
         } // if()
       } // else if()
       else if ( func == "string?" ) {
-        if ( target -> type == ATOM && target -> lex[ 0 ] == '"'
-            && target -> lex[ target -> lex.length() - 1 ] == '"' ) {
+        if ( target -> type == ATOM && g.IsStr( target -> lex ) ) {
           ans = true ;
         } // if()
       } // else if()
@@ -1979,7 +1985,7 @@ private:
     return false ;
   } // IsBasicOperation()
   
-  Node* ProcessOperation( string funcName, Node* inTree ) {
+  Node* ProcessMath( string funcName, vector<Node*> argList ) {
     Node* ansNode = new Node ;
     ansNode -> lex = "" ;
     ansNode -> type = ATOM ;
@@ -1987,97 +1993,264 @@ private:
     ansNode -> left = NULL ;
     ansNode -> right = NULL ;
     
-    vector<Node*> augList = GetArgumentList( inTree ) ;
+    // check whether all the arguments are numbers
+    for ( int i = 0 ; i < argList.size() ; i ++ ) {
+      Node* currentAug = EvaluateSExp( argList[ i ] ) ;
+      if ( currentAug -> type == ATOM
+          && ( g.IsINT( currentAug -> lex )
+              || g.IsFLOAT( currentAug -> lex ) ) ) {
+        argList[ i ] = EvaluateSExp( argList[ i ] ) ;
+      } // if()
+      else { // a non number atom exist
+        throw IncorrectArgumentTypeException( funcName, currentAug -> lex ) ;
+      } // else()
+    } // for()
+    
+    double ans = 0.0 ; // in case the result bigger than the range of INT
+    bool hasFloatExist = false ;
+    
+    if ( g.IsINT( argList[ 0 ] -> lex ) ) {
+      ans = g.GetValueOfIntStr( argList[ 0 ] -> lex ) ;
+    } // if()
+    else if ( g.IsFLOAT( argList[ 0 ] -> lex ) ) {
+      hasFloatExist = true ;
+      ans = g.GetValueOfFloatStr( argList[ 0 ] -> lex ) ;
+    } // else if()
+    
+    for ( int i = 1 ; i < argList.size() ; i ++ ) {
+      if ( g.IsINT( argList[ i ] -> lex ) ) {
+        if ( funcName == "+" ) {
+          ans += g.GetValueOfIntStr( argList[ i ] -> lex ) ;
+        } // if()
+        else if ( funcName == "-" ) {
+          ans -= g.GetValueOfIntStr( argList[ i ] -> lex ) ;
+        } // else if()
+        else if ( funcName == "*" ) {
+          ans *= g.GetValueOfIntStr( argList[ i ] -> lex ) ;
+        } // else if()
+        else if ( funcName == "/" ) {
+          if ( g.GetValueOfIntStr( argList[ i ] -> lex ) != 0 ) {
+            ans /= g.GetValueOfIntStr( argList[ i ] -> lex ) ;
+          } // if()
+          else {
+            throw DivideByZeroException() ;
+          } // else()
+        } // else if()
+      } // if()
+      else if ( g.IsFLOAT( argList[ i ] -> lex ) ) {
+        hasFloatExist = true ;
+        if ( funcName == "+" ) {
+          ans += g.GetValueOfFloatStr( argList[ i ] -> lex ) ;
+        } // if()
+        else if ( funcName == "-" ) {
+          ans -= g.GetValueOfFloatStr( argList[ i ] -> lex ) ;
+        } // else if()
+        else if ( funcName == "*" ) {
+          ans *= g.GetValueOfFloatStr( argList[ i ] -> lex ) ;
+        } // else if()
+        else if ( funcName == "/" ) {
+          if ( g.GetValueOfFloatStr( argList[ i ] -> lex ) != 0 ) {
+            ans /= g.GetValueOfFloatStr( argList[ i ] -> lex ) ;
+          } // if()
+          else {
+            throw DivideByZeroException() ;
+          } // else()
+        } // else if()
+      } // else if()
+    } // for()
+    
+    if ( ! hasFloatExist ) {
+      ansNode -> lex = g.IntToStr( ( int ) ans ) ;
+    } // if()
+    else { // the final answer is a float
+      ansNode -> lex = to_string( ans ) ;
+    } // else()
+    
+    return ansNode ;
+  } // ProcessMath()
+  
+  Node* ProcessCompare( string funcName, vector<Node*> argList ) {
+    Node* ansNode = new Node ;
+    ansNode -> lex = "#t" ;
+    ansNode -> type = ATOM ;
+    ansNode -> parent = NULL ;
+    ansNode -> left = NULL ;
+    ansNode -> right = NULL ;
+    
+    // check whether all the arguments are numbers
+    for ( int i = 0 ; i < argList.size() ; i ++ ) {
+      Node* currentAug = EvaluateSExp( argList[ i ] ) ;
+      if ( currentAug -> type == ATOM
+          && ( g.IsINT( currentAug -> lex )
+              || g.IsFLOAT( currentAug -> lex ) ) ) {
+        argList[ i ] = EvaluateSExp( argList[ i ] ) ;
+      } // if()
+      else { // a non number atom exist
+        throw IncorrectArgumentTypeException( funcName, currentAug -> lex ) ;
+      } // else()
+    } // for()
+    
+    // always compare the adjacent atoms
+    double currentValue = 0.0 ;
+    if ( g.IsINT( argList[ 0 ] -> lex ) ) {
+      currentValue = g.GetValueOfIntStr( argList[ 0 ] -> lex ) ;
+    } // if()
+    else if ( g.IsFLOAT( argList[ 0 ] -> lex ) ) {
+      currentValue = g.GetValueOfFloatStr( argList[ 0 ] -> lex ) ;
+    } // else if()
+    
+    for ( int i = 1 ; i < argList.size() ; i ++ ) {
+      double nextValue = 0.0 ;
+      if ( g.IsINT( argList[ i ] -> lex ) ) {
+        nextValue = g.GetValueOfIntStr( argList[ i ] -> lex ) ;
+      } // if()
+      else if ( g.IsFLOAT( argList[ i ] -> lex ) ) {
+        nextValue = g.GetValueOfFloatStr( argList[ i ] -> lex ) ;
+      } // else if()
+      
+      if ( funcName == ">" ) {
+        if ( currentValue > nextValue ) {
+          currentValue = nextValue ; // keepp checking the following arguments
+        } // if()
+        else {
+          ansNode -> lex = "nil" ;
+          return ansNode ;
+        } // else()
+      } // if()
+      else if ( funcName == ">=" ) {
+        if ( currentValue >= nextValue ) {
+          currentValue = nextValue ; // keepp checking the following arguments
+        } // if()
+        else {
+          ansNode -> lex = "nil" ;
+          return ansNode ;
+        } // else()
+      } // else if()
+      else if ( funcName == "<" ) {
+        if ( currentValue < nextValue ) {
+          currentValue = nextValue ; // keepp checking the following arguments
+        } // if()
+        else {
+          ansNode -> lex = "nil" ;
+          return ansNode ;
+        } // else()
+      } // else if()
+      else if ( funcName == "<=" ) {
+        if ( currentValue <= nextValue ) {
+          currentValue = nextValue ; // keepp checking the following arguments
+        } // if()
+        else {
+          ansNode -> lex = "nil" ;
+          return ansNode ;
+        } // else()
+      } // else if()
+      else if ( funcName == "=" ) {
+        if ( currentValue == nextValue ) {
+          currentValue = nextValue ; // keepp checking the following arguments
+        } // if()
+        else {
+          ansNode -> lex = "nil" ;
+          return ansNode ;
+        } // else()
+      } // else if()
+    } // for()
+    
+    return ansNode ;
+  } // ProcessCompare()
+  
+  Node* ProcessStringCompare( string funcName, vector<Node*> argList ) {
+    Node* ansNode = new Node ;
+    ansNode -> lex = "#t" ;
+    ansNode -> type = ATOM ;
+    ansNode -> parent = NULL ;
+    ansNode -> left = NULL ;
+    ansNode -> right = NULL ;
+    
+    // check whether all the arguments are numbers
+    for ( int i = 0 ; i < argList.size() ; i ++ ) {
+      Node* currentAug = EvaluateSExp( argList[ i ] ) ;
+      if ( currentAug -> type == ATOM && g.IsStr( currentAug -> lex ) ) {
+        argList[ i ] = currentAug ;
+      } // if()
+      else {
+        throw IncorrectArgumentTypeException( funcName, currentAug -> lex ) ;
+      } // if()
+    } // for()
+    
+    string currentStr = g.GetStrContent( argList[ 0 ] -> lex ) ;
+    string ansStr = currentStr ; // only used in "string-append"
+    
+    for ( int i = 1 ; i < argList.size() ; i ++ ) {
+      if ( funcName == "string-append" ) {
+        ansStr += g.GetStrContent( argList[ i ] -> lex ) ;
+      } // if()
+      else if ( funcName == "string>?" ) {
+        if ( currentStr <= g.GetStrContent( argList[ i ] -> lex ) ) {
+          ansNode -> lex = "nil" ;
+          return ansNode ;
+        } // if()
+        else {
+          currentStr = g.GetStrContent( argList[ i ] -> lex ) ;
+        } // else()
+      } // else if()
+      else if ( funcName == "string<?" ) {
+        if ( currentStr >= g.GetStrContent( argList[ i ] -> lex ) ) {
+          ansNode -> lex = "nil" ;
+          return ansNode ;
+        } // if()
+        else {
+          currentStr = g.GetStrContent( argList[ i ] -> lex ) ;
+        } // else()
+      } // else if()
+      else if ( funcName == "string=?" ) {
+        if ( currentStr != g.GetStrContent( argList[ i ] -> lex ) ) {
+          ansNode -> lex = "nil" ;
+          return ansNode ;
+        } // if()
+        else {
+          currentStr = g.GetStrContent( argList[ i ] -> lex ) ;
+        } // else()
+      } // else if()
+    } // for()
+    
+    if ( funcName == "string-append" ) {
+      ansNode -> lex = '"' + ansStr + '"' ;
+    } // if()
+    
+    return ansNode ;
+  } // ProcessStringCompare()
+  
+  Node* ProcessOperation( string funcName, Node* inTree ) {
+
+    vector<Node*> argList = GetArgumentList( inTree ) ;
     
     if ( IsMathOperator( funcName ) ) { // need to have more than two arguments
       if ( CountArgument( inTree ) >= 2 ) {
-        // check whether all the arguments are numbers
-        for ( int i = 0 ; i < augList.size() ; i ++ ) {
-          Node* currentAug = EvaluateSExp( augList[ i ] ) ;
-          if ( currentAug -> type == ATOM
-               && ( g.IsINT( currentAug -> lex )
-                   || g.IsFLOAT( currentAug -> lex ) ) ) {
-            augList[ i ] = EvaluateSExp( augList[ i ] ) ;
-          } // if()
-          else { // a non number atom exist
-            throw IncorrectArgumentTypeException( funcName, currentAug -> lex ) ;
-          } // else()
-        } // for()
-        
-        double ans = 0.0 ; // in case the result bigger than the range of INT
-        bool hasFloatExist = false ;
-        
-        if ( g.IsINT( augList[ 0 ] -> lex ) ) {
-          ans = g.GetValueOfIntStr( augList[ 0 ] -> lex ) ;
-        } // if()
-        else if ( g.IsFLOAT( augList[ 0 ] -> lex ) ) {
-          hasFloatExist = true ;
-          ans = g.GetValueOfFloatStr( augList[ 0 ] -> lex ) ;
-        } // else if()
-        
-        for ( int i = 1 ; i < augList.size() ; i ++ ) {
-          if ( g.IsINT( augList[ i ] -> lex ) ) {
-            if ( funcName == "+" ) {
-              ans += g.GetValueOfIntStr( augList[ i ] -> lex ) ;
-            } // if()
-            else if ( funcName == "-" ) {
-              ans -= g.GetValueOfIntStr( augList[ i ] -> lex ) ;
-            } // else if()
-            else if ( funcName == "*" ) {
-              ans *= g.GetValueOfIntStr( augList[ i ] -> lex ) ;
-            } // else if()
-            else if ( funcName == "/" ) {
-              if ( g.GetValueOfIntStr( augList[ i ] -> lex ) != 0 ) {
-                ans /= g.GetValueOfIntStr( augList[ i ] -> lex ) ;
-              } // if()
-              else {
-                throw DivideByZeroException() ;
-              } // else()
-            } // else if()
-          } // if()
-          else if ( g.IsFLOAT( augList[ i ] -> lex ) ) {
-            hasFloatExist = true ;
-            if ( funcName == "+" ) {
-              ans += g.GetValueOfFloatStr( augList[ i ] -> lex ) ;
-            } // if()
-            else if ( funcName == "-" ) {
-              ans -= g.GetValueOfFloatStr( augList[ i ] -> lex ) ;
-            } // else if()
-            else if ( funcName == "*" ) {
-              ans *= g.GetValueOfFloatStr( augList[ i ] -> lex ) ;
-            } // else if()
-            else if ( funcName == "/" ) {
-              if ( g.GetValueOfFloatStr( augList[ i ] -> lex ) != 0 ) {
-                ans /= g.GetValueOfFloatStr( augList[ i ] -> lex ) ;
-              } // if()
-              else {
-                throw DivideByZeroException() ;
-              } // else()
-            } // else if()
-          } // else if()
-        } // for()
-        
-        if ( ! hasFloatExist ) {
-          ansNode -> lex = g.IntToStr( ( int ) ans ) ;
-        } // if()
-        else { // the final answer is a float
-          ansNode -> lex = to_string( ans ) ;
-        } // else()
-        
-        return ansNode ;
+        return ProcessMath( funcName, argList ) ;
       } // if()
       else {
         throw IncorrectNumberArgumentException( funcName ) ;
       } // else()
     } // if()
     else if ( IsComparison( funcName ) ) { // need to have more than two arguments
-      
+      if ( CountArgument( inTree ) >= 2 ) {
+        return ProcessCompare( funcName, argList );
+      } // if()
+      else {
+        throw IncorrectNumberArgumentException( funcName ) ;
+      } // else()
     } // else if()
     else if ( IsCondOperator( funcName ) ) { // not only need 1 argument
       
     } // else if()
-    else if ( IsStringOperator( funcName ) ) { // need to have more than two arguments
-      
+    else if ( IsStringOperator( funcName ) ) {
+      // need to have more than two arguments
+      if ( CountArgument( inTree ) >= 2 ) {
+        return ProcessStringCompare( funcName, argList ) ;
+      } // if()
+      else {
+        throw IncorrectNumberArgumentException( funcName ) ;
+      } // else()
     } // else if()
     
     return NULL ;

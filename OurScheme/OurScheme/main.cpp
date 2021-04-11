@@ -408,6 +408,17 @@ public:
     return nullNode ;
   } // GetNullNode()
   
+  Node* GetEmptyNode() {
+    Node* nullNode = new Node ;
+    nullNode -> lex = "" ;
+    nullNode -> type = EMPTY ;
+    nullNode -> parent = NULL ;
+    nullNode -> left = NULL ;
+    nullNode -> right = NULL ;
+    
+    return nullNode ;
+  } // GetEmptyNode()
+  
   void Reset() {
     gLine = 1 ;
     gColumn = 0 ;
@@ -1809,20 +1820,35 @@ private:
     vector<Node*> argList = GetArgumentList( inTree ) ;
     
     if ( CountArgument( inTree ) == 2 ) {
+      Symbol newSymbol ;
+      newSymbol.name = "" ;
+      newSymbol.tree = g.GetEmptyNode() ;
       // the first argument should be a symbol
       if ( argList[ 0 ] -> type == ATOM ) {
         if ( ! IsReserveWord( argList[ 0 ] -> lex ) ) {
           if ( g.GetTokenType( argList[ 0 ] -> lex ) == SYMBOL ) {
-            Node* value = argList[ 1 ] ; // copy
             
             int symIndex = FindDefinedSymbol( argList[ 0 ] -> lex ) ;
-            Symbol newSymbol ;
-            newSymbol.name = argList[ 0 ] -> lex ;
-            newSymbol.tree = value ;
             if ( symIndex != -1 ) { // this symbol has already exist, update it
-              mSymbolTable[ symIndex ].tree = value ;
+              if ( FindDefinedSymbol( argList[ 1 ] -> lex ) == -1 ) {
+                // the reference value is not a symbol
+                mSymbolTable[ symIndex ].tree = argList[ 1 ] ; // copy
+              } // if()
+              else {
+                mSymbolTable[ symIndex ].tree =
+                mSymbolTable[ FindDefinedSymbol( argList[ 1 ] -> lex ) ].tree ;
+              } // else()
             } // if()
             else {
+              newSymbol.name = argList[ 0 ] -> lex ;
+              if ( FindDefinedSymbol( argList[ 1 ] -> lex ) == -1 ) {
+                // the reference value is not a symbol
+                newSymbol.tree = argList[ 1 ] ; // copy
+              } // if()
+              else {
+                newSymbol.tree =
+                mSymbolTable[ FindDefinedSymbol( argList[ 1 ] -> lex ) ].tree ;
+              } // else()
               mSymbolTable.push_back( newSymbol ) ;
             } // else()
             
@@ -2096,7 +2122,7 @@ private:
   Node* ProcessCompare( string funcName, vector<Node*> argList ) {
     Node* ansNode = new Node ;
     ansNode -> lex = "#t" ;
-    ansNode -> type = ATOM ;
+    ansNode -> type = SPECIAL ;
     ansNode -> parent = NULL ;
     ansNode -> left = NULL ;
     ansNode -> right = NULL ;
@@ -2185,7 +2211,7 @@ private:
   Node* ProcessStringCompare( string funcName, vector<Node*> argList ) {
     Node* ansNode = new Node ;
     ansNode -> lex = "#t" ;
-    ansNode -> type = ATOM ;
+    ansNode -> type = SPECIAL ;
     ansNode -> parent = NULL ;
     ansNode -> left = NULL ;
     ansNode -> right = NULL ;
@@ -2248,7 +2274,7 @@ private:
   Node* ProcessCondOperation( string funcName, vector<Node*> argList ) {
     Node* ansNode = new Node ;
     ansNode -> lex = "#t" ;
-    ansNode -> type = ATOM ;
+    ansNode -> type = SPECIAL ;
     ansNode -> parent = NULL ;
     ansNode -> left = NULL ;
     ansNode -> right = NULL ;
@@ -2352,6 +2378,78 @@ private:
     return NULL ;
   } // ProcessOperation()
   
+  Node* ProcessEqvAndEqual( string funcName, Node* inTree ) {
+    Node* ansNode = new Node ;
+    ansNode -> lex = "#t" ;
+    ansNode -> type = SPECIAL ;
+    ansNode -> parent = NULL ;
+    ansNode -> left = NULL ;
+    ansNode -> right = NULL ;
+    
+    if ( CountArgument( inTree ) == 2 ) {
+      vector<Node*> argList = GetArgumentList( inTree ) ;
+      
+      for ( int i = 0 ; i < argList.size() ; i ++ ) {
+        EvaluateSExp( argList[ i ] ) ; // only used to check whether is any wrong
+      } // for()
+      
+      if ( funcName == "eqv?" ) { // compare the pointer
+        bool isInSameMemory = false ;
+        
+        if ( argList[ 0 ] -> type != CONS && argList[ 1 ] -> type != CONS
+             && g.GetTokenType( argList[ 0 ] -> lex ) == SYMBOL
+             && g.GetTokenType( argList[ 1 ] -> lex ) == SYMBOL ) {
+          int symIndex1 = FindDefinedSymbol( argList[ 0 ] -> lex ) ;
+          int symIndex2 = FindDefinedSymbol( argList[ 1 ] -> lex ) ;
+          if ( mSymbolTable[ symIndex1 ].tree
+               == mSymbolTable[ symIndex2 ].tree ) {
+            isInSameMemory = true ;
+          } // if()
+        } // if()
+        else if ( g.IsINT( argList[ 0 ] -> lex )
+                 && g.IsINT( argList[ 1 ] -> lex ) ) {
+          if ( g.GetValueOfIntStr( argList[ 0 ] -> lex )
+              == g.GetValueOfIntStr( argList[ 1 ] -> lex ) ) {
+            isInSameMemory = true ;
+          } // if()
+        } // else if()
+        else if ( g.IsFLOAT( argList[ 0 ] -> lex )
+                 && g.IsFLOAT( argList[ 1 ] -> lex ) ) {
+          if ( g.GetValueOfFloatStr( argList[ 0 ] -> lex )
+              == g.GetValueOfFloatStr( argList[ 1 ] -> lex ) ) {
+            isInSameMemory = true ;
+          } // if()
+        } // else if()
+        else { // check the #t and #f and nil and '()
+          Node* tmp1 = EvaluateSExp( argList[ 0 ] ) ;
+          Node* tmp2 = EvaluateSExp( argList[ 1 ] ) ;
+          if ( tmp1 -> type == SPECIAL && tmp2 -> type == SPECIAL ) {
+            if ( tmp1 -> lex == tmp2 -> lex ) {
+              isInSameMemory = true ;
+            } // if()
+          } // if()
+        } // else()
+        
+        if ( isInSameMemory ) {
+          ansNode -> lex = "#t" ;
+          return ansNode ;
+        } // if()
+        else {
+          ansNode -> lex = "nil" ;
+          return ansNode ;
+        } // else()
+      } // if()
+      else if ( funcName == "equal?" ) { // compare the context
+        
+      } // else if()
+    } // if()
+    else {
+      throw IncorrectNumberArgumentException( funcName ) ;
+    } // else()
+    
+    return ansNode ;
+  } // ProcessEqvAndEqual()
+  
 public:
   
   Node* EvaluateSExp( Node* treeRoot ) {
@@ -2404,6 +2502,9 @@ public:
         } // else if()
         else if ( IsBasicOperation( funcName ) ) {
           return ProcessOperation( funcName, treeRoot );
+        } // else if()
+        else if ( funcName == "eqv?" || funcName == "equal?" ) {
+          return ProcessEqvAndEqual( funcName, treeRoot );
         } // else if()
         
       } // if()

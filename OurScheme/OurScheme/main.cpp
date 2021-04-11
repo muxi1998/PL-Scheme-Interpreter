@@ -1454,16 +1454,27 @@ public:
 class ApplyNonFunctionException {
 private:
   string mLex ;
+  Node* mTree ;
   
 public:
-  ApplyNonFunctionException( string errLex ) {
+  ApplyNonFunctionException( string errLex, Node* errTree ) {
     mLex = errLex ;
+    mTree = errTree ;
   } // ApplyNonFunctionException()
   
   string Err_mesg() {
-    string mesg = "ERROR (attempt to apply non-function) : " + mLex ;
+    string mesg = "ERROR (attempt to apply non-function) : " ;
     return mesg ;
   } // Err_mesg()
+  
+  void PrintErrAtom() {
+    if ( mTree == NULL ) { // print the lex
+      cout << mLex << endl ;
+    } // if()
+    else { // the error atom is a symbol, so need a transformation
+      g.PrettyPrint( mTree ) ;
+    } // else()
+  } // PrintErrAtom()
 } ; // ApplyNonFunctionException
 
 class NoReturnValueException {
@@ -1837,14 +1848,17 @@ public:
       else if ( definedFuncIndex != -1 ) { // this user-defined function exist
         // process the user defined function
       } // else if()
-      else {
-        if ( ! g.IsINT( funcName ) && ! g.IsFLOAT( funcName )
-             && FindDefinedSymbol( funcName ) == -1 ) {
+      else if ( IsSymbol( funcName ) ) {
+        if ( FindDefinedSymbol( funcName ) == -1 ) {
           throw UnboundValueException( funcName ) ;
         } // if()
         else {
-          throw ApplyNonFunctionException( funcName ) ;
+          int index = FindDefinedSymbol( funcName ) ;
+          throw ApplyNonFunctionException( funcName, mSymbolTable[ index ].tree ) ;
         } // else()
+      } // else if()
+      else { // either a function name or a symbol
+        throw ApplyNonFunctionException( funcName, NULL ) ;
       } // else()
     } // if()
     else {
@@ -1900,7 +1914,8 @@ int main() {
             cout << e.Err_mesg() << endl ;
           } // catch()
           catch ( ApplyNonFunctionException e ) {
-            cout << e.Err_mesg() << endl ;
+            cout << e.Err_mesg() ;
+            e.PrintErrAtom() ;
           } // catch()
           catch ( IncorrectNumberArgumentException e ) {
             cout << e.Err_mesg() << endl ;

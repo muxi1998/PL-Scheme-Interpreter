@@ -397,6 +397,17 @@ public:
     return num ;
   } // GetValueOfFloatStr()
   
+  Node* GetNullNode() {
+    Node* nullNode = new Node ;
+    nullNode -> lex = "nil" ;
+    nullNode -> type = SPECIAL ;
+    nullNode -> parent = NULL ;
+    nullNode -> left = NULL ;
+    nullNode -> right = NULL ;
+    
+    return nullNode ;
+  } // GetNullNode()
+  
   void Reset() {
     gLine = 1 ;
     gColumn = 0 ;
@@ -1794,7 +1805,7 @@ private:
     return NULL ; // it is empty in the argument
   } // EvaluateLIST()
   
-  void Define( Node* inTree ) {
+  Node* Define( Node* inTree ) {
     vector<Node*> argList = GetArgumentList( inTree ) ;
     
     if ( CountArgument( inTree ) == 2 ) {
@@ -1832,26 +1843,34 @@ private:
     else {
       throw DefineFormatException( inTree ) ;
     } // else()
+    
+    return NULL ;
   } // Define()
   
   Node* AccessList( string funcName, Node* inTree ) {
     if ( CountArgument( inTree ) == 1 ){
       Node* targetTree = EvaluateSExp( inTree -> right -> left ) ;
-      if ( targetTree -> type == ATOM || targetTree -> type == SPECIAL ) {
-        if ( g.IsINT( targetTree -> lex ) || g.IsFLOAT( targetTree -> lex ) ) {
-          throw IncorrectArgumentTypeException( funcName, targetTree -> lex ) ;
+      
+      if ( targetTree != NULL ) {
+        if ( targetTree -> type == ATOM || targetTree -> type == SPECIAL ) {
+          if ( g.IsINT( targetTree -> lex ) || g.IsFLOAT( targetTree -> lex ) ) {
+            throw IncorrectArgumentTypeException( funcName, targetTree -> lex ) ;
+          } // if()
+          else {
+            return targetTree ;
+          } // else()
         } // if()
         else {
-          return targetTree ;
+          if ( funcName == "car" ) {
+            return targetTree -> left ;
+          } // if()
+          else if ( funcName == "cdr" ) {
+            return targetTree -> right ;
+          } // else if()
         } // else()
       } // if()
       else {
-        if ( funcName == "car" ) {
-          return targetTree -> left ;
-        } // if()
-        else if ( funcName == "cdr" ) {
-          return targetTree -> right ;
-        } // else if()
+        throw IncorrectArgumentTypeException( funcName, inTree -> right -> left -> lex ) ;
       } // else()
     } // if()
     else {
@@ -1873,52 +1892,57 @@ private:
     if ( CountArgument( inTree ) == 1 ) {
       Node* target = EvaluateSExp( inTree -> right -> left ) ;
       
-      if ( func == "atom?" ) {
-        if ( target -> type == ATOM ) {
-          ans = true ;
+      if ( target != NULL ) {
+        if ( func == "atom?" ) {
+          if ( target -> type == ATOM ) {
+            ans = true ;
+          } // if()
         } // if()
+        else if ( func == "pair?" ) {
+          if ( target -> type == CONS && CountArgument( target ) <= 1 ) {
+            ans = true ;
+          } // if()
+        } // else if()
+        else if ( func == "list?" ) {
+          if ( target -> type == CONS && IsList( target, target ) ) {
+            ans = true ;
+          } // if()
+        } // else if()
+        else if ( func == "null?" ) {
+          if ( target -> type == SPECIAL
+              && ( target -> lex == "nil" || target -> lex == "#f" ) ) {
+            ans = true ;
+          } // if()
+        } // else if()
+        else if ( func == "integer?" ) {
+          if ( target -> type == ATOM && g.IsINT( target -> lex ) ) {
+            ans = true ;
+          } // if()
+        } // else if()
+        else if ( func == "real?" || func == "number?" ) {
+          if ( target -> type == ATOM && ( g.IsINT( target -> lex ) || g.IsFLOAT( target -> lex ) ) ) {
+            ans = true ;
+          } // if()
+        } // else if()
+        else if ( func == "string?" ) {
+          if ( target -> type == ATOM && g.IsStr( target -> lex ) ) {
+            ans = true ;
+          } // if()
+        } // else if()
+        else if ( func == "boolean?" ) {
+          if ( target -> type == SPECIAL ) {
+            ans = true ;
+          } // if()
+        } // else if()
+        else if ( func == "symbol?" ) {
+          if ( target -> type == ATOM && g.GetTokenType( func ) == SYMBOL ) {
+            ans = true ;
+          } // if()
+        } // else if()
       } // if()
-      else if ( func == "pair?" ) {
-        if ( target -> type == CONS && CountArgument( target ) <= 1 ) {
-          ans = true ;
-        } // if()
-      } // else if()
-      else if ( func == "list?" ) {
-        if ( target -> type == CONS && IsList( target, target ) ) {
-          ans = true ;
-        } // if()
-      } // else if()
-      else if ( func == "null?" ) {
-        if ( target -> type == SPECIAL
-             && ( target -> lex == "nil" || target -> lex == "#f" ) ) {
-          ans = true ;
-        } // if()
-      } // else if()
-      else if ( func == "integer?" ) {
-        if ( target -> type == ATOM && g.IsINT( target -> lex ) ) {
-          ans = true ;
-        } // if()
-      } // else if()
-      else if ( func == "real?" || func == "number?" ) {
-        if ( target -> type == ATOM && ( g.IsINT( target -> lex ) || g.IsFLOAT( target -> lex ) ) ) {
-          ans = true ;
-        } // if()
-      } // else if()
-      else if ( func == "string?" ) {
-        if ( target -> type == ATOM && g.IsStr( target -> lex ) ) {
-          ans = true ;
-        } // if()
-      } // else if()
-      else if ( func == "boolean?" ) {
-        if ( target -> type == SPECIAL ) {
-          ans = true ;
-        } // if()
-      } // else if()
-      else if ( func == "symbol?" ) {
-        if ( target -> type == ATOM && g.GetTokenType( func ) == SYMBOL ) {
-          ans = true ;
-        } // if()
-      } // else if()
+      else {
+        throw IncorrectArgumentTypeException( func, inTree -> right -> left -> lex ) ;
+      } // else()
       
       if ( ans ) {
         ansNode -> lex = "#t" ;
@@ -1996,7 +2020,7 @@ private:
     // check whether all the arguments are numbers
     for ( int i = 0 ; i < argList.size() ; i ++ ) {
       Node* currentAug = EvaluateSExp( argList[ i ] ) ;
-      if ( currentAug -> type == ATOM
+      if ( currentAug != NULL && currentAug -> type == ATOM
           && ( g.IsINT( currentAug -> lex )
               || g.IsFLOAT( currentAug -> lex ) ) ) {
         argList[ i ] = EvaluateSExp( argList[ i ] ) ;
@@ -2080,7 +2104,7 @@ private:
     // check whether all the arguments are numbers
     for ( int i = 0 ; i < argList.size() ; i ++ ) {
       Node* currentAug = EvaluateSExp( argList[ i ] ) ;
-      if ( currentAug -> type == ATOM
+      if ( currentAug != NULL && currentAug -> type == ATOM
           && ( g.IsINT( currentAug -> lex )
               || g.IsFLOAT( currentAug -> lex ) ) ) {
         argList[ i ] = EvaluateSExp( argList[ i ] ) ;
@@ -2169,7 +2193,8 @@ private:
     // check whether all the arguments are numbers
     for ( int i = 0 ; i < argList.size() ; i ++ ) {
       Node* currentAug = EvaluateSExp( argList[ i ] ) ;
-      if ( currentAug -> type == ATOM && g.IsStr( currentAug -> lex ) ) {
+      if ( currentAug != NULL
+           && currentAug -> type == ATOM && g.IsStr( currentAug -> lex ) ) {
         argList[ i ] = currentAug ;
       } // if()
       else {
@@ -2220,6 +2245,62 @@ private:
     return ansNode ;
   } // ProcessStringCompare()
   
+  Node* ProcessCondOperation( string funcName, vector<Node*> argList ) {
+    Node* ansNode = new Node ;
+    ansNode -> lex = "#t" ;
+    ansNode -> type = ATOM ;
+    ansNode -> parent = NULL ;
+    ansNode -> left = NULL ;
+    ansNode -> right = NULL ;
+    
+    // check whether all the arguments are numbers
+    for ( int i = 0 ; i < argList.size() ; i ++ ) {
+      Node* currentAug = EvaluateSExp( argList[ i ] ) ;
+      if ( currentAug != NULL ) {
+        argList[ i ] = currentAug ;
+      } // if()
+      else {
+        throw IncorrectArgumentTypeException( funcName, argList[ i ] -> lex ) ;
+      } // if()
+    } // for()
+    
+    bool resultIsTrue = true ;
+    for ( int i = 0 ; i < argList.size() ; i ++ ) {
+      if ( funcName == "not" ) {
+        if ( argList[ 0 ] -> lex != "nil" && argList[ 0 ] -> lex != "#f" ) {
+          resultIsTrue = false ;
+          ansNode -> lex = "nil" ;
+          return ansNode ;
+        } // if()
+      } // if()
+      else if ( funcName == "and" ) {
+        if ( argList[ i ] -> type == SPECIAL && argList[ i ] -> lex != "#t" ) {
+          resultIsTrue = false ;
+          ansNode -> lex = "nil" ;
+          return ansNode ;
+        } // if()
+        else if ( i == argList.size() - 1 ) {
+          return argList[ i ] ;
+        } // else if()
+      } // else if()
+      else if ( funcName == "or" ) {
+        resultIsTrue = false ;
+        if ( argList[ i ] -> type != SPECIAL ) {
+          return argList[ i ] ;
+        } // if()
+        else if ( argList[ i ] -> lex == "#t" ) {
+          return argList[ i ] ;
+        } // else if()
+      } // else if()
+    } // for()
+    
+    if ( !resultIsTrue ) {
+      ansNode -> lex = "nil" ;
+    } // if()
+    
+    return ansNode ;
+  } // ProcessCondOperation()
+  
   Node* ProcessOperation( string funcName, Node* inTree ) {
 
     vector<Node*> argList = GetArgumentList( inTree ) ;
@@ -2241,7 +2322,22 @@ private:
       } // else()
     } // else if()
     else if ( IsCondOperator( funcName ) ) { // not only need 1 argument
-      
+      if ( funcName == "not" ) { // only ONE argument
+        if ( CountArgument( inTree ) == 1 ) {
+          return ProcessCondOperation( funcName, argList ) ;
+        } // if()
+        else {
+          throw IncorrectNumberArgumentException( funcName ) ;
+        } // else()
+      } // if()
+      else {
+        if ( CountArgument( inTree ) >= 2 ) {
+          return ProcessCondOperation( funcName, argList ) ;
+        } // if()
+        else {
+          throw IncorrectNumberArgumentException( funcName ) ;
+        } // else()
+      } // else()
     } // else if()
     else if ( IsStringOperator( funcName ) ) {
       // need to have more than two arguments
@@ -2298,8 +2394,7 @@ public:
           return EvaluateLIST( treeRoot ) ;
         } // else if()
         else if ( funcName == "define" ) {
-          Define( treeRoot ) ;
-          return NULL ;
+          return Define( treeRoot ) ;
         } // else if()
         else if ( funcName == "car" || funcName == "cdr" ) {
           return AccessList( funcName, treeRoot ) ;

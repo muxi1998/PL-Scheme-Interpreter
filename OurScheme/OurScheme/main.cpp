@@ -1575,11 +1575,21 @@ public:
 } ; // DefineFormatException
 
 class CondFormatException {
+private:
+  Node* mErrNode ;
 public:
+  CondFormatException( Node* err ) {
+    mErrNode = err ;
+  } // CondFormatException()
+  
   string Err_mesg() {
     string mesg = "ERROR (COND format) : " ;
     return mesg ;
   } // Err_mesg()
+  
+  Node* Err_node() {
+    return mErrNode ;
+  } // Err_node()
 } ; // CondFormatException
 
 // --------------------- Error Definition Proj.2 (end) ---------------------
@@ -2494,7 +2504,7 @@ private:
   } // ProcessEqvAndEqual()
   
   Node* ProcessIf( Node* inTree ) {
-    Node* emptyNode = g.GetNullNode() ;
+    Node* emptyNode = g.GetEmptyNode() ;
     // has two or three arguments
     if ( CountArgument( inTree ) == 2 || CountArgument( inTree ) == 3 ) {
       vector<Node*> argList = GetArgumentList( inTree ) ;
@@ -2530,6 +2540,89 @@ private:
     
     return emptyNode ;
   } // ProcessIf()
+  
+  Node* ProcessCond( Node* inTree ) {
+    // cond expression cam take more than 1 arguments, at least one
+    Node* emptyNode = g.GetEmptyNode() ;
+    
+    if ( CountArgument( inTree ) >= 1 ) {
+      vector<Node*> argList = GetArgumentList( inTree ) ;
+      
+      // check each arguments should all be cons
+      for ( int i = 0 ; i < argList.size() ; i ++ ) {
+        if ( argList[ i ] -> type != CONS ) {
+          throw CondFormatException( inTree ) ;
+        } // if()
+      } // for()
+      
+      // start finding the first satisfying statement
+      for ( int i = 0 ; i < argList.size() ; i ++ ) {
+        Node* condResult = g.GetEmptyNode() ;
+        Node* condPart = argList[ i ] -> left ;
+        Node* state1 = argList[ i ] -> right -> left ;
+        Node* state2 = NULL ;
+        
+        if ( CountArgument( argList[ i ] ) == 2 ) {
+          if ( i == argList.size() - 1 ) {
+            state2 = EvaluateSExp( argList[ i ] -> right
+                                  -> right -> left ) ;
+          } // if()
+          else {
+            throw CondFormatException( inTree ) ;
+          } // else()
+        } // if()
+        
+        if ( IsList( argList[ i ], argList[ i ] ) ) {
+          if ( i < argList.size() - 1 ) {
+            condResult = EvaluateSExp( condPart ) ;
+            if ( condResult != NULL ) {
+              if ( ! g.IsStr( condResult -> lex )
+                   && condResult -> lex != "#f"
+                   && condResult -> lex != "nil"  ) {
+                return EvaluateSExp( state1 ) ;
+              } // if()
+            } // if()
+            else {
+              throw CondFormatException( inTree ) ;
+            } // else()
+          } // if()
+          else {
+            // the last condition can start with the key word "else"
+            if ( condPart -> lex == "else" ) { // don't need to evaluate
+              return EvaluateSExp( state1 );
+            } // if()
+            else {
+              condResult = EvaluateSExp( condPart ) ;
+              if ( condResult != NULL ) {
+                if ( ! g.IsStr( condResult -> lex )
+                     && condResult -> lex != "#f"
+                     && condResult -> lex != "nil" ) {
+                  return EvaluateSExp( state1 ) ;
+                } // if()
+                else if ( state2 != NULL ) {
+                  return EvaluateSExp( state2 ) ;
+                } // else if()
+                else {
+                  throw NoReturnValueException( inTree ) ;
+                } // else()
+              } // if()
+              else {
+                throw CondFormatException( inTree ) ;
+              } // else()
+            } // else()
+          } // else()
+        } // if()
+        else {
+          throw CondFormatException( inTree ) ;
+        } // else()
+      } // for()
+    } // if()
+    else {
+      throw CondFormatException( inTree ) ;
+    } // else()
+    
+    return emptyNode ;
+  } // ProcessCond()
   
 public:
   
@@ -2591,7 +2684,7 @@ public:
           return ProcessIf( treeRoot ) ;
         } // else if()
         else if ( funcName == "cond" ) {
-          
+          return ProcessCond( treeRoot ) ;
         } // else if()
         
       } // if()
@@ -2688,7 +2781,7 @@ int main() {
           } // catch()
           catch ( CondFormatException e ) {
             cout << e.Err_mesg() ;
-            g.PrettyPrint( tree.GetRoot() ) ;
+            g.PrettyPrint( e.Err_node() ) ;
             cout << endl ;
           } // catch()
         } // if()

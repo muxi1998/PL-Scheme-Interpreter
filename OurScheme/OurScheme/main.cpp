@@ -792,6 +792,9 @@ private:
       ch_get = GetChar() ;
       fullStr += ch_get ;
     } // if()
+    else if ( ch_get == '\"' ) {
+      return fullStr ;
+    } // else if()
     else { // miss the ending quote
       throw NoClosingQuoteException( gLine, gColumn + 1 ) ;
     } // else()
@@ -2071,7 +2074,7 @@ private:
     mReserveWords.clear() ;
     AddOriginReserveWords() ;
     ResetReserveWord() ;
-    cout << "environment-cleaned" << endl ;
+    cout << "environment cleaned" << endl ;
     
     return NULL ;
   } // CleanEnvironment()

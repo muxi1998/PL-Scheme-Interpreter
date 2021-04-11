@@ -1852,6 +1852,7 @@ private:
             if ( symIndex != -1 ) { // this symbol has already exist, update it
               if ( FindDefinedSymbol( argList[ 1 ] -> lex ) == -1 ) {
                 // the reference value is not a symbol
+                newSymbol.name = argList[ 0 ] -> lex ;
                 mSymbolTable[ symIndex ].tree = argList[ 1 ] ; // copy
               } // if()
               else {
@@ -2550,7 +2551,8 @@ private:
       
       // check each arguments should all be cons
       for ( int i = 0 ; i < argList.size() ; i ++ ) {
-        if ( argList[ i ] -> type != CONS ) {
+        if ( argList[ i ] -> type != CONS
+             || ! IsList( argList[ i ], argList[ i ] ) ) {
           throw CondFormatException( inTree ) ;
         } // if()
       } // for()
@@ -2559,61 +2561,52 @@ private:
       for ( int i = 0 ; i < argList.size() ; i ++ ) {
         Node* condResult = g.GetEmptyNode() ;
         Node* condPart = argList[ i ] -> left ;
-        Node* state1 = argList[ i ] -> right -> left ;
-        Node* state2 = NULL ;
+        Node* statePart = g.GetEmptyNode() ;
+        vector<Node*> subAugList = GetArgumentList( argList[ i ] ) ;
         
-        if ( CountArgument( argList[ i ] ) == 2 ) {
-          if ( i == argList.size() - 1 ) {
-            state2 = EvaluateSExp( argList[ i ] -> right
-                                  -> right -> left ) ;
+        for ( int subI = 0 ; subI < subAugList.size() ; subI ++ ) {
+          if ( subI < subAugList.size() - 1 ) {
+            EvaluateSExp( subAugList[ subI ] ) ;
+          } // if()
+          else {
+            statePart = subAugList[ subI ] ;
+          } // else()
+        } // for()
+        
+        // assert: has deal with all the additional statement
+        
+        if ( i < argList.size() - 1 ) {
+          condResult = EvaluateSExp( condPart ) ;
+          if ( condResult != NULL ) {
+            if ( condResult -> lex != "#f"
+                && condResult -> lex != "nil"  ) {
+              return EvaluateSExp( statePart ) ;
+            } // if()
           } // if()
           else {
             throw CondFormatException( inTree ) ;
           } // else()
         } // if()
-        
-        if ( IsList( argList[ i ], argList[ i ] ) ) {
-          if ( i < argList.size() - 1 ) {
+        else {
+          // the last condition can start with the key word "else"
+          if ( condPart -> lex == "else" ) { // don't need to evaluate
+            return EvaluateSExp( statePart );
+          } // if()
+          else {
             condResult = EvaluateSExp( condPart ) ;
             if ( condResult != NULL ) {
-              if ( ! g.IsStr( condResult -> lex )
-                   && condResult -> lex != "#f"
-                   && condResult -> lex != "nil"  ) {
-                return EvaluateSExp( state1 ) ;
+              if ( condResult -> lex != "#f"
+                  && condResult -> lex != "nil" ) {
+                return EvaluateSExp( statePart ) ;
               } // if()
+              else {
+                throw NoReturnValueException( inTree ) ;
+              } // else()
             } // if()
             else {
               throw CondFormatException( inTree ) ;
             } // else()
-          } // if()
-          else {
-            // the last condition can start with the key word "else"
-            if ( condPart -> lex == "else" ) { // don't need to evaluate
-              return EvaluateSExp( state1 );
-            } // if()
-            else {
-              condResult = EvaluateSExp( condPart ) ;
-              if ( condResult != NULL ) {
-                if ( ! g.IsStr( condResult -> lex )
-                     && condResult -> lex != "#f"
-                     && condResult -> lex != "nil" ) {
-                  return EvaluateSExp( state1 ) ;
-                } // if()
-                else if ( state2 != NULL ) {
-                  return EvaluateSExp( state2 ) ;
-                } // else if()
-                else {
-                  throw NoReturnValueException( inTree ) ;
-                } // else()
-              } // if()
-              else {
-                throw CondFormatException( inTree ) ;
-              } // else()
-            } // else()
           } // else()
-        } // if()
-        else {
-          throw CondFormatException( inTree ) ;
         } // else()
       } // for()
     } // if()
@@ -2624,6 +2617,34 @@ private:
     return emptyNode ;
   } // ProcessCond()
   
+  Node* ProcessBegin( Node* inTree ) {
+    Node* emptyNode = g.GetEmptyNode() ;
+    if ( CountArgument( inTree ) >= 1 ) {
+      // sequencing evaluate all argements, but return the final one
+      vector<Node*> argList = GetArgumentList( inTree ) ;
+      
+      for ( int i = 0 ; i < argList.size() ; i ++ ) {
+        if ( !IsList( argList[ i ], argList[ i ] ) ) {
+          throw IncorrectArgumentTypeException( "begin", argList[ i ] -> lex ) ;
+        } // if()
+      } // for()
+      
+      for ( int i = 0 ; i < argList.size() ; i ++ ) {
+        if ( i == argList.size() - 1 ) {
+          return EvaluateSExp( argList[ i ] ) ; ;
+        } // if()
+        else {
+          EvaluateSExp( argList[ i ] ) ;
+        } // else()
+      } // for()
+    } // if()
+    else {
+      throw IncorrectNumberArgumentException( "begin" ) ;
+    } // else()
+    
+    return emptyNode ;
+  } // ProcessBegin()
+  
 public:
   
   Node* EvaluateSExp( Node* treeRoot ) {
@@ -2633,11 +2654,7 @@ public:
     int definedFuncIndex = -1 ;
     
     if ( treeRoot -> type != CONS ) {
-      if ( treeRoot -> lex == "clean-environment" ) {
-        CleanEnvironment() ;
-        return NULL ; // no tree to return
-      } // if()
-      else if ( g.GetTokenType( treeRoot -> lex ) == SYMBOL ) {
+      if ( g.GetTokenType( treeRoot -> lex ) == SYMBOL ) {
         int symbolIndex = FindDefinedSymbol( treeRoot -> lex ) ;
         if ( symbolIndex != -1 ) { // this symbol exist in the symbol table
           return EvaluateSExp( mSymbolTable[ symbolIndex ].tree ) ;
@@ -2645,7 +2662,7 @@ public:
         else {
           throw UnboundValueException( treeRoot -> lex ) ;
         } // else()
-      } // else if()
+      } // if()
       
       return treeRoot ;
     } // if()
@@ -2686,7 +2703,13 @@ public:
         else if ( funcName == "cond" ) {
           return ProcessCond( treeRoot ) ;
         } // else if()
-        
+        else if ( funcName == "begin" ) {
+          return ProcessBegin( treeRoot ) ;
+        } // else if()
+        else if ( funcName == "clean-environment" ) {
+          CleanEnvironment() ;
+          return NULL ; // no tree to return
+        } // else if()
       } // if()
       else if ( definedFuncIndex != -1 ) { // this user-defined function exist
         // process the user defined function

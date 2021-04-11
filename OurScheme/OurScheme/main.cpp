@@ -451,7 +451,12 @@ public:
   
   string GetStrContent( string str ) {
     string newString = "" ;
-    newString = str.substr( 1, str.length() - 2 ) ;
+    if ( str[ 0 ] == '"' ) {
+      newString = str.substr( 1, str.length() - 2 ) ;
+    } // if()
+    else {
+      newString = str ;
+    } // else()
     
     return newString ;
   } // GetStrContent()
@@ -1597,6 +1602,8 @@ public:
 // Purpose: Do the evaluation and store the user definitions
 class Evaluator {
 private:
+  string mOriginReserveWordList[ 47 ] = { "cons", "list", "quote", "define", "car", "cdr", "not", "and", "or", "begin", "if", "cond",  "clean-environment", "quote", "'", "atom?", "pair?", "list?", "null?", "integer?", "real?", "number?", "string?",  "boolean?", "symbol?", "+", "-", "*", "/", ">", ">=", "<", "<=", "=", "and", "not", "or", "string-append", "string>?", "string<?", "string=?", "eqv?", "equal?", "begin", "if", "cond", "exit" } ;
+  
   struct Symbol {
     string name ;
     Node* tree ;
@@ -1608,8 +1615,23 @@ private:
     Node* tree ;
   } ; // Function
   
+  struct ReserveWord {
+    string name ;
+    vector<string> list ;
+  } ; // ReserveWord
+  
   vector<Symbol> mSymbolTable ;
   vector<Function> mFunctionTable ;
+  vector<ReserveWord> mReserveWords ;
+  
+  void ResetReserveWord() {
+    for ( int i = 0 ; i < 47 ; i ++ ) {
+      ReserveWord tmpWord ;
+      tmpWord.name = mOriginReserveWordList[ i ] ;
+      tmpWord.list.clear() ;
+      mReserveWords.push_back( tmpWord ) ;
+    } // for()
+  } // ResetReserveWord()
   
   void AddSymbol( string symName, Node* assignedTree ) {
     Symbol symbol ;
@@ -1635,13 +1657,21 @@ private:
     mFunctionTable.push_back( func ) ;
   } // AddFunction()
   
-  bool IsReserveWord( string str ) {
-    if ( str == "cons" || str == "list" || str == "quote" || str == "define" || str == "car" || str == "cdr" || str == "not" || str == "and" || str == "or" || str == "begin" || str == "if" || str == "cond" || str == "clean-environment" || str == "quote" || str == "'" || str == "atom?" || str == "pair?" || str == "list?" || str == "null?" || str == "integer?" || str == "real?" || str == "number?" || str == "string?" || str == "boolean?" || str == "symbol?" || str == "+" || str == "-" || str == "*" || str == "/" || str == ">" || str == ">=" || str == "<" || str == "<=" || str == "=" || str == "and" || str == "not" || str == "or" || str == "string-append" || str == "string>?" || str == "string<?" || str == "string=?" || str == "eqv?" || str == "equal?" || str == "begin" || str == "if" || str == "cond" ) {
-      return true ;
-    } // if()
+  string GetReserveWordType( string str ) {
+    for ( int i = 0 ; i < mReserveWords.size() ; i ++ ) {
+      if ( str == mReserveWords[ i ].name ) {
+        return mReserveWords[ i ].name ;
+      } // if()
+      
+      for ( int j = 0 ; j < mReserveWords[ i ].list.size() ; j ++ ) {
+        if ( str == mReserveWords[ i ].list[ j ] ) {
+          return mReserveWords[ i ].name ;
+        } // if()
+      } // for()
+    } // for()
     
-    return false ;
-  } // IsReserveWord()
+    return "" ;
+  } // GetReserveWordType()
   
   bool IsPredicator( string str ) {
     if ( str == "atom?" || str == "pair?" || str == "list?" || str == "null?" || str == "integer?" || str == "real?" || str == "number?" || str == "string?" || str == "boolean?" || str == "symbol?" ) {
@@ -1836,6 +1866,15 @@ private:
     return NULL ; // it is empty in the argument
   } // EvaluateLIST()
   
+  void AddNewReserveWord( string reserveName, string newName ) {
+    for ( int i = 0 ; i < 47 ; i ++ ) {
+      if ( reserveName == mReserveWords[ i ].name ) {
+        mReserveWords[ i ].list.push_back( newName ) ;
+        return ;
+      } // if()
+    } // for()
+  } // AddNewReserveWord()
+  
   Node* Define( Node* inTree ) {
     vector<Node*> argList = GetArgumentList( inTree ) ;
     
@@ -1845,17 +1884,29 @@ private:
       newSymbol.tree = g.GetEmptyNode() ;
       // the first argument should be a symbol
       if ( argList[ 0 ] -> type == ATOM ) {
-        if ( ! IsReserveWord( argList[ 0 ] -> lex ) ) {
+        string reserveName = GetReserveWordType( argList[ 0 ] -> lex ) ;
+        if ( reserveName == "" ) {
           if ( g.GetTokenType( argList[ 0 ] -> lex ) == SYMBOL ) {
             
             int symIndex = FindDefinedSymbol( argList[ 0 ] -> lex ) ;
+            // check the be binded s-exp is correct
+            EvaluateSExp( argList[ 1 ] ) ;
+            
             if ( symIndex != -1 ) { // this symbol has already exist, update it
+              
               if ( FindDefinedSymbol( argList[ 1 ] -> lex ) == -1 ) {
                 // the reference value is not a symbol
                 newSymbol.name = argList[ 0 ] -> lex ;
                 mSymbolTable[ symIndex ].tree = argList[ 1 ] ; // copy
               } // if()
               else {
+                string reserveName = GetReserveWordType( argList[ 1 ] -> lex ) ;
+                if ( reserveName != "" ) {
+                  // this is a special case, define your own reserve word
+                  // add this to the reserveWordList
+                  AddNewReserveWord( reserveName, argList[ 0 ] -> lex ) ;
+                } // if()
+                
                 mSymbolTable[ symIndex ].tree =
                 mSymbolTable[ FindDefinedSymbol( argList[ 1 ] -> lex ) ].tree ;
               } // else()
@@ -1867,6 +1918,13 @@ private:
                 newSymbol.tree = argList[ 1 ] ; // copy
               } // if()
               else {
+                string reserveName = GetReserveWordType( argList[ 1 ] -> lex ) ;
+                if ( reserveName != "" ) {
+                  // this is a special case, define your own reserve word
+                  // add this to the reserveWordList
+                  AddNewReserveWord( reserveName, argList[ 0 ] -> lex ) ;
+                } // if()
+                
                 newSymbol.tree =
                 mSymbolTable[ FindDefinedSymbol( argList[ 1 ] -> lex ) ].tree ;
               } // else()
@@ -2010,6 +2068,9 @@ private:
   Node* CleanEnvironment() {
     mSymbolTable.clear() ;
     mFunctionTable.clear() ;
+    mReserveWords.clear() ;
+    AddOriginReserveWords() ;
+    ResetReserveWord() ;
     cout << "environment-cleaned" << endl ;
     
     return NULL ;
@@ -2645,34 +2706,90 @@ private:
     return emptyNode ;
   } // ProcessBegin()
   
+  void AddOriginReserveWords() {
+    
+    for ( int i = 0 ; i < 47 ; i ++ ) {
+      Node* tmpNode = new Node ;
+      tmpNode -> lex = "#<procedure " + g.GetStrContent( mOriginReserveWordList[ i ] ) + ">" ;
+      tmpNode -> type = ATOM ;
+      tmpNode -> parent = NULL ;
+      tmpNode -> left = NULL ;
+      tmpNode -> right = NULL ;
+      
+      Symbol tmpSym ;
+      tmpSym.name = mOriginReserveWordList[ i ] ;
+      tmpSym.tree = tmpNode ;
+      
+      mSymbolTable.push_back( tmpSym ) ;
+    } // for()
+  } // AddOriginReserveWords()
+  
+  string GetFuncNameFromFuncValue( string str ) {
+    string name = "" ;
+    int whiteIndex = ( int ) str.find( ' ', 0 ) ;
+    for ( int i = whiteIndex + 1 ; i < str.length() ; i ++ ) {
+      if ( str[ i ] != '>' ) {
+        name += str[ i ] ;
+      } // if()
+    } // for()
+    
+    return name ;
+  } // GetFuncNameFromFuncValue()
+  
 public:
+  Evaluator() {
+    AddOriginReserveWords() ;
+    ResetReserveWord() ;
+  } // Evaluator()
   
   Node* EvaluateSExp( Node* treeRoot ) {
     // the first left atom should be the func name
     Node* result = NULL ;
+    string originFuncName = "" ;
     string funcName = "" ;
     int definedFuncIndex = -1 ;
     
     if ( treeRoot -> type != CONS ) {
-      if ( g.GetTokenType( treeRoot -> lex ) == SYMBOL ) {
+      string reserveWord = GetReserveWordType( treeRoot -> lex ) ;
+      if ( reserveWord != "" ) {
+        return mSymbolTable[ FindDefinedSymbol( treeRoot -> lex ) ].tree ;
+      } // if()
+      else if ( g.GetTokenType( treeRoot -> lex ) == SYMBOL ) {
         int symbolIndex = FindDefinedSymbol( treeRoot -> lex ) ;
         if ( symbolIndex != -1 ) { // this symbol exist in the symbol table
           return EvaluateSExp( mSymbolTable[ symbolIndex ].tree ) ;
         } // if()
+        else if ( treeRoot -> lex[ 0 ] == '#' ) { // the lex is start with #
+          return treeRoot ; // this is an ATOM of the Reserve Word
+        } // else if()
         else {
           throw UnboundValueException( treeRoot -> lex ) ;
         } // else()
-      } // if()
+      } // else if()
       
       return treeRoot ;
     } // if()
     else { // this S-exp is a cons
-      funcName = treeRoot -> left -> lex ;
-      definedFuncIndex = FindDefinedFunc( funcName ) ;
+      // New observation: the function value can also process the S-exp
+      if ( treeRoot -> left -> type == CONS ) {
+        Node* funcNode = EvaluateSExp( treeRoot -> left ) ;
+        originFuncName = funcNode -> lex ;
+      } // if()
+      else {
+        originFuncName = treeRoot -> left -> lex ;
+      } // else()
+      
+      if ( originFuncName[ 0 ] == '#' ) { // is a function value
+        originFuncName = GetFuncNameFromFuncValue( originFuncName ) ;
+      } // if()
+      else {
+        definedFuncIndex = FindDefinedFunc( originFuncName ) ;
+      } // else()
     } // else()
     
     if ( IsList( treeRoot, treeRoot ) ) { // keep doing the evaluation
-      if ( IsReserveWord( funcName ) ) {
+      funcName = GetReserveWordType( originFuncName ) ;
+      if ( funcName != "" ) {
         if ( funcName == "quote" ) {
           return treeRoot -> right -> left ;
         } // if()
@@ -2710,21 +2827,28 @@ public:
           CleanEnvironment() ;
           return NULL ; // no tree to return
         } // else if()
+        else if ( funcName == "exit" ) {
+          if ( CountArgument( treeRoot ) != 0 ) {
+            throw IncorrectNumberArgumentException( funcName ) ;
+          } // if()
+          
+          return NULL ;
+        } // else if()
       } // if()
       else if ( definedFuncIndex != -1 ) { // this user-defined function exist
         // process the user defined function
       } // else if()
-      else if ( IsSymbol( funcName ) ) {
-        if ( FindDefinedSymbol( funcName ) == -1 ) {
-          throw UnboundValueException( funcName ) ;
+      else if ( IsSymbol( originFuncName ) ) {
+        if ( FindDefinedSymbol( originFuncName ) == -1 ) {
+          throw UnboundValueException( originFuncName ) ;
         } // if()
         else {
-          int index = FindDefinedSymbol( funcName ) ;
-          throw ApplyNonFunctionException( funcName, mSymbolTable[ index ].tree ) ;
+          int index = FindDefinedSymbol( originFuncName ) ;
+          throw ApplyNonFunctionException( originFuncName, mSymbolTable[ index ].tree ) ;
         } // else()
       } // else if()
       else { // either a function name or a symbol
-        throw ApplyNonFunctionException( funcName, NULL ) ;
+        throw ApplyNonFunctionException( originFuncName, NULL ) ;
       } // else()
     } // if()
     else {

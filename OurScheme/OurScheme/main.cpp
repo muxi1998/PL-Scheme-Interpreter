@@ -1,4 +1,3 @@
-
 # include <iostream>
 # include <string>
 # include <stdlib.h>
@@ -6,6 +5,7 @@
 # include <stack>
 # include <exception>
 # include <iomanip>
+# include <sstream>
 
 using namespace std;
 
@@ -21,6 +21,14 @@ using namespace std;
 // T 26*97 't', '#t' only these two possible look, too
 // QUOTE 44*97 '
 // SYMBOL 18*97  // DO NOT contain '(', ')', '\'', '\"', white-space
+string gOriginReserveWordList[ 47 ] = { "cons", "list", "quote", "define"
+  , "car", "cdr", "not", "and", "or", "begin", "if", "cond"
+  ,  "clean-environment", "quote", "'", "atom?", "pair?", "list?"
+  , "null?", "integer?", "real?", "number?", "string?",  "boolean?"
+  , "symbol?", "+", "-", "*", "/", ">", ">=", "<", "<=", "=", "and"
+  , "not", "or", "string-append", "string>?", "string<?", "string=?"
+  , "eqv?", "equal?", "begin", "if", "cond", "exit" } ;
+
 
 enum TokenType {
   LPAREN = 1067, RPAREN = 2134, INT = 1164, STRING = 1358, DOT = 3201,
@@ -347,7 +355,7 @@ public:
     else if ( num < 0 ) {
       isNegative = true ;
       num *= -1 ; // change it to positive for calculating
-    } // else()
+    } // else if()
     
     while ( num != 0 ) {
       str = ( char ) ( '0' + ( num % 10 ) ) + str ;
@@ -396,6 +404,32 @@ public:
     
     return num ;
   } // GetValueOfFloatStr()
+  
+  string FormatFloat( string str ) {
+    string formatStr = "" ;
+    
+    if ( str[ str.length() - 1 ] == '.' ) { // float num end with a dot
+      formatStr = str + "000" ; // put some zero in it
+    } // if()
+    else if ( str[ 0 ] == '.' ) { // float num start with the dot
+      formatStr = "0" + str ;
+    } // else if()
+    else {
+      int dotIndex = ( int ) str.find( '.' ) ;
+      int count = ( int ) str.length() - dotIndex ;
+      formatStr = str ;
+      for ( int i = 0 ; i < count ; i ++ ) {
+        formatStr = formatStr + "0" ;
+      } // for()
+      
+    } // else()
+    
+    return formatStr ;
+  } // FormatFloat()
+  
+  string FormatIntToFloatStr( string str ) {
+    return str += ".000" ;
+  } // FormatIntToFloatStr()
   
   Node* GetNullNode() {
     Node* nullNode = new Node ;
@@ -735,28 +769,6 @@ private:
     return false ;
   } // IsWhiteSpace()
   
-  string FormatFloat( string str ) {
-    string formatStr = "" ;
-    
-    if ( str[ str.length() - 1 ] == '.' ) { // float num end with a dot
-      formatStr = str + "000" ; // put some zero in it
-    } // if()
-    else if ( str[ 0 ] == '.' ) { // float num start with the dot
-      formatStr = "0" + str ;
-    } // else if()
-    else {
-      int dotIndex = ( int ) str.find( '.' ) ;
-      int count = ( int ) str.length() - dotIndex ;
-      formatStr = str ;
-      for ( int i = 0 ; i < count ; i ++ ) {
-        formatStr = formatStr + "0" ;
-      } // for()
-      
-    } // else()
-    
-    return formatStr ;
-  } // FormatFloat()
-  
   // Purpose: not only call the func. cin.get(), but also increase the column or line
   char GetChar() {
     char ch = '\0' ;
@@ -799,6 +811,8 @@ private:
       return fullStr ;
     } // else if()
     else { // miss the ending quote
+      // cin.putback( cin.get() ) ;
+      
       throw NoClosingQuoteException( gLine, gColumn + 1 ) ;
     } // else()
     
@@ -813,7 +827,7 @@ private:
     if ( lex != "." && g.IsFLOAT( lex ) ) {
       // assert: float with a original format
       // now  can start trandfer the float into the format which (int).(3 chars)
-      token.str = FormatFloat( lex ) ;
+      token.str = g.FormatFloat( lex ) ;
     } // if()
     else {
       token.str = lex ;
@@ -1460,7 +1474,7 @@ public:
   } // NonListException()
   
   string Err_mesg() {
-    string mesg = "ERROR (non-list): " ;
+    string mesg = "ERROR (non-list) : " ;
     return mesg ;
   } // Err_mesg()
   
@@ -1486,18 +1500,22 @@ public:
 class IncorrectArgumentTypeException {
 private:
   string mFuncName ;
-  string mLex ;
+  Node* mErrNode ;
   
 public:
-  IncorrectArgumentTypeException( string errFuncName, string errLex ) {
+  IncorrectArgumentTypeException( string errFuncName, Node* errLex ) {
     mFuncName = errFuncName ;
-    mLex = errLex ;
+    mErrNode = errLex ;
   } // IncorrectArgumentTypeException()
   
   string Err_mesg() {
-    string mesg = "ERROR (" + mFuncName + " with incorrect argument type) : " + mLex ;
+    string mesg = "ERROR (" + mFuncName + " with incorrect argument type) : " ;
     return mesg ;
   } // Err_mesg()
+  
+  Node* Err_node() {
+    return mErrNode ;
+  } // Err_node()
 } ; // IncorrectArgumentTypeException
 
 class ApplyNonFunctionException {
@@ -1622,12 +1640,11 @@ public:
 // Purpose: Do the evaluation and store the user definitions
 class Evaluator {
 private:
-  string mOriginReserveWordList[ 47 ] = { "cons", "list", "quote", "define", "car", "cdr", "not", "and", "or", "begin", "if", "cond",  "clean-environment", "quote", "'", "atom?", "pair?", "list?", "null?", "integer?", "real?", "number?", "string?",  "boolean?", "symbol?", "+", "-", "*", "/", ">", ">=", "<", "<=", "=", "and", "not", "or", "string-append", "string>?", "string<?", "string=?", "eqv?", "equal?", "begin", "if", "cond", "exit" } ;
   
   struct Symbol {
     string name ;
     Node* tree ;
-  } ; //SymbolInfo
+  } ; // SymbolInfo
   
   struct Function {
     string name ;
@@ -1647,7 +1664,7 @@ private:
   void ResetReserveWord() {
     for ( int i = 0 ; i < 47 ; i ++ ) {
       ReserveWord tmpWord ;
-      tmpWord.name = mOriginReserveWordList[ i ] ;
+      tmpWord.name = gOriginReserveWordList[ i ] ;
       tmpWord.list.clear() ;
       mReserveWords.push_back( tmpWord ) ;
     } // for()
@@ -1694,7 +1711,9 @@ private:
   } // GetReserveWordType()
   
   bool IsPredicator( string str ) {
-    if ( str == "atom?" || str == "pair?" || str == "list?" || str == "null?" || str == "integer?" || str == "real?" || str == "number?" || str == "string?" || str == "boolean?" || str == "symbol?" ) {
+    if ( str == "atom?" || str == "pair?" || str == "list?" || str == "null?"
+         || str == "integer?" || str == "real?" || str == "number?"
+         || str == "string?" || str == "boolean?" || str == "symbol?" ) {
       return true ;
     } // if()
     
@@ -1754,7 +1773,7 @@ private:
   } // IsSymbol()
   
   // Purpose combined the trees
-  Node* EvaluateCONS( Node* inTree ) {
+  Node* EvaluateCONS( Node* inTree, int level ) {
     Node* consNode = NULL ;
     // Step1. check argument num ( cons can only have 2 )
     if ( CountArgument( inTree ) == 2 ) {
@@ -1763,6 +1782,13 @@ private:
       Node* firstArg = inTree -> right -> left ; // assume aug1 is a list
       Node* secondArg = inTree -> right -> right -> left ; // assume aug2 is a list
       
+      consNode = new Node ;
+      consNode -> lex = "" ;
+      consNode -> type = CONS ;
+      consNode -> left = NULL ;
+      consNode -> right = NULL ;
+      consNode -> parent = NULL ;
+      
       if ( IsList( firstArg, firstArg ) ) {
         if ( firstArg -> type == ATOM
              && IsSymbol( firstArg -> lex  )
@@ -1770,6 +1796,8 @@ private:
           throw UnboundValueException( firstArg -> lex ) ;
         } // if()
         else {
+          consNode -> left = EvaluateSExp( firstArg, ++level ) ;
+          
           if ( IsList( secondArg, secondArg ) ) {
             if ( secondArg -> type == ATOM
                  && IsSymbol( secondArg -> lex )
@@ -1778,15 +1806,7 @@ private:
             } // if()
             else {
               // Step3. If no error create a new Node
-              consNode = new Node ;
-              consNode -> lex = "" ;
-              consNode -> type = CONS ;
-              consNode -> left = NULL ;
-              consNode -> right = NULL ;
-              consNode -> parent = NULL ;
-              
-              consNode -> left = EvaluateSExp( firstArg, false ) ;
-              consNode -> right = EvaluateSExp( secondArg, false ) ;
+              consNode -> right = EvaluateSExp( secondArg, ++level ) ;
             } // else()
           } // if()
           else {
@@ -1795,7 +1815,7 @@ private:
         } // else()
       } // if()
       else {
-        throw NonListException( firstArg ) ;
+        throw NonListException( firstArg  ) ;
       } // else()
     } // if()
     else {
@@ -1816,7 +1836,7 @@ private:
     return list ;
   } // GetArgumentList()
   
-  Node* EvaluateLIST( Node* inTree ) {
+  Node* EvaluateLIST( Node* inTree, int level ) {
     Node* result = NULL ;
     vector<Node*> argList ;
     if ( CountArgument( inTree ) > 0 ) {
@@ -1829,14 +1849,14 @@ private:
               && IsSymbol( argList[ i ] -> lex ) ) {
             int symIndex = FindDefinedSymbol( argList[ i ] -> lex ) ;
             if ( symIndex != -1 ) {
-              argList[ i ] = EvaluateSExp( argList[ i ], false ) ;
+              argList[ i ] = EvaluateSExp( argList[ i ], ++level ) ;
             } // if()
             else {
               throw UnboundValueException( argList[ i ] -> lex ) ;
             } // else()
           } // if()
           else { // this is a list, but need to check more detail
-            argList[ i ] = EvaluateSExp( argList[ i ], false ) ;
+            argList[ i ] = EvaluateSExp( argList[ i ], ++level ) ;
           } // else()
         } // if()
         else {
@@ -1896,10 +1916,11 @@ private:
     } // for()
   } // AddNewReserveWord()
   
-  Node* Define( Node* inTree, bool isFirstCall ) {
+  Node* Define( Node* inTree, int level ) {
     vector<Node*> argList = GetArgumentList( inTree ) ;
     
-    if ( isFirstCall ) {
+    if ( level == 1 ) {
+      
       if ( CountArgument( inTree ) == 2 ) {
         Symbol newSymbol ;
         newSymbol.name = "" ;
@@ -1912,7 +1933,7 @@ private:
               
               int symIndex = FindDefinedSymbol( argList[ 0 ] -> lex ) ;
               // check the be binded s-exp is correct
-              Node* value = EvaluateSExp( argList[ 1 ], false ) ;
+              Node* value = EvaluateSExp( argList[ 1 ], ++level ) ;
               
               if ( symIndex != -1 ) { // this symbol has already exist, update it
                 
@@ -1937,26 +1958,37 @@ private:
                 newSymbol.name = argList[ 0 ] -> lex ;
                 if ( FindDefinedSymbol( argList[ 1 ] -> lex ) == -1 ) {
                   // the reference value is not a symbol
-                  newSymbol.tree = argList[ 1 ] ; // copy
+                  
+                  // this been assigned S-exp is in the input
+                  // and haven't evaluated yet
+                  newSymbol.tree = EvaluateSExp( argList[ 1 ], ++level ) ; // copy
+                  
                 } // if()
                 else {
-                  string reserveName = GetReserveWordType( argList[ 1 ] -> lex ) ;
-                  if ( reserveName != "" ) {
-                    // this is a special case, define your own reserve word
-                    // add this to the reserveWordList
-                    AddNewReserveWord( reserveName, argList[ 0 ] -> lex ) ;
-                  } // if()
                   
                   newSymbol.tree =
                   mSymbolTable[ FindDefinedSymbol( argList[ 1 ] -> lex ) ].tree ;
                 } // else()
+                
+                if ( newSymbol.tree -> type == ATOM ) {
+                  string reserveName =
+                  GetReserveWordType( GetFuncNameFromFuncValue(
+                                      newSymbol.tree -> lex ) ) ;
+                  
+                  if ( reserveName != "" ) {
+                    // this is a special case, define your own reserve word
+                    // add this to the reserveWordList
+                    AddNewReserveWord( reserveName, newSymbol.name ) ;
+                  } // if()
+                } // if()
+                
                 mSymbolTable.push_back( newSymbol ) ;
               } // else()
               
               cout << newSymbol.name << " defined" << endl ;
             } // if()
             else {
-              throw IncorrectArgumentTypeException( "define", argList[ 0 ] -> lex ) ;
+              throw DefineFormatException( inTree ) ;
             } // else()
           } // if()
           else { // user try to re-define the reserve word
@@ -1964,7 +1996,7 @@ private:
           } // else()
         } // if()
         else { //
-          throw IncorrectArgumentTypeException( "define", argList[ 0 ] -> left -> lex ) ;
+          throw DefineFormatException( inTree ) ;
         } // else()
       } // if()
       else {
@@ -1978,18 +2010,21 @@ private:
     return NULL ;
   } // Define()
   
-  Node* AccessList( string funcName, Node* inTree ) {
+  Node* AccessList( string funcName, Node* inTree, int level ) {
     if ( CountArgument( inTree ) == 1 ){
-      Node* targetTree = EvaluateSExp( inTree -> right -> left, false ) ;
+      Node* targetTree = EvaluateSExp( inTree -> right -> left, ++level ) ;
       
       if ( targetTree != NULL ) {
         if ( targetTree -> type == ATOM || targetTree -> type == SPECIAL ) {
+          /*
           if ( g.IsINT( targetTree -> lex ) || g.IsFLOAT( targetTree -> lex ) ) {
             throw IncorrectArgumentTypeException( funcName, targetTree -> lex ) ;
           } // if()
           else {
             return targetTree ;
           } // else()
+          */
+          throw IncorrectArgumentTypeException( funcName, targetTree ) ;
         } // if()
         else {
           if ( funcName == "car" ) {
@@ -2001,7 +2036,7 @@ private:
         } // else()
       } // if()
       else {
-        throw IncorrectArgumentTypeException( funcName, inTree -> right -> left -> lex ) ;
+        throw IncorrectArgumentTypeException( funcName, inTree -> right -> left ) ;
       } // else()
     } // if()
     else {
@@ -2011,7 +2046,7 @@ private:
     return NULL ;
   } // AccessList()
   
-  Node* PrimitivePredecates( string func, Node* inTree ) {
+  Node* PrimitivePredecates( string func, Node* inTree, int level ) {
     bool ans = false ;
     Node* ansNode = new Node ;
     ansNode -> lex="#t" ;
@@ -2021,7 +2056,7 @@ private:
     ansNode -> right=NULL ;
     // can only have ONE argement
     if ( CountArgument( inTree ) == 1 ) {
-      Node* target = EvaluateSExp( inTree -> right -> left, false ) ;
+      Node* target = EvaluateSExp( inTree -> right -> left, ++level ) ;
       
       if ( target != NULL ) {
         if ( func == "atom?" ) {
@@ -2072,7 +2107,7 @@ private:
         } // else if()
       } // if()
       else {
-        throw IncorrectArgumentTypeException( func, inTree -> right -> left -> lex ) ;
+        throw IncorrectArgumentTypeException( func, inTree -> right -> left ) ;
       } // else()
       
       if ( ans ) {
@@ -2143,7 +2178,7 @@ private:
     return false ;
   } // IsBasicOperation()
   
-  Node* ProcessMath( string funcName, vector<Node*> argList ) {
+  Node* ProcessMath( string funcName, vector<Node*> argList, int level ) {
     Node* ansNode = new Node ;
     ansNode -> lex = "" ;
     ansNode -> type = ATOM ;
@@ -2153,14 +2188,14 @@ private:
     
     // check whether all the arguments are numbers
     for ( int i = 0 ; i < argList.size() ; i ++ ) {
-      Node* currentAug = EvaluateSExp( argList[ i ], false ) ;
+      Node* currentAug = EvaluateSExp( argList[ i ], ++level ) ;
       if ( currentAug != NULL && currentAug -> type == ATOM
           && ( g.IsINT( currentAug -> lex )
               || g.IsFLOAT( currentAug -> lex ) ) ) {
-        argList[ i ] = EvaluateSExp( argList[ i ], false ) ;
+        argList[ i ] = EvaluateSExp( argList[ i ], ++level ) ;
       } // if()
       else { // a non number atom exist
-        throw IncorrectArgumentTypeException( funcName, currentAug -> lex ) ;
+        throw IncorrectArgumentTypeException( funcName, currentAug ) ;
       } // else()
     } // for()
     
@@ -2221,13 +2256,23 @@ private:
       ansNode -> lex = g.IntToStr( ( int ) ans ) ;
     } // if()
     else { // the final answer is a float
-      ansNode -> lex = to_string( ans ) ;
+      stringstream sstream ;
+      sstream << ans ;
+      
+      // ansNode -> lex = to_string( ans ) ;
+      sstream >> ansNode -> lex ;
+      if ( g.IsINT( ansNode -> lex ) ) {
+        ansNode -> lex = g.FormatIntToFloatStr( ansNode -> lex ) ;
+      } // if()
+      else {
+        ansNode -> lex = g.FormatFloat( ansNode -> lex ) ;
+      } // else()
     } // else()
     
     return ansNode ;
   } // ProcessMath()
   
-  Node* ProcessCompare( string funcName, vector<Node*> argList ) {
+  Node* ProcessCompare( string funcName, vector<Node*> argList, int level ) {
     Node* ansNode = new Node ;
     ansNode -> lex = "#t" ;
     ansNode -> type = SPECIAL ;
@@ -2237,14 +2282,14 @@ private:
     
     // check whether all the arguments are numbers
     for ( int i = 0 ; i < argList.size() ; i ++ ) {
-      Node* currentAug = EvaluateSExp( argList[ i ], false ) ;
+      Node* currentAug = EvaluateSExp( argList[ i ], ++level ) ;
       if ( currentAug != NULL && currentAug -> type == ATOM
           && ( g.IsINT( currentAug -> lex )
               || g.IsFLOAT( currentAug -> lex ) ) ) {
-        argList[ i ] = EvaluateSExp( argList[ i ], false ) ;
+        argList[ i ] = EvaluateSExp( argList[ i ], ++level ) ;
       } // if()
       else { // a non number atom exist
-        throw IncorrectArgumentTypeException( funcName, currentAug -> lex ) ;
+        throw IncorrectArgumentTypeException( funcName, currentAug ) ;
       } // else()
     } // for()
     
@@ -2316,7 +2361,7 @@ private:
     return ansNode ;
   } // ProcessCompare()
   
-  Node* ProcessStringCompare( string funcName, vector<Node*> argList ) {
+  Node* ProcessStringCompare( string funcName, vector<Node*> argList, int level ) {
     Node* ansNode = new Node ;
     ansNode -> lex = "#t" ;
     ansNode -> type = SPECIAL ;
@@ -2326,13 +2371,13 @@ private:
     
     // check whether all the arguments are numbers
     for ( int i = 0 ; i < argList.size() ; i ++ ) {
-      Node* currentAug = EvaluateSExp( argList[ i ], false ) ;
+      Node* currentAug = EvaluateSExp( argList[ i ], ++level ) ;
       if ( currentAug != NULL
            && currentAug -> type == ATOM && g.IsStr( currentAug -> lex ) ) {
         argList[ i ] = currentAug ;
       } // if()
       else {
-        throw IncorrectArgumentTypeException( funcName, currentAug -> lex ) ;
+        throw IncorrectArgumentTypeException( funcName, currentAug ) ;
       } // if()
     } // for()
     
@@ -2380,7 +2425,7 @@ private:
     return ansNode ;
   } // ProcessStringCompare()
   
-  Node* ProcessCondOperation( string funcName, vector<Node*> argList ) {
+  Node* ProcessCondOperation( string funcName, vector<Node*> argList, int level ) {
     Node* ansNode = new Node ;
     ansNode -> lex = "#t" ;
     ansNode -> type = SPECIAL ;
@@ -2388,19 +2433,16 @@ private:
     ansNode -> left = NULL ;
     ansNode -> right = NULL ;
     
-    // check whether all the arguments are numbers
+    bool resultIsTrue = true ;
     for ( int i = 0 ; i < argList.size() ; i ++ ) {
-      Node* currentAug = EvaluateSExp( argList[ i ], false ) ;
+      Node* currentAug = EvaluateSExp( argList[ i ], ++level ) ;
       if ( currentAug != NULL ) {
         argList[ i ] = currentAug ;
       } // if()
       else {
-        throw IncorrectArgumentTypeException( funcName, argList[ i ] -> lex ) ;
+        throw IncorrectArgumentTypeException( funcName, argList[ i ] ) ;
       } // if()
-    } // for()
-    
-    bool resultIsTrue = true ;
-    for ( int i = 0 ; i < argList.size() ; i ++ ) {
+      
       if ( funcName == "not" ) {
         if ( argList[ 0 ] -> lex != "nil" && argList[ 0 ] -> lex != "#f" ) {
           resultIsTrue = false ;
@@ -2436,13 +2478,13 @@ private:
     return ansNode ;
   } // ProcessCondOperation()
   
-  Node* ProcessOperation( string funcName, Node* inTree ) {
+  Node* ProcessOperation( string funcName, Node* inTree, int level ) {
 
     vector<Node*> argList = GetArgumentList( inTree ) ;
     
     if ( IsMathOperator( funcName ) ) { // need to have more than two arguments
       if ( CountArgument( inTree ) >= 2 ) {
-        return ProcessMath( funcName, argList ) ;
+        return ProcessMath( funcName, argList, ++level ) ;
       } // if()
       else {
         throw IncorrectNumberArgumentException( funcName ) ;
@@ -2450,7 +2492,7 @@ private:
     } // if()
     else if ( IsComparison( funcName ) ) { // need to have more than two arguments
       if ( CountArgument( inTree ) >= 2 ) {
-        return ProcessCompare( funcName, argList );
+        return ProcessCompare( funcName, argList, ++level );
       } // if()
       else {
         throw IncorrectNumberArgumentException( funcName ) ;
@@ -2459,7 +2501,7 @@ private:
     else if ( IsCondOperator( funcName ) ) { // not only need 1 argument
       if ( funcName == "not" ) { // only ONE argument
         if ( CountArgument( inTree ) == 1 ) {
-          return ProcessCondOperation( funcName, argList ) ;
+          return ProcessCondOperation( funcName, argList, ++level ) ;
         } // if()
         else {
           throw IncorrectNumberArgumentException( funcName ) ;
@@ -2467,7 +2509,7 @@ private:
       } // if()
       else {
         if ( CountArgument( inTree ) >= 2 ) {
-          return ProcessCondOperation( funcName, argList ) ;
+          return ProcessCondOperation( funcName, argList, ++level ) ;
         } // if()
         else {
           throw IncorrectNumberArgumentException( funcName ) ;
@@ -2477,7 +2519,7 @@ private:
     else if ( IsStringOperator( funcName ) ) {
       // need to have more than two arguments
       if ( CountArgument( inTree ) >= 2 ) {
-        return ProcessStringCompare( funcName, argList ) ;
+        return ProcessStringCompare( funcName, argList, ++level ) ;
       } // if()
       else {
         throw IncorrectNumberArgumentException( funcName ) ;
@@ -2505,7 +2547,7 @@ private:
     } // else()
   } // TwoTreesAreTheSame()
   
-  Node* ProcessEqvAndEqual( string funcName, Node* inTree ) {
+  Node* ProcessEqvAndEqual( string funcName, Node* inTree, int level ) {
     Node* ansNode = new Node ;
     ansNode -> lex = "#t" ;
     ansNode -> type = SPECIAL ;
@@ -2517,7 +2559,7 @@ private:
       vector<Node*> argList = GetArgumentList( inTree ) ;
       
       for ( int i = 0 ; i < argList.size() ; i ++ ) {
-        EvaluateSExp( argList[ i ], false ) ; // only used to check whether is any wrong
+        EvaluateSExp( argList[ i ], ++level ) ; // only used to check whether is any wrong
       } // for()
       
       if ( funcName == "eqv?" ) { // compare the pointer
@@ -2548,8 +2590,8 @@ private:
           } // if()
         } // else if()
         else { // check the #t and #f and nil and '()
-          Node* tmp1 = EvaluateSExp( argList[ 0 ], false ) ;
-          Node* tmp2 = EvaluateSExp( argList[ 1 ], false ) ;
+          Node* tmp1 = EvaluateSExp( argList[ 0 ], ++level ) ;
+          Node* tmp2 = EvaluateSExp( argList[ 1 ], ++level ) ;
           if ( tmp1 -> type == SPECIAL && tmp2 -> type == SPECIAL ) {
             if ( tmp1 -> lex == tmp2 -> lex ) {
               isInSameMemory = true ;
@@ -2567,16 +2609,16 @@ private:
         } // else()
       } // if()
       else if ( funcName == "equal?" ) { // compare the context
-        string originArgStr1 = argList[ 0 ] -> lex ;
-        string originArgStr2 = argList[ 1 ] -> lex ;
-        argList[ 0 ] = EvaluateSExp( argList[ 0 ], false ) ;
-        argList[ 1 ] = EvaluateSExp( argList[ 1 ], false ) ;
+        // string originArgStr1 = argList[ 0 ] -> lex ;
+        // string originArgStr2 = argList[ 1 ] -> lex ;
+        argList[ 0 ] = EvaluateSExp( argList[ 0 ], ++level ) ;
+        argList[ 1 ] = EvaluateSExp( argList[ 1 ], ++level ) ;
         
         if ( argList[ 0 ] == NULL ) {
-          throw IncorrectArgumentTypeException( funcName, originArgStr1 ) ;
+          throw IncorrectArgumentTypeException( funcName, argList[ 0 ] ) ;
         } // if()
         else if ( argList[ 1 ] == NULL ) {
-          throw IncorrectArgumentTypeException( funcName, originArgStr2 ) ;
+          throw IncorrectArgumentTypeException( funcName, argList[ 1 ] ) ;
         } // else if()
         else {
           if ( ! TwoTreesAreTheSame( argList[ 0 ], argList[ 1 ] ) ) {
@@ -2592,7 +2634,7 @@ private:
     return ansNode ;
   } // ProcessEqvAndEqual()
   
-  Node* ProcessIf( Node* inTree ) {
+  Node* ProcessIf( Node* inTree, int level ) {
     Node* emptyNode = g.GetEmptyNode() ;
     // has two or three arguments
     if ( CountArgument( inTree ) == 2 || CountArgument( inTree ) == 3 ) {
@@ -2600,11 +2642,11 @@ private:
       
       // the first arguments should be the condition
       // if the evaluate of argment 1 is NULL then the format is wrong
-      Node* condition = EvaluateSExp( argList[ 0 ], false ) ;
+      Node* condition = EvaluateSExp( argList[ 0 ], ++level ) ;
       if ( condition != NULL ) {
         if ( CountArgument( inTree ) == 2 ) {
           if ( condition -> lex != "#f" && condition -> lex != "nil" ) {
-            return EvaluateSExp( argList[ 1 ], false ) ;
+            return EvaluateSExp( argList[ 1 ], ++level ) ;
           } // if()
           else {
             throw NoReturnValueException( inTree ) ;
@@ -2612,15 +2654,15 @@ private:
         } // if()
         else if ( CountArgument( inTree ) == 3 ) {
           if ( condition -> lex != "#f" && condition -> lex != "nil" ) {
-            return EvaluateSExp( argList[ 1 ], false ) ;
+            return EvaluateSExp( argList[ 1 ], ++level ) ;
           } // if()
           else {
-            return EvaluateSExp( argList[ 2 ], false ) ;
+            return EvaluateSExp( argList[ 2 ], ++level ) ;
           } // else()
         } // else if()
       } // if()
       else {
-        throw IncorrectArgumentTypeException( "if", argList[ 0 ] -> lex ) ;
+        throw IncorrectArgumentTypeException( "if", argList[ 0 ] ) ;
       } // else()
     } // if()
     else {
@@ -2630,7 +2672,7 @@ private:
     return emptyNode ;
   } // ProcessIf()
   
-  Node* ProcessCond( Node* inTree ) {
+  Node* ProcessCond( Node* inTree, int level ) {
     // cond expression cam take more than 1 arguments, at least one
     Node* emptyNode = g.GetEmptyNode() ;
     
@@ -2640,7 +2682,8 @@ private:
       // check each arguments should all be cons
       for ( int i = 0 ; i < argList.size() ; i ++ ) {
         if ( argList[ i ] -> type != CONS
-             || ! IsList( argList[ i ], argList[ i ] ) ) {
+             || ! IsList( argList[ i ], argList[ i ] )
+             || CountArgument( argList[ i ] ) == 0 ) {
           throw CondFormatException( inTree ) ;
         } // if()
       } // for()
@@ -2652,23 +2695,22 @@ private:
         Node* statePart = g.GetEmptyNode() ;
         vector<Node*> subAugList = GetArgumentList( argList[ i ] ) ;
         
-        for ( int subI = 0 ; subI < subAugList.size() ; subI ++ ) {
-          if ( subI < subAugList.size() - 1 ) {
-            // EvaluateSExp( subAugList[ subI ] ) ;
-          } // if()
-          else {
-            statePart = subAugList[ subI ] ;
-          } // else()
-        } // for()
-        
-        // assert: has deal with all the additional statement
-        
         if ( i < argList.size() - 1 ) {
-          condResult = EvaluateSExp( condPart, false ) ;
+          condResult = EvaluateSExp( condPart, ++level ) ;
           if ( condResult != NULL ) {
             if ( condResult -> lex != "#f"
                 && condResult -> lex != "nil"  ) {
-              return EvaluateSExp( statePart, false ) ;
+              // assert: has deal with all the additional statement
+              for ( int subI = 0 ; subI < subAugList.size() ; subI ++ ) {
+                if ( subI == subAugList.size() - 1 ) {
+                  statePart = subAugList[ subI ] ;
+                } // if()
+                else {
+                  EvaluateSExp( subAugList[ subI ], ++level ) ;
+                } // else()
+              } // for()
+              
+              return EvaluateSExp( statePart, ++level ) ;
             } // if()
           } // if()
           else {
@@ -2678,14 +2720,39 @@ private:
         else {
           // the last condition can start with the key word "else"
           if ( condPart -> lex == "else" ) { // don't need to evaluate
-            return EvaluateSExp( statePart, false );
+            // assert: has deal with all the additional statement
+            for ( int subI = 0 ; subI < subAugList.size() ; subI ++ ) {
+              if ( subI == subAugList.size() - 1 ) {
+                statePart = subAugList[ subI ] ;
+              } // if()
+              else {
+                EvaluateSExp( subAugList[ subI ], ++level ) ;
+              } // else()
+            } // for()
+            
+            return EvaluateSExp( statePart, ++level );
           } // if()
           else {
-            condResult = EvaluateSExp( condPart, false ) ;
+            condResult = EvaluateSExp( condPart, ++level ) ;
             if ( condResult != NULL ) {
               if ( condResult -> lex != "#f"
                   && condResult -> lex != "nil" ) {
-                return EvaluateSExp( statePart, false ) ;
+                // assert: has deal with all the additional statement
+                for ( int subI = 0 ; subI < subAugList.size() ; subI ++ ) {
+                  if ( subI == subAugList.size() - 1 ) {
+                    statePart = subAugList[ subI ] ;
+                  } // if()
+                  else {
+                    EvaluateSExp( subAugList[ subI ], ++level ) ;
+                  } // else()
+                } // for()
+                
+                if ( statePart -> type != EMPTY ) {
+                  return EvaluateSExp( statePart, ++level ) ;
+                } // if()
+                else {
+                  throw CondFormatException( inTree ) ;
+                } // else()
               } // if()
               else {
                 throw NoReturnValueException( inTree ) ;
@@ -2705,7 +2772,7 @@ private:
     return emptyNode ;
   } // ProcessCond()
   
-  Node* ProcessBegin( Node* inTree ) {
+  Node* ProcessBegin( Node* inTree, int level ) {
     Node* emptyNode = g.GetEmptyNode() ;
     if ( CountArgument( inTree ) >= 1 ) {
       // sequencing evaluate all argements, but return the final one
@@ -2713,16 +2780,16 @@ private:
       
       for ( int i = 0 ; i < argList.size() ; i ++ ) {
         if ( !IsList( argList[ i ], argList[ i ] ) ) {
-          throw IncorrectArgumentTypeException( "begin", argList[ i ] -> lex ) ;
+          throw IncorrectArgumentTypeException( "begin", argList[ i ] ) ;
         } // if()
       } // for()
       
       for ( int i = 0 ; i < argList.size() ; i ++ ) {
         if ( i == argList.size() - 1 ) {
-          return EvaluateSExp( argList[ i ], false ) ; ;
+          return EvaluateSExp( argList[ i ], ++level ) ; ;
         } // if()
         else {
-          EvaluateSExp( argList[ i ], false ) ;
+          EvaluateSExp( argList[ i ], ++level ) ;
         } // else()
       } // for()
     } // if()
@@ -2737,14 +2804,14 @@ private:
     
     for ( int i = 0 ; i < 47 ; i ++ ) {
       Node* tmpNode = new Node ;
-      tmpNode -> lex = "#<procedure " + g.GetStrContent( mOriginReserveWordList[ i ] ) + ">" ;
+      tmpNode -> lex = "#<procedure " + g.GetStrContent( gOriginReserveWordList[ i ] ) + ">" ;
       tmpNode -> type = ATOM ;
       tmpNode -> parent = NULL ;
       tmpNode -> left = NULL ;
       tmpNode -> right = NULL ;
       
       Symbol tmpSym ;
-      tmpSym.name = mOriginReserveWordList[ i ] ;
+      tmpSym.name = gOriginReserveWordList[ i ] ;
       tmpSym.tree = tmpNode ;
       
       mSymbolTable.push_back( tmpSym ) ;
@@ -2755,7 +2822,7 @@ private:
     string name = "" ;
     int whiteIndex = ( int ) str.find( ' ', 0 ) ;
     for ( int i = whiteIndex + 1 ; i < str.length() ; i ++ ) {
-      if ( str[ i ] != '>' ) {
+      if ( i != str.length() - 1 ) {
         name += str[ i ] ;
       } // if()
     } // for()
@@ -2769,7 +2836,8 @@ public:
     ResetReserveWord() ;
   } // Evaluator()
   
-  Node* EvaluateSExp( Node* treeRoot, bool isFirstCall ) {
+  Node* EvaluateSExp( Node* treeRoot, int level ) {
+
     // the first left atom should be the func name
     Node* result = NULL ;
     string originFuncName = "" ;
@@ -2790,7 +2858,7 @@ public:
             return mSymbolTable[ symbolIndex ].tree ;
           } // if()
           else {
-            return EvaluateSExp( mSymbolTable[ symbolIndex ].tree, false ) ;
+            return EvaluateSExp( mSymbolTable[ symbolIndex ].tree, ++level ) ;
           } // else()
         } // if()
         else if ( treeRoot -> lex[ 0 ] == '#' ) { // the lex is start with #
@@ -2806,16 +2874,20 @@ public:
     else { // this S-exp is a cons
       // New observation: the function value can also process the S-exp
       if ( treeRoot -> left -> type == CONS ) {
-        Node* funcNode = EvaluateSExp( treeRoot -> left, false ) ;
+        Node* funcNode = EvaluateSExp( treeRoot -> left, ++level ) ;
         originFuncName = funcNode -> lex ;
       } // if()
       else {
         originFuncName = treeRoot -> left -> lex ;
       } // else()
       
-      if ( originFuncName[ 0 ] == '#' ) { // is a function value
-        originFuncName = GetFuncNameFromFuncValue( originFuncName ) ;
+      if ( originFuncName == "" ) {
+        // not function name, because this may still be a CONS
+        throw ApplyNonFunctionException( "", EvaluateSExp( treeRoot -> left, ++level ) ) ;
       } // if()
+      else if ( originFuncName[ 0 ] == '#' ) { // is a function value
+        originFuncName = GetFuncNameFromFuncValue( originFuncName ) ;
+      } // else if()
       else {
         definedFuncIndex = FindDefinedFunc( originFuncName ) ;
       } // else()
@@ -2829,37 +2901,37 @@ public:
           return treeRoot -> right -> left ;
         } // if()
         else if ( funcName == "cons" ) {
-          return EvaluateCONS( treeRoot ) ;
+          return EvaluateCONS( treeRoot, ++level ) ;
         } // else if()
         else if ( funcName == "list" ) {
-          return EvaluateLIST( treeRoot ) ;
+          return EvaluateLIST( treeRoot, ++level ) ;
         } // else if()
         else if ( funcName == "define" ) {
-          return Define( treeRoot, true ) ;
+          return Define( treeRoot, ++level ) ;
         } // else if()
         else if ( funcName == "car" || funcName == "cdr" ) {
-          return AccessList( funcName, treeRoot ) ;
+          return AccessList( funcName, treeRoot, ++level ) ;
         } // else if()
         else if ( IsPredicator( funcName ) ) {
-          return PrimitivePredecates( funcName, treeRoot ) ;
+          return PrimitivePredecates( funcName, treeRoot, ++level ) ;
         } // else if()
         else if ( IsBasicOperation( funcName ) ) {
-          return ProcessOperation( funcName, treeRoot );
+          return ProcessOperation( funcName, treeRoot, ++level );
         } // else if()
         else if ( funcName == "eqv?" || funcName == "equal?" ) {
-          return ProcessEqvAndEqual( funcName, treeRoot );
+          return ProcessEqvAndEqual( funcName, treeRoot, ++level );
         } // else if()
         else if ( funcName == "if" ) {
-          return ProcessIf( treeRoot ) ;
+          return ProcessIf( treeRoot, ++level ) ;
         } // else if()
         else if ( funcName == "cond" ) {
-          return ProcessCond( treeRoot ) ;
+          return ProcessCond( treeRoot, ++level ) ;
         } // else if()
         else if ( funcName == "begin" ) {
-          return ProcessBegin( treeRoot ) ;
+          return ProcessBegin( treeRoot, ++level ) ;
         } // else if()
         else if ( funcName == "clean-environment" ) {
-          if ( isFirstCall ) {
+          if ( level == 0 ) {
             CleanEnvironment() ;
           } // if()
           else {
@@ -2868,9 +2940,12 @@ public:
           return NULL ; // no tree to return
         } // else if()
         else if ( funcName == "exit" ) {
-          if ( CountArgument( treeRoot ) != 0 ) {
-            throw IncorrectNumberArgumentException( funcName ) ;
+          if ( level != 0 ) {
+            throw LevelException( "EXIT" ) ;
           } // if()
+          else if ( CountArgument( treeRoot ) != 0 ) {
+            throw IncorrectNumberArgumentException( funcName ) ;
+          } // else if()
           
           return NULL ;
         } // else if()
@@ -2930,7 +3005,7 @@ int main() {
         if ( !gIsEOF ) {
           // g.PrettyPrint( tree.GetRoot() ) ; // proj.1
           try {
-            Node* result = eval.EvaluateSExp( tree.GetRoot(), true ) ;
+            Node* result = eval.EvaluateSExp( tree.GetRoot(), 0 ) ;
             if ( result != NULL ) {
               g.PrettyPrint( result ) ;
             } // if()
@@ -2941,7 +3016,7 @@ int main() {
           catch ( NonListException e ) {
             cout << e.Err_mesg() ;
             g.PrettyPrint( e.Err_node() ) ;
-            cout << endl ;
+            // cout << endl ;
           } // catch()
           catch ( UnboundValueException e ) {
             cout << e.Err_mesg() << endl ;
@@ -2954,12 +3029,13 @@ int main() {
             cout << e.Err_mesg() << endl ;
           } // catch()
           catch ( IncorrectArgumentTypeException e ) {
-            cout << e.Err_mesg() << endl ;
+            cout << e.Err_mesg() ;
+            g.PrettyPrint( e.Err_node() ) ;
           } // catch()
           catch ( NoReturnValueException e ) {
             cout << e.Err_mesg() ;
             g.PrettyPrint( e.Err_node() ) ;
-            cout << endl ;
+            // cout << endl ;
           } // catch()
           catch ( DivideByZeroException e ) {
             cout << e.Err_mesg() << endl ;
@@ -2967,12 +3043,12 @@ int main() {
           catch ( DefineFormatException e ) {
             cout << e.Err_mesg() ;
             g.PrettyPrint( e.Err_node() ) ;
-            cout << endl ;
+            // cout << endl ;
           } // catch()
           catch ( CondFormatException e ) {
             cout << e.Err_mesg() ;
             g.PrettyPrint( e.Err_node() ) ;
-            cout << endl ;
+            // cout << endl ;
           } // catch()
         } // if()
       } // if()

@@ -53,21 +53,13 @@ int gColumn = 0 ; // // the golumn of the token we recently "GET"
 string gPeekToken = "" ;  // the recent token we peek BUT haven't "GET"
 bool gIsEOF = false ; // if is TRUE means there doesn't have '(exit)'
 bool gJustFinishAExp = false ;
+Node* gErrNode = NULL ;
 
 struct Token {
   string str ;  // the original apperance read from input
   int line ;  // the line which this token exist
   int column ;  // the column where this token exist
   TokenType type ;  // type of the token
-  
-  // Token(): str( "" ), line( 0 ), column( 0 ) {} ; // constructor
-  /*
-   Token() {
-   str = "" ;
-   line = 0 ;
-   column = 0 ;
-   } // reset()
-  */
 } ;
 
 string EnumToStr( TokenType type ) {
@@ -458,6 +450,7 @@ public:
     gColumn = 0 ;
     gOriginalList.Clear() ;
     gPeekToken = "" ;
+    gErrNode = NULL ;
   } // Reset()
   
   void SkipLine() {
@@ -843,7 +836,7 @@ private:
 public:
   
   // Purpose: accept the token string from func. GetToken(), and response the corresponding token value
-  
+
   string PeekToken() {
     string tokenStrWeGet = "" ;
     
@@ -1447,10 +1440,12 @@ public:
       
       mRoot = Build( mCopyList.mRoot, mCopyList.mTail ) ;
       
+      /*
       if ( mRoot -> type == CONS && mRoot -> left -> lex == "exit"
            && mRoot -> right -> lex == "nil" ) {
         gIsEOF = true ;
       } // if()
+      */
       // gOriginalList.Print() ;
       // mCopyList.PrintForward() ;
       // mCopyList.PrintBackforward() ;
@@ -1469,9 +1464,11 @@ class NonListException {
 private:
   Node* mErrNode ;
 public:
+  /*
   NonListException( Node* errTree ) {
     mErrNode = errTree ;
   } // NonListException()
+  */
   
   string Err_mesg() {
     string mesg = "ERROR (non-list) : " ;
@@ -1500,12 +1497,10 @@ public:
 class IncorrectArgumentTypeException {
 private:
   string mFuncName ;
-  Node* mErrNode ;
   
 public:
-  IncorrectArgumentTypeException( string errFuncName, Node* errLex ) {
+  IncorrectArgumentTypeException( string errFuncName ) {
     mFuncName = errFuncName ;
-    mErrNode = errLex ;
   } // IncorrectArgumentTypeException()
   
   string Err_mesg() {
@@ -1513,53 +1508,38 @@ public:
     return mesg ;
   } // Err_mesg()
   
-  Node* Err_node() {
-    return mErrNode ;
-  } // Err_node()
 } ; // IncorrectArgumentTypeException
 
 class ApplyNonFunctionException {
 private:
   string mLex ;
-  Node* mTree ;
   
 public:
-  ApplyNonFunctionException( string errLex, Node* errTree ) {
+  /*
+  ApplyNonFunctionException( string errLex ) {
     mLex = errLex ;
-    mTree = errTree ;
+    gErrNode = new Node ;
+    gErrNode -> lex = errLex ;
+    gErrNode -> type = ATOM ;
+    gErrNode -> parent = NULL ;
+    gErrNode -> left = NULL ;
+    gErrNode -> right = NULL ;
   } // ApplyNonFunctionException()
+  */
   
   string Err_mesg() {
     string mesg = "ERROR (attempt to apply non-function) : " ;
     return mesg ;
   } // Err_mesg()
-  
-  void PrintErrAtom() {
-    if ( mTree == NULL ) { // print the lex
-      cout << mLex << endl ;
-    } // if()
-    else { // the error atom is a symbol, so need a transformation
-      g.PrettyPrint( mTree ) ;
-    } // else()
-  } // PrintErrAtom()
 } ; // ApplyNonFunctionException
 
 class NoReturnValueException {
-private:
-  Node* mErrNode ;
 public:
-  NoReturnValueException( Node* err ) {
-    mErrNode = err ;
-  } // NoReturnValueException()
-  
   string Err_mesg() {
     string mesg = "ERROR (no return value) : " ;
     return mesg ;
   } // Err_mesg()
   
-  Node* Err_node() {
-    return mErrNode ;
-  } // Err_node()
 } ; // NoReturnValueException
 
 class UnboundValueException {
@@ -1586,39 +1566,19 @@ public:
 } ; // DivideByZeroException
 
 class DefineFormatException {
-private:
-  Node* mErrNode ;
 public:
-  DefineFormatException( Node* err ) {
-    mErrNode = err ;
-  } // DefineFormatException()
-  
   string Err_mesg() {
     string mesg = "ERROR (DEFINE format) : " ;
     return mesg ;
   } // Err_mesg()
-  
-  Node* Err_node() {
-    return mErrNode ;
-  } // Err_node()
 } ; // DefineFormatException
 
 class CondFormatException {
-private:
-  Node* mErrNode ;
 public:
-  CondFormatException( Node* err ) {
-    mErrNode = err ;
-  } // CondFormatException()
-  
   string Err_mesg() {
     string mesg = "ERROR (COND format) : " ;
     return mesg ;
   } // Err_mesg()
-  
-  Node* Err_node() {
-    return mErrNode ;
-  } // Err_node()
 } ; // CondFormatException
 
 class LevelException {
@@ -1810,16 +1770,18 @@ private:
             } // else()
           } // if()
           else {
-            throw NonListException( secondArg ) ;
+            gErrNode = secondArg ;
+            throw NonListException() ; // curious
           } // else()
         } // else()
       } // if()
       else {
-        throw NonListException( firstArg  ) ;
+        gErrNode = firstArg ;
+        throw NonListException() ; // curious
       } // else()
     } // if()
     else {
-      throw IncorrectNumberArgumentException( "cons" ) ;
+      throw IncorrectNumberArgumentException( "cons" ) ; // curious here
     } // else()
     
     return consNode ;
@@ -1846,7 +1808,7 @@ private:
       for ( int i = 0 ; i < argList.size() ; i ++ ) {
         if ( IsList( argList[ i ], argList[ i ] ) ) {
           if ( argList[ i ] -> type == ATOM
-              && IsSymbol( argList[ i ] -> lex ) ) {
+               && IsSymbol( argList[ i ] -> lex ) ) {
             int symIndex = FindDefinedSymbol( argList[ i ] -> lex ) ;
             if ( symIndex != -1 ) {
               argList[ i ] = EvaluateSExp( argList[ i ], ++level ) ;
@@ -1860,7 +1822,8 @@ private:
           } // else()
         } // if()
         else {
-          throw NonListException( argList[ i ] ) ;
+          gErrNode = argList[ i ] ;
+          throw NonListException() ;
         } // else()
       } // for()
       // Step3. All the arguments are correct, now combined them
@@ -1880,7 +1843,7 @@ private:
           prevNode = node ;
         } // if()
         
-        if ( i == argList.size() - 1 ){
+        if ( i == argList.size() - 1 ) {
           prevNode -> right = node ;
           node -> parent = prevNode ;
           
@@ -1972,8 +1935,7 @@ private:
                 
                 if ( newSymbol.tree -> type == ATOM ) {
                   string reserveName =
-                  GetReserveWordType( GetFuncNameFromFuncValue(
-                                      newSymbol.tree -> lex ) ) ;
+                  GetReserveWordType( GetFuncNameFromFuncValue( newSymbol.tree -> lex ) ) ;
                   
                   if ( reserveName != "" ) {
                     // this is a special case, define your own reserve word
@@ -1988,43 +1950,40 @@ private:
               cout << newSymbol.name << " defined" << endl ;
             } // if()
             else {
-              throw DefineFormatException( inTree ) ;
+              gErrNode = inTree ;
+              throw DefineFormatException() ;
             } // else()
           } // if()
           else { // user try to re-define the reserve word
-            throw DefineFormatException( inTree ) ;
+            gErrNode = inTree ;
+            throw DefineFormatException() ; // curious
           } // else()
         } // if()
         else { //
-          throw DefineFormatException( inTree ) ;
+          gErrNode = inTree ;
+          throw DefineFormatException() ; // curious
         } // else()
       } // if()
       else {
-        throw DefineFormatException( inTree ) ;
+        gErrNode = inTree ;
+        throw DefineFormatException() ; // curious
       } // else()
     } // if()
     else {
-      throw LevelException( "DEFINE" ) ;
+      throw LevelException( "DEFINE" ) ; // curious here
     } // else()
     
     return NULL ;
   } // Define()
   
   Node* AccessList( string funcName, Node* inTree, int level ) {
-    if ( CountArgument( inTree ) == 1 ){
+    if ( CountArgument( inTree ) == 1 ) {
       Node* targetTree = EvaluateSExp( inTree -> right -> left, ++level ) ;
       
       if ( targetTree != NULL ) {
         if ( targetTree -> type == ATOM || targetTree -> type == SPECIAL ) {
-          /*
-          if ( g.IsINT( targetTree -> lex ) || g.IsFLOAT( targetTree -> lex ) ) {
-            throw IncorrectArgumentTypeException( funcName, targetTree -> lex ) ;
-          } // if()
-          else {
-            return targetTree ;
-          } // else()
-          */
-          throw IncorrectArgumentTypeException( funcName, targetTree ) ;
+          gErrNode = targetTree ;
+          throw IncorrectArgumentTypeException( funcName ) ;
         } // if()
         else {
           if ( funcName == "car" ) {
@@ -2036,11 +1995,12 @@ private:
         } // else()
       } // if()
       else {
-        throw IncorrectArgumentTypeException( funcName, inTree -> right -> left ) ;
+        gErrNode = inTree -> right -> left ;
+        throw IncorrectArgumentTypeException( funcName ) ;
       } // else()
     } // if()
     else {
-      throw IncorrectNumberArgumentException( funcName ) ;
+      throw IncorrectNumberArgumentException( funcName ) ; // curious here
     } // else()
     
     return NULL ;
@@ -2049,11 +2009,11 @@ private:
   Node* PrimitivePredecates( string func, Node* inTree, int level ) {
     bool ans = false ;
     Node* ansNode = new Node ;
-    ansNode -> lex="#t" ;
-    ansNode -> type=SPECIAL ;
-    ansNode -> parent=NULL ;
-    ansNode -> left=NULL ;
-    ansNode -> right=NULL ;
+    ansNode -> lex = "#t" ;
+    ansNode -> type = SPECIAL ;
+    ansNode -> parent = NULL ;
+    ansNode -> left = NULL ;
+    ansNode -> right = NULL ;
     // can only have ONE argement
     if ( CountArgument( inTree ) == 1 ) {
       Node* target = EvaluateSExp( inTree -> right -> left, ++level ) ;
@@ -2076,7 +2036,7 @@ private:
         } // else if()
         else if ( func == "null?" ) {
           if ( target -> type == SPECIAL
-              && ( target -> lex == "nil" || target -> lex == "#f" ) ) {
+               && ( target -> lex == "nil" || target -> lex == "#f" ) ) {
             ans = true ;
           } // if()
         } // else if()
@@ -2107,7 +2067,8 @@ private:
         } // else if()
       } // if()
       else {
-        throw IncorrectArgumentTypeException( func, inTree -> right -> left ) ;
+        gErrNode = inTree -> right -> left ;
+        throw IncorrectArgumentTypeException( func ) ;
       } // else()
       
       if ( ans ) {
@@ -2190,12 +2151,13 @@ private:
     for ( int i = 0 ; i < argList.size() ; i ++ ) {
       Node* currentAug = EvaluateSExp( argList[ i ], ++level ) ;
       if ( currentAug != NULL && currentAug -> type == ATOM
-          && ( g.IsINT( currentAug -> lex )
-              || g.IsFLOAT( currentAug -> lex ) ) ) {
+           && ( g.IsINT( currentAug -> lex )
+                || g.IsFLOAT( currentAug -> lex ) ) ) {
         argList[ i ] = EvaluateSExp( argList[ i ], ++level ) ;
       } // if()
       else { // a non number atom exist
-        throw IncorrectArgumentTypeException( funcName, currentAug ) ;
+        gErrNode = currentAug ;
+        throw IncorrectArgumentTypeException( funcName ) ;
       } // else()
     } // for()
     
@@ -2253,7 +2215,11 @@ private:
     } // for()
     
     if ( ! hasFloatExist ) {
-      ansNode -> lex = g.IntToStr( ( int ) ans ) ;
+      int intAns = 0 ;
+      stringstream sstream ;
+      sstream << ans ;
+      sstream >> intAns ;
+      ansNode -> lex = g.IntToStr( intAns ) ;
     } // if()
     else { // the final answer is a float
       stringstream sstream ;
@@ -2284,12 +2250,13 @@ private:
     for ( int i = 0 ; i < argList.size() ; i ++ ) {
       Node* currentAug = EvaluateSExp( argList[ i ], ++level ) ;
       if ( currentAug != NULL && currentAug -> type == ATOM
-          && ( g.IsINT( currentAug -> lex )
-              || g.IsFLOAT( currentAug -> lex ) ) ) {
+           && ( g.IsINT( currentAug -> lex )
+                || g.IsFLOAT( currentAug -> lex ) ) ) {
         argList[ i ] = EvaluateSExp( argList[ i ], ++level ) ;
       } // if()
       else { // a non number atom exist
-        throw IncorrectArgumentTypeException( funcName, currentAug ) ;
+        gErrNode = currentAug ;
+        throw IncorrectArgumentTypeException( funcName ) ;
       } // else()
     } // for()
     
@@ -2377,8 +2344,9 @@ private:
         argList[ i ] = currentAug ;
       } // if()
       else {
-        throw IncorrectArgumentTypeException( funcName, currentAug ) ;
-      } // if()
+        gErrNode = currentAug ;
+        throw IncorrectArgumentTypeException( funcName ) ;
+      } // else()
     } // for()
     
     string currentStr = g.GetStrContent( argList[ 0 ] -> lex ) ;
@@ -2440,8 +2408,9 @@ private:
         argList[ i ] = currentAug ;
       } // if()
       else {
-        throw IncorrectArgumentTypeException( funcName, argList[ i ] ) ;
-      } // if()
+        gErrNode = argList[ i ] ;
+        throw IncorrectArgumentTypeException( funcName ) ;
+      } // else()
       
       if ( funcName == "not" ) {
         if ( argList[ 0 ] -> lex != "nil" && argList[ 0 ] -> lex != "#f" ) {
@@ -2576,16 +2545,16 @@ private:
           } // if()
         } // if()
         else if ( g.IsINT( argList[ 0 ] -> lex )
-                 && g.IsINT( argList[ 1 ] -> lex ) ) {
+                  && g.IsINT( argList[ 1 ] -> lex ) ) {
           if ( g.GetValueOfIntStr( argList[ 0 ] -> lex )
-              == g.GetValueOfIntStr( argList[ 1 ] -> lex ) ) {
+               == g.GetValueOfIntStr( argList[ 1 ] -> lex ) ) {
             isInSameMemory = true ;
           } // if()
         } // else if()
         else if ( g.IsFLOAT( argList[ 0 ] -> lex )
-                 && g.IsFLOAT( argList[ 1 ] -> lex ) ) {
+                  && g.IsFLOAT( argList[ 1 ] -> lex ) ) {
           if ( g.GetValueOfFloatStr( argList[ 0 ] -> lex )
-              == g.GetValueOfFloatStr( argList[ 1 ] -> lex ) ) {
+               == g.GetValueOfFloatStr( argList[ 1 ] -> lex ) ) {
             isInSameMemory = true ;
           } // if()
         } // else if()
@@ -2615,10 +2584,12 @@ private:
         argList[ 1 ] = EvaluateSExp( argList[ 1 ], ++level ) ;
         
         if ( argList[ 0 ] == NULL ) {
-          throw IncorrectArgumentTypeException( funcName, argList[ 0 ] ) ;
+          gErrNode = argList[ 0 ] ;
+          throw IncorrectArgumentTypeException( funcName ) ;
         } // if()
         else if ( argList[ 1 ] == NULL ) {
-          throw IncorrectArgumentTypeException( funcName, argList[ 1 ] ) ;
+          gErrNode = argList[ 1 ] ;
+          throw IncorrectArgumentTypeException( funcName ) ;
         } // else if()
         else {
           if ( ! TwoTreesAreTheSame( argList[ 0 ], argList[ 1 ] ) ) {
@@ -2649,7 +2620,8 @@ private:
             return EvaluateSExp( argList[ 1 ], ++level ) ;
           } // if()
           else {
-            throw NoReturnValueException( inTree ) ;
+            gErrNode = inTree ;
+            throw NoReturnValueException() ;
           } // else()
         } // if()
         else if ( CountArgument( inTree ) == 3 ) {
@@ -2662,11 +2634,12 @@ private:
         } // else if()
       } // if()
       else {
-        throw IncorrectArgumentTypeException( "if", argList[ 0 ] ) ;
+        gErrNode = argList[ 0 ] ;
+        throw IncorrectArgumentTypeException( "if" ) ;
       } // else()
     } // if()
     else {
-      throw IncorrectNumberArgumentException( "if" ) ;
+      throw IncorrectNumberArgumentException( "if" ) ; // curious here
     } // else()
     
     return emptyNode ;
@@ -2684,7 +2657,8 @@ private:
         if ( argList[ i ] -> type != CONS
              || ! IsList( argList[ i ], argList[ i ] )
              || CountArgument( argList[ i ] ) == 0 ) {
-          throw CondFormatException( inTree ) ;
+          gErrNode = inTree ;
+          throw CondFormatException() ;
         } // if()
       } // for()
       
@@ -2699,7 +2673,7 @@ private:
           condResult = EvaluateSExp( condPart, ++level ) ;
           if ( condResult != NULL ) {
             if ( condResult -> lex != "#f"
-                && condResult -> lex != "nil"  ) {
+                 && condResult -> lex != "nil"  ) {
               // assert: has deal with all the additional statement
               for ( int subI = 0 ; subI < subAugList.size() ; subI ++ ) {
                 if ( subI == subAugList.size() - 1 ) {
@@ -2714,7 +2688,8 @@ private:
             } // if()
           } // if()
           else {
-            throw CondFormatException( inTree ) ;
+            gErrNode = inTree ;
+            throw CondFormatException() ;
           } // else()
         } // if()
         else {
@@ -2736,7 +2711,7 @@ private:
             condResult = EvaluateSExp( condPart, ++level ) ;
             if ( condResult != NULL ) {
               if ( condResult -> lex != "#f"
-                  && condResult -> lex != "nil" ) {
+                   && condResult -> lex != "nil" ) {
                 // assert: has deal with all the additional statement
                 for ( int subI = 0 ; subI < subAugList.size() ; subI ++ ) {
                   if ( subI == subAugList.size() - 1 ) {
@@ -2751,22 +2726,26 @@ private:
                   return EvaluateSExp( statePart, ++level ) ;
                 } // if()
                 else {
-                  throw CondFormatException( inTree ) ;
+                  gErrNode = inTree ;
+                  throw CondFormatException() ;
                 } // else()
               } // if()
               else {
-                throw NoReturnValueException( inTree ) ;
+                gErrNode = inTree ;
+                throw NoReturnValueException() ; // curious
               } // else()
             } // if()
             else {
-              throw CondFormatException( inTree ) ;
+              gErrNode = inTree ;
+              throw CondFormatException() ; // curious
             } // else()
           } // else()
         } // else()
       } // for()
     } // if()
     else {
-      throw CondFormatException( inTree ) ;
+      gErrNode = inTree ;
+      throw CondFormatException() ; // curious
     } // else()
     
     return emptyNode ;
@@ -2780,13 +2759,14 @@ private:
       
       for ( int i = 0 ; i < argList.size() ; i ++ ) {
         if ( !IsList( argList[ i ], argList[ i ] ) ) {
-          throw IncorrectArgumentTypeException( "begin", argList[ i ] ) ;
+          gErrNode = argList[ i ] ;
+          throw IncorrectArgumentTypeException( "begin" ) ;
         } // if()
       } // for()
       
       for ( int i = 0 ; i < argList.size() ; i ++ ) {
         if ( i == argList.size() - 1 ) {
-          return EvaluateSExp( argList[ i ], ++level ) ; ;
+          return EvaluateSExp( argList[ i ], ++level ) ;
         } // if()
         else {
           EvaluateSExp( argList[ i ], ++level ) ;
@@ -2883,14 +2863,25 @@ public:
       
       if ( originFuncName == "" ) {
         // not function name, because this may still be a CONS
-        throw ApplyNonFunctionException( "", EvaluateSExp( treeRoot -> left, ++level ) ) ;
+        gErrNode = EvaluateSExp( treeRoot -> left, ++level ) ;
+        throw ApplyNonFunctionException() ;
       } // if()
       else if ( originFuncName[ 0 ] == '#' ) { // is a function value
         originFuncName = GetFuncNameFromFuncValue( originFuncName ) ;
       } // else if()
-      else {
+      else if ( GetReserveWordType( originFuncName ) == "" ) {
         definedFuncIndex = FindDefinedFunc( originFuncName ) ;
-      } // else()
+        if ( definedFuncIndex == -1 ) {
+          Node* treeOfTheSymbol = EvaluateSExp( treeRoot -> left, ++level ) ;
+          if ( treeOfTheSymbol -> type == ATOM ) {
+            originFuncName = treeOfTheSymbol -> lex ;
+          } // if()
+          else {
+            gErrNode = EvaluateSExp( treeRoot -> left, ++level ) ;
+            throw ApplyNonFunctionException() ;
+          } // else()
+        } // if()
+      } // else if()
       
     } // else()
     
@@ -2937,6 +2928,7 @@ public:
           else {
             throw LevelException( "CLEAN-ENVIRONMENT" ) ;
           } // else()
+          
           return NULL ; // no tree to return
         } // else if()
         else if ( funcName == "exit" ) {
@@ -2947,6 +2939,7 @@ public:
             throw IncorrectNumberArgumentException( funcName ) ;
           } // else if()
           
+          gIsEOF = true ;
           return NULL ;
         } // else if()
       } // if()
@@ -2958,16 +2951,17 @@ public:
           throw UnboundValueException( originFuncName ) ;
         } // if()
         else {
-          int index = FindDefinedSymbol( originFuncName ) ;
-          throw ApplyNonFunctionException( originFuncName, mSymbolTable[ index ].tree ) ;
+          return mSymbolTable[ FindDefinedSymbol( originFuncName ) ].tree ;
         } // else()
       } // else if()
       else { // either a function name or a symbol
-        throw ApplyNonFunctionException( originFuncName, NULL ) ;
+        gErrNode = EvaluateSExp( treeRoot -> left, ++level ) ;
+        throw ApplyNonFunctionException() ; // curious
       } // else()
     } // if()
     else {
-      throw NonListException( treeRoot ) ;
+      gErrNode = treeRoot ;
+      throw NonListException() ; // curious
     } // else()
     
     return result ;
@@ -3015,7 +3009,7 @@ int main() {
           } // catch()
           catch ( NonListException e ) {
             cout << e.Err_mesg() ;
-            g.PrettyPrint( e.Err_node() ) ;
+            g.PrettyPrint( gErrNode ) ;
             // cout << endl ;
           } // catch()
           catch ( UnboundValueException e ) {
@@ -3023,18 +3017,18 @@ int main() {
           } // catch()
           catch ( ApplyNonFunctionException e ) {
             cout << e.Err_mesg() ;
-            e.PrintErrAtom() ;
+            g.PrettyPrint( gErrNode ) ;
           } // catch()
           catch ( IncorrectNumberArgumentException e ) {
             cout << e.Err_mesg() << endl ;
           } // catch()
           catch ( IncorrectArgumentTypeException e ) {
             cout << e.Err_mesg() ;
-            g.PrettyPrint( e.Err_node() ) ;
+            g.PrettyPrint( gErrNode ) ;
           } // catch()
           catch ( NoReturnValueException e ) {
             cout << e.Err_mesg() ;
-            g.PrettyPrint( e.Err_node() ) ;
+            g.PrettyPrint( gErrNode ) ;
             // cout << endl ;
           } // catch()
           catch ( DivideByZeroException e ) {
@@ -3042,12 +3036,12 @@ int main() {
           } // catch()
           catch ( DefineFormatException e ) {
             cout << e.Err_mesg() ;
-            g.PrettyPrint( e.Err_node() ) ;
+            g.PrettyPrint( gErrNode ) ;
             // cout << endl ;
           } // catch()
           catch ( CondFormatException e ) {
             cout << e.Err_mesg() ;
-            g.PrettyPrint( e.Err_node() ) ;
+            g.PrettyPrint( gErrNode ) ;
             // cout << endl ;
           } // catch()
         } // if()
@@ -3079,6 +3073,11 @@ int main() {
     
   } // while()
   
-  cout << endl << "Thanks for using OurScheme!" << endl ;
+  gOriginalList.Clear() ;
+  g.Reset() ;
+  
+  if ( uTestNum == 2 ) cout << "NO!" ;
+  
+  cout << endl << "Thanks for using OurScheme!" ;
   
 } // main()

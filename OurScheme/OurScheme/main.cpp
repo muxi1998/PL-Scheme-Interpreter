@@ -454,13 +454,17 @@ public:
   } // Reset()
   
   void SkipLine() {
-    char ch = cin.peek() ;
-    while ( ch != '\n' && !IsEOF( ch ) ) {
+    int tmpCinValue = 0 ;
+    char ch = '\0' ;
+    tmpCinValue = cin.peek() ;
+    ch = ( char ) tmpCinValue ;
+    while ( ch != '\n' && !IsEOF( tmpCinValue ) ) {
       ch = cin.get() ;
-      ch = cin.peek() ;
+      tmpCinValue = cin.peek() ;
+      ch = ( char ) tmpCinValue ;
     } // while()
     
-    if ( !IsEOF( ch ) ) {
+    if ( !IsEOF( tmpCinValue ) ) {
       ch = cin.get() ; // return-line
     } // if()
     
@@ -520,8 +524,8 @@ public:
     cout << endl ;
   } // PrintStr()
   
-  bool IsEOF( char ch ) {
-    if ( ( int ) ch == -1 ) { // -1 means -1 for cin.peek
+  bool IsEOF( int cinValue ) {
+    if ( cinValue == -1 ) { // -1 means -1 for cin.peek
       return true ;
     } // if()
     
@@ -683,7 +687,7 @@ public:
   string Err_mesg() {
     string mesg = "" ;
     mesg = "ERROR (unexpected token) : ')' expected when token at Line " + g.IntToStr( mLine )
-    + " Column " + g.IntToStr( mCol - ( int ) mStr.length() + 1 ) + " is >>" + mStr + "<<" ;
+    + " Column " + g.IntToStr( mCol + ( int ) mStr.length() - 1 ) + " is >>" + mStr + "<<" ;
     g.SkipLine() ;
     // int tmpGLine = gLine ;
     g.Reset() ;
@@ -764,8 +768,15 @@ private:
   
   // Purpose: not only call the func. cin.get(), but also increase the column or line
   char GetChar() {
+    int tmpCh = 0 ;
     char ch = '\0' ;
-    ch = cin.get() ;
+    tmpCh = cin.get() ;
+    ch = ( char ) tmpCh ;
+    if ( g.IsEOF( tmpCh ) ) {
+      throw new EOFException() ;
+      gIsEOF = true ;
+    } // if()
+    
     if ( IsReturnLine( ch ) ) {
       gLine ++ ;
       gColumn = 0 ;
@@ -782,14 +793,27 @@ private:
     bool keepRead = true ;
     char ch_get = '\0' ;
     char ch_peek = '\0' ;
+    int tmpCinValue = 0 ;
     
-    ch_peek = cin.peek() ;
+    tmpCinValue = cin.peek() ;
+    ch_peek = ( char ) tmpCinValue ;
+    
+    if ( ch_peek == '\"' && fullStr.length() == 1 ) {
+      ch_get = cin.get() ;
+      fullStr += ch_get ;
+      return fullStr ;
+    } // if()
     // because we need to get a string, keep reading the input until
     // encounter the next '\"' or return-line
-    while ( keepRead && !IsReturnLine( ch_peek ) && !g.IsEOF( ch_peek ) ) {
-      ch_get = GetChar() ;
+    while ( keepRead && !IsReturnLine( ch_peek ) && !g.IsEOF( tmpCinValue ) ) {
+      ch_get = cin.get() ;
       fullStr += ch_get ;
-      ch_peek = cin.peek() ;
+      tmpCinValue = cin.peek() ;
+      if ( g.IsEOF( tmpCinValue ) ) {
+        throw new EOFException() ;
+      } // if()
+      
+      ch_peek = ( char ) tmpCinValue ;
       
       if ( ch_peek == '\"' && ch_get != '\\' )  { // >"< stands alone
         keepRead = false ;
@@ -797,17 +821,16 @@ private:
     } // while()
     
     if ( ch_peek == '\"' ) {  // a complete string with a correct syntax
-      ch_get = GetChar() ;
+      ch_get = cin.get() ;
       fullStr += ch_get ;
     } // if()
-    else if ( ch_get == '\"' && fullStr.length() == 2 ) {
-      return fullStr ;
-    } // else if()
     else { // miss the ending quote
       // cin.putback( cin.get() ) ;
-      
-      throw NoClosingQuoteException( gLine, gColumn + 1 ) ;
+      gColumn += ( int ) fullStr.length() - 1 ;
+      throw new NoClosingQuoteException( gLine, gColumn + 1 ) ;
     } // else()
+    
+    gColumn += ( int ) fullStr.length() - 1 ;
     
     return fullStr ;
   } // GetFullStr()
@@ -833,21 +856,126 @@ private:
     return token ;
   } // LexToToken()
   
+  char SkipWhiteSpace( char ch_get, string &readBuffer ) {
+    while ( IsWhiteSpace( ch_get ) || IsReturnLine( ch_get ) ) {
+      readBuffer += ch_get ;
+      
+      if ( IsReturnLine( ch_get ) && gJustFinishAExp ) {
+        gJustFinishAExp = false ;
+      } // if()
+      
+      int tmpCinValue = cin.get() ; // take off the return-line and without increase the line
+      ch_get = ( char ) tmpCinValue ;
+      
+    } // while()
+    
+    if ( ch_get != ';' ) {
+      readBuffer += ch_get ;
+    } // if()
+    
+    return ch_get ;
+  } // SkipWhiteSpace()
+  
+  char GetNextNonWhiteChar() {
+    char ch_get = GetChar() ;
+    
+    while ( IsWhiteSpace( ch_get )  ) {
+      ch_get = GetChar() ;
+    } // while()
+    
+    return ch_get ;
+  } // GetNextNonWhiteChar()
+  
 public:
   
   // Purpose: accept the token string from func. GetToken(), and response the corresponding token value
-
+  /*
+  string PeekToken() {
+    string tokenBuffer = "" ;
+    string tokenStrWeGet = "" ;
+    
+    char ch = '\0' ;
+    int tmpCinValue = 0 ;
+  
+    tmpCinValue =  cin.get() ;
+    ch = ( char ) tmpCinValue ;
+    
+    ch = SkipWhiteSpace( ch, tokenBuffer ) ;
+    
+    while ( ch == ';' ) {
+      g.SkipLine() ;
+      tmpCinValue =  cin.get() ;
+      ch = ( char ) tmpCinValue ;
+      ch = SkipWhiteSpace( ch, tokenBuffer ) ;
+    } // while()
+    
+    // assert: finally get a char which is not a white-space, now can start to construct a token
+    // ch_get = cin.get() ;  // since this char is not a white-space, we can get it from the input
+    // ch = cin.get() ;
+    // tokenBuffer += ch ;
+    tokenStrWeGet += ch ;  // directly add the first non-white-space char into the token string
+    // if this char is already a separator then STOP reading, or keep getting the next char
+    // ch_peek = cin.peek() ;
+    if ( !IsSeparator( ch ) && ch != '\"' ) {  // 'ch' here is the first char overall
+      
+      if ( g.IsEOF( tmpCinValue ) ) { // -1 means -1 for cin.peek
+        gIsEOF = true ;
+        throw new EOFException() ;
+      } // if()
+      
+      // check whether EOF because we may encounter EOF while making a peek token
+      tmpCinValue = cin.peek() ;
+      ch = ( char ) tmpCinValue ;
+      while ( !IsSeparator( ch ) && !IsWhiteSpace( ch ) && !g.IsEOF( tmpCinValue ) ) {
+        ch = cin.get() ;
+        tokenBuffer += ch ;
+        tokenStrWeGet += ch ;
+        tmpCinValue = cin.peek() ;
+        ch = ( char ) tmpCinValue ;
+        if ( g.IsEOF( tmpCinValue ) ) { // -1 means -1 for cin.peek
+          gIsEOF = true ;
+          throw new EOFException() ;
+        } // if()
+        
+      } // while()
+      
+    } // if()
+    else if ( ch == '\"' ) {
+      // assert: we get the whole token
+      string remainStringContent = "" ;
+      tokenStrWeGet = "" ;
+      remainStringContent = GetFullStr( tokenStrWeGet ) ;
+      tokenStrWeGet = ch + remainStringContent ;
+      tokenBuffer += tokenStrWeGet.substr( 1, tokenStrWeGet.length() - 1 ) ;
+    } // else if()
+    
+    // assert: we get the whole token
+    gPeekToken = tokenStrWeGet ;
+    
+    gJustFinishAExp = false ;
+    
+    for ( int i = ( int ) tokenBuffer.length() - 1 ; i >= 0 ; i -- ) {
+      cin.putback( tokenBuffer[ i ] ) ;
+    } // for()
+    
+    return gPeekToken ;
+    
+  } // PeekToken()
+  */
+  
   string PeekToken() {
     string tokenStrWeGet = "" ;
     
     if ( gPeekToken == "" ) {
       char ch = '\0' ;
+      int cinValue = 0 ;
       
       // peek whether the next char is in input
-      ch = cin.peek() ;
-      if ( g.IsEOF( ch ) ) { // -1 means -1 for cin.peek
+      cinValue = cin.peek() ;
+      ch = ( char ) cinValue ;
+      if ( g.IsEOF( cinValue ) ) { // -1 means -1 for cin.peek
         gIsEOF = true ;
-        throw EOFException() ;
+        throw new EOFException() ;
       } // if()
       
       // before get a actual char, we need to skip all the white-spaces first
@@ -868,10 +996,11 @@ public:
           gJustFinishAExp = false ;
         } // if()
         
-        ch = cin.peek() ;  // keep peeking next char
-        if ( g.IsEOF( ch ) ) { // -1 means -1 for cin.peek
+        cinValue = cin.peek() ;  // keep peeking next char
+        ch = ( char ) cinValue ;
+        if ( g.IsEOF( cinValue ) ) { // -1 means -1 for cin.peek
           gIsEOF = true ;
-          throw EOFException() ;
+          throw new EOFException() ;
         } // if()
       } // while()
       
@@ -887,20 +1016,23 @@ public:
       
       // if this char is already a separator then STOP reading, or keep getting the next char
       if ( !IsSeparator( ch ) && ch != '\"' ) {  // 'ch' here is the first char overall
-        ch = cin.peek() ;
-        if ( g.IsEOF( ch ) ) { // -1 means -1 for cin.peek
+        cinValue = cin.peek() ;
+        ch = ( char ) cinValue ;
+
+        if ( g.IsEOF( cinValue ) ) { // -1 means -1 for cin.peek
           gIsEOF = true ;
-          throw EOFException() ;
+          throw new EOFException() ;
         } // if()
         
         // check whether EOF because we may encounter EOF while making a peek token
         while ( !IsSeparator( ch ) && !IsWhiteSpace( ch ) && ( int ) ch != -1 ) {
           ch = GetChar() ;
           tokenStrWeGet += ch ;
-          ch = cin.peek() ;
-          if ( g.IsEOF( ch ) ) { // -1 means -1 for cin.peek
+          cinValue = cin.peek() ;
+          ch = ( char ) cinValue ;
+          if ( g.IsEOF( cinValue ) ) { // -1 means -1 for cin.peek
             gIsEOF = true ;
-            throw EOFException() ;
+            throw new EOFException() ;
           } // if()
         } // while()
         
@@ -920,15 +1052,41 @@ public:
     
   } // PeekToken()
   
+  /*
   Token GetToken() {
-    if ( gPeekToken == "" ) PeekToken() ;
+    char ch_get = '\0' ;
+    string lexWeGet = "" ;
     
+    if ( gPeekToken == "" ) {
+      PeekToken() ;
+    } // if()
+    
+    ch_get = GetNextNonWhiteChar() ; // get the first char of the token
+    lexWeGet += ch_get ;
+    for ( int i = 1 ; i < gPeekToken.length() ; i ++ ) {
+      ch_get = GetChar() ;
+      lexWeGet += ch_get ;
+    } // for()
+    
+    Token tokenWeWant = LexToToken( lexWeGet ) ;
+    gPeekToken = "" ;
+    gOriginalList.AddNode( tokenWeWant ) ;
+    return tokenWeWant ;
+  
+  } // GetToken()
+  */
+  
+  Token GetToken() {
+   
+    if ( gPeekToken == "" ) PeekToken() ;
+   
     Token tokenWeWant = LexToToken( gPeekToken ) ;
     gPeekToken = "" ;
     gOriginalList.AddNode( tokenWeWant ) ;
-    
+   
     return tokenWeWant ;
   } // GetToken()
+  
   
 };
 
@@ -991,7 +1149,7 @@ public:
             
             hasOneSExpCorrect = CheckSExp( token ) ;
             if ( !hasOneSExpCorrect ) {
-              throw MissingAtomOrLeftParException( gLine, gColumn, gPeekToken ) ;
+              throw new MissingAtomOrLeftParException( gLine, gColumn, gPeekToken ) ;
               return false ;
             } // if()
             else {
@@ -1001,7 +1159,7 @@ public:
                 return true ;
               } // if()
               else {
-                throw MissingRightParException( gLine, gColumn, gPeekToken ) ;
+                throw new MissingRightParException( gLine, gColumn, gPeekToken ) ;
                 return false ;
               } // else()
             } // else()
@@ -1015,14 +1173,14 @@ public:
         } // else()
       } // if()
       else {
-        throw MissingAtomOrLeftParException( gLine, gColumn, token.str ) ;
+        throw new MissingAtomOrLeftParException( gLine, gColumn, token.str ) ;
       } // else()
       
       return false ;
       
     } // else if()
     
-    throw MissingAtomOrLeftParException( gLine, gColumn, startToken.str ) ;
+    throw new MissingAtomOrLeftParException( gLine, gColumn, startToken.str ) ;
     
     return false ; // none of the above begining
     
@@ -1435,6 +1593,12 @@ public:
       
     } // if((
     else {
+      if ( mCopyList.mRoot -> token.type == LPAREN && mCopyList.mRoot
+          -> next -> token.str == "exit" && mCopyList.mRoot -> next -> next -> token.type == RPAREN ) {
+        gIsEOF = true ;
+        return ;
+      } // if()
+      
       Translate( mCopyList.mRoot, mCopyList.mTail ) ;
       // mCopyList.PrintForward() ;
       
@@ -1621,14 +1785,45 @@ private:
   vector<Function> mFunctionTable ;
   vector<ReserveWord> mReserveWords ;
   
-  void ResetReserveWord() {
+  void InitialReserveWord() {
     for ( int i = 0 ; i < 47 ; i ++ ) {
       ReserveWord tmpWord ;
       tmpWord.name = gOriginReserveWordList[ i ] ;
       tmpWord.list.clear() ;
       mReserveWords.push_back( tmpWord ) ;
     } // for()
+  } // InitialReserveWord()
+  
+  void ResetReserveWord() {
+    for ( int i = 0 ; i < 47 ; i ++ ) {
+      mReserveWords[ i ].list.clear() ;
+    } // for()
   } // ResetReserveWord()
+  
+  void DeleteTree( Node* root ) {
+    if ( root != NULL ) {
+      // leaf
+      if ( root -> left == NULL && root -> right == NULL ) {
+        delete root ;
+        root = NULL ;
+      } // if()
+      else  { // still some subtrees in left or right node
+        if ( root -> left != NULL ) {
+          return DeleteTree( root -> left ) ;
+        } // if()
+        
+        if ( root -> right != NULL ) {
+          return DeleteTree( root -> right ) ;
+        } // if()
+      } // else()
+    } // if()
+  } // DeleteTree()
+  
+  void UpdateSymbol( string symName, Node* assignedTree ) {
+    int symIndex = FindDefinedSymbol( symName ) ;
+    DeleteTree( mSymbolTable[ symIndex ].tree ) ;
+    mSymbolTable[ symIndex ].tree = assignedTree ;
+  } // UpdateSymbol()
   
   void AddSymbol( string symName, Node* assignedTree ) {
     Symbol symbol ;
@@ -1725,7 +1920,7 @@ private:
   } // CountArgument()
   
   bool IsSymbol( string str ) {
-    if ( g.GetTokenType( str ) == SYMBOL ) {
+    if ( str != "" && g.GetTokenType( str ) == SYMBOL ) {
       return true ;
     } // if()
     
@@ -1753,7 +1948,7 @@ private:
         if ( firstArg -> type == ATOM
              && IsSymbol( firstArg -> lex  )
              && FindDefinedSymbol( firstArg -> lex ) == -1 ) {
-          throw UnboundValueException( firstArg -> lex ) ;
+          throw new UnboundValueException( firstArg -> lex ) ;
         } // if()
         else {
           consNode -> left = EvaluateSExp( firstArg, ++level ) ;
@@ -1762,7 +1957,7 @@ private:
             if ( secondArg -> type == ATOM
                  && IsSymbol( secondArg -> lex )
                  && FindDefinedSymbol( secondArg -> lex ) == -1 ) {
-              throw UnboundValueException( secondArg -> lex ) ;
+              throw new UnboundValueException( secondArg -> lex ) ;
             } // if()
             else {
               // Step3. If no error create a new Node
@@ -1771,17 +1966,17 @@ private:
           } // if()
           else {
             gErrNode = secondArg ;
-            throw NonListException() ; // curious
+            throw new NonListException() ; // curious
           } // else()
         } // else()
       } // if()
       else {
         gErrNode = firstArg ;
-        throw NonListException() ; // curious
+        throw new NonListException() ; // curious
       } // else()
     } // if()
     else {
-      throw IncorrectNumberArgumentException( "cons" ) ; // curious here
+      throw new IncorrectNumberArgumentException( "cons" ) ; // curious here
     } // else()
     
     return consNode ;
@@ -1814,7 +2009,7 @@ private:
               argList[ i ] = EvaluateSExp( argList[ i ], ++level ) ;
             } // if()
             else {
-              throw UnboundValueException( argList[ i ] -> lex ) ;
+              throw new UnboundValueException( argList[ i ] -> lex ) ;
             } // else()
           } // if()
           else { // this is a list, but need to check more detail
@@ -1823,7 +2018,7 @@ private:
         } // if()
         else {
           gErrNode = argList[ i ] ;
-          throw NonListException() ;
+          throw new NonListException() ;
         } // else()
       } // for()
       // Step3. All the arguments are correct, now combined them
@@ -1913,8 +2108,7 @@ private:
                     AddNewReserveWord( reserveName, argList[ 0 ] -> lex ) ;
                   } // if()
                   
-                  mSymbolTable[ symIndex ].tree =
-                  mSymbolTable[ FindDefinedSymbol( argList[ 1 ] -> lex ) ].tree ;
+                  UpdateSymbol( argList[ 0 ] -> lex, value ) ;
                 } // else()
               } // if()
               else {
@@ -1951,26 +2145,26 @@ private:
             } // if()
             else {
               gErrNode = inTree ;
-              throw DefineFormatException() ;
+              throw new DefineFormatException() ;
             } // else()
           } // if()
           else { // user try to re-define the reserve word
             gErrNode = inTree ;
-            throw DefineFormatException() ; // curious
+            throw new DefineFormatException() ; // curious
           } // else()
         } // if()
         else { //
           gErrNode = inTree ;
-          throw DefineFormatException() ; // curious
+          throw new DefineFormatException() ; // curious
         } // else()
       } // if()
       else {
         gErrNode = inTree ;
-        throw DefineFormatException() ; // curious
+        throw new DefineFormatException() ; // curious
       } // else()
     } // if()
     else {
-      throw LevelException( "DEFINE" ) ; // curious here
+      throw new LevelException( "DEFINE" ) ; // curious here
     } // else()
     
     return NULL ;
@@ -1983,7 +2177,7 @@ private:
       if ( targetTree != NULL ) {
         if ( targetTree -> type == ATOM || targetTree -> type == SPECIAL ) {
           gErrNode = targetTree ;
-          throw IncorrectArgumentTypeException( funcName ) ;
+          throw new IncorrectArgumentTypeException( funcName ) ;
         } // if()
         else {
           if ( funcName == "car" ) {
@@ -1996,11 +2190,11 @@ private:
       } // if()
       else {
         gErrNode = inTree -> right -> left ;
-        throw IncorrectArgumentTypeException( funcName ) ;
+        throw new IncorrectArgumentTypeException( funcName ) ;
       } // else()
     } // if()
     else {
-      throw IncorrectNumberArgumentException( funcName ) ; // curious here
+      throw new IncorrectNumberArgumentException( funcName ) ; // curious here
     } // else()
     
     return NULL ;
@@ -2068,7 +2262,7 @@ private:
       } // if()
       else {
         gErrNode = inTree -> right -> left ;
-        throw IncorrectArgumentTypeException( func ) ;
+        throw new IncorrectArgumentTypeException( func ) ;
       } // else()
       
       if ( ans ) {
@@ -2081,17 +2275,18 @@ private:
       return ansNode ;
     } // if()
     else {
-      throw IncorrectNumberArgumentException( func ) ;
+      throw new IncorrectNumberArgumentException( func ) ;
     } // else()
     
     return NULL ;
   } // PrimitivePredecates()
   
   Node* CleanEnvironment() {
-    mSymbolTable.clear() ;
+    // mSymbolTable.clear() ;
     mFunctionTable.clear() ;
-    mReserveWords.clear() ;
-    AddOriginReserveWords() ;
+    // mReserveWords.clear() ;
+    ResetSymbolTable() ;
+    // AddOriginReserveWords() ;
     ResetReserveWord() ;
     cout << "environment cleaned" << endl ;
     
@@ -2157,7 +2352,7 @@ private:
       } // if()
       else { // a non number atom exist
         gErrNode = currentAug ;
-        throw IncorrectArgumentTypeException( funcName ) ;
+        throw new IncorrectArgumentTypeException( funcName ) ;
       } // else()
     } // for()
     
@@ -2188,7 +2383,7 @@ private:
             ans /= g.GetValueOfIntStr( argList[ i ] -> lex ) ;
           } // if()
           else {
-            throw DivideByZeroException() ;
+            throw new DivideByZeroException() ;
           } // else()
         } // else if()
       } // if()
@@ -2208,7 +2403,7 @@ private:
             ans /= g.GetValueOfFloatStr( argList[ i ] -> lex ) ;
           } // if()
           else {
-            throw DivideByZeroException() ;
+            throw new DivideByZeroException() ;
           } // else()
         } // else if()
       } // else if()
@@ -2256,7 +2451,7 @@ private:
       } // if()
       else { // a non number atom exist
         gErrNode = currentAug ;
-        throw IncorrectArgumentTypeException( funcName ) ;
+        throw new IncorrectArgumentTypeException( funcName ) ;
       } // else()
     } // for()
     
@@ -2345,7 +2540,7 @@ private:
       } // if()
       else {
         gErrNode = currentAug ;
-        throw IncorrectArgumentTypeException( funcName ) ;
+        throw new IncorrectArgumentTypeException( funcName ) ;
       } // else()
     } // for()
     
@@ -2409,7 +2604,7 @@ private:
       } // if()
       else {
         gErrNode = argList[ i ] ;
-        throw IncorrectArgumentTypeException( funcName ) ;
+        throw new IncorrectArgumentTypeException( funcName ) ;
       } // else()
       
       if ( funcName == "not" ) {
@@ -2456,7 +2651,7 @@ private:
         return ProcessMath( funcName, argList, ++level ) ;
       } // if()
       else {
-        throw IncorrectNumberArgumentException( funcName ) ;
+        throw new IncorrectNumberArgumentException( funcName ) ;
       } // else()
     } // if()
     else if ( IsComparison( funcName ) ) { // need to have more than two arguments
@@ -2464,7 +2659,7 @@ private:
         return ProcessCompare( funcName, argList, ++level );
       } // if()
       else {
-        throw IncorrectNumberArgumentException( funcName ) ;
+        throw new IncorrectNumberArgumentException( funcName ) ;
       } // else()
     } // else if()
     else if ( IsCondOperator( funcName ) ) { // not only need 1 argument
@@ -2473,7 +2668,7 @@ private:
           return ProcessCondOperation( funcName, argList, ++level ) ;
         } // if()
         else {
-          throw IncorrectNumberArgumentException( funcName ) ;
+          throw new IncorrectNumberArgumentException( funcName ) ;
         } // else()
       } // if()
       else {
@@ -2481,7 +2676,7 @@ private:
           return ProcessCondOperation( funcName, argList, ++level ) ;
         } // if()
         else {
-          throw IncorrectNumberArgumentException( funcName ) ;
+          throw new IncorrectNumberArgumentException( funcName ) ;
         } // else()
       } // else()
     } // else if()
@@ -2491,7 +2686,7 @@ private:
         return ProcessStringCompare( funcName, argList, ++level ) ;
       } // if()
       else {
-        throw IncorrectNumberArgumentException( funcName ) ;
+        throw new IncorrectNumberArgumentException( funcName ) ;
       } // else()
     } // else if()
     
@@ -2539,8 +2734,8 @@ private:
              && g.GetTokenType( argList[ 1 ] -> lex ) == SYMBOL ) {
           int symIndex1 = FindDefinedSymbol( argList[ 0 ] -> lex ) ;
           int symIndex2 = FindDefinedSymbol( argList[ 1 ] -> lex ) ;
-          if ( mSymbolTable[ symIndex1 ].tree
-               == mSymbolTable[ symIndex2 ].tree ) {
+          if ( symIndex1 != -1 && symIndex2 != -1 &&
+               mSymbolTable[ symIndex1 ].tree == mSymbolTable[ symIndex2 ].tree ) {
             isInSameMemory = true ;
           } // if()
         } // if()
@@ -2585,11 +2780,11 @@ private:
         
         if ( argList[ 0 ] == NULL ) {
           gErrNode = argList[ 0 ] ;
-          throw IncorrectArgumentTypeException( funcName ) ;
+          throw new IncorrectArgumentTypeException( funcName ) ;
         } // if()
         else if ( argList[ 1 ] == NULL ) {
           gErrNode = argList[ 1 ] ;
-          throw IncorrectArgumentTypeException( funcName ) ;
+          throw new IncorrectArgumentTypeException( funcName ) ;
         } // else if()
         else {
           if ( ! TwoTreesAreTheSame( argList[ 0 ], argList[ 1 ] ) ) {
@@ -2599,7 +2794,7 @@ private:
       } // else if()
     } // if()
     else {
-      throw IncorrectNumberArgumentException( funcName ) ;
+      throw new IncorrectNumberArgumentException( funcName ) ;
     } // else()
     
     return ansNode ;
@@ -2621,7 +2816,7 @@ private:
           } // if()
           else {
             gErrNode = inTree ;
-            throw NoReturnValueException() ;
+            throw new NoReturnValueException() ;
           } // else()
         } // if()
         else if ( CountArgument( inTree ) == 3 ) {
@@ -2635,11 +2830,11 @@ private:
       } // if()
       else {
         gErrNode = argList[ 0 ] ;
-        throw IncorrectArgumentTypeException( "if" ) ;
+        throw new IncorrectArgumentTypeException( "if" ) ;
       } // else()
     } // if()
     else {
-      throw IncorrectNumberArgumentException( "if" ) ; // curious here
+      throw new IncorrectNumberArgumentException( "if" ) ; // curious here
     } // else()
     
     return emptyNode ;
@@ -2658,7 +2853,7 @@ private:
              || ! IsList( argList[ i ], argList[ i ] )
              || CountArgument( argList[ i ] ) == 0 ) {
           gErrNode = inTree ;
-          throw CondFormatException() ;
+          throw new CondFormatException() ;
         } // if()
       } // for()
       
@@ -2689,7 +2884,7 @@ private:
           } // if()
           else {
             gErrNode = inTree ;
-            throw CondFormatException() ;
+            throw new CondFormatException() ;
           } // else()
         } // if()
         else {
@@ -2727,17 +2922,17 @@ private:
                 } // if()
                 else {
                   gErrNode = inTree ;
-                  throw CondFormatException() ;
+                  throw new CondFormatException() ;
                 } // else()
               } // if()
               else {
                 gErrNode = inTree ;
-                throw NoReturnValueException() ; // curious
+                throw new NoReturnValueException() ; // curious
               } // else()
             } // if()
             else {
               gErrNode = inTree ;
-              throw CondFormatException() ; // curious
+              throw new CondFormatException() ; // curious
             } // else()
           } // else()
         } // else()
@@ -2745,7 +2940,7 @@ private:
     } // if()
     else {
       gErrNode = inTree ;
-      throw CondFormatException() ; // curious
+      throw new CondFormatException() ; // curious
     } // else()
     
     return emptyNode ;
@@ -2760,7 +2955,7 @@ private:
       for ( int i = 0 ; i < argList.size() ; i ++ ) {
         if ( !IsList( argList[ i ], argList[ i ] ) ) {
           gErrNode = argList[ i ] ;
-          throw IncorrectArgumentTypeException( "begin" ) ;
+          throw new IncorrectArgumentTypeException( "begin" ) ;
         } // if()
       } // for()
       
@@ -2774,7 +2969,7 @@ private:
       } // for()
     } // if()
     else {
-      throw IncorrectNumberArgumentException( "begin" ) ;
+      throw new IncorrectNumberArgumentException( "begin" ) ;
     } // else()
     
     return emptyNode ;
@@ -2798,6 +2993,10 @@ private:
     } // for()
   } // AddOriginReserveWords()
   
+  void ResetSymbolTable() {
+    mSymbolTable.erase( mSymbolTable.begin() + 47, mSymbolTable.end() ) ;
+  } // ResetSymbolTable()
+  
   string GetFuncNameFromFuncValue( string str ) {
     string name = "" ;
     int whiteIndex = ( int ) str.find( ' ', 0 ) ;
@@ -2813,31 +3012,41 @@ private:
 public:
   Evaluator() {
     AddOriginReserveWords() ;
-    ResetReserveWord() ;
+    InitialReserveWord() ;
   } // Evaluator()
   
   Node* EvaluateSExp( Node* treeRoot, int level ) {
 
     // the first left atom should be the func name
-    Node* result = NULL ;
-    string originFuncName = "" ;
+    Node* result = NULL ; // used to store the evaluation result tree
+    string originFuncName = "" ; // copy the original operator from the fiven tree
+    // the function name after evaluation ( if the original one is a symbol or some how)
     string funcName = "" ;
+    // the functions are stored in mFuncTable, consist of the function name and definition
     int definedFuncIndex = -1 ;
     
-    if ( treeRoot -> type != CONS ) {
+    if ( treeRoot == NULL ) { // to make sure the recent evaluated tree is not null
+      return g.GetEmptyNode() ;
+    } // if()
+    
+    if ( treeRoot -> type != CONS ) { // if the current tree is a ATOM (number or a symbol)
+      originFuncName = treeRoot -> lex ;
+      // transfer all symbol to the correspond reserveword
       string reserveWord = GetReserveWordType( treeRoot -> lex ) ;
-      if ( reserveWord != "" ) {
-        return mSymbolTable[ FindDefinedSymbol( treeRoot -> lex ) ].tree ;
+      if ( reserveWord != "" ) { // this ATOM truely is a reserveword
+        int reserveIndex = FindDefinedSymbol( reserveWord ) ; // find the correspond index in
+        originFuncName = reserveWord ;
+        return mSymbolTable[ reserveIndex ].tree ;
       } // if()
-      else if ( g.GetTokenType( treeRoot -> lex ) == SYMBOL ) {
+      else if ( g.GetTokenType( treeRoot -> lex ) == SYMBOL ) { // not a reserve word
         int symbolIndex = FindDefinedSymbol( treeRoot -> lex ) ;
         if ( symbolIndex != -1 ) { // this symbol exist in the symbol table
           if ( mSymbolTable[ symbolIndex ].tree -> type == CONS
                && GetReserveWordType( mSymbolTable[ symbolIndex ].tree
                                       -> left -> lex ) == "" ) {
-            return mSymbolTable[ symbolIndex ].tree ;
+            return mSymbolTable[ symbolIndex ].tree ; // this symbol stands alone
           } // if()
-          else {
+          else { // this symbol is an Atom
             return EvaluateSExp( mSymbolTable[ symbolIndex ].tree, ++level ) ;
           } // else()
         } // if()
@@ -2845,11 +3054,13 @@ public:
           return treeRoot ; // this is an ATOM of the Reserve Word
         } // else if()
         else {
-          throw UnboundValueException( treeRoot -> lex ) ;
+          throw new UnboundValueException( treeRoot -> lex ) ;
         } // else()
       } // else if()
+      else {
+        return treeRoot ;
+      } // else()
       
-      return treeRoot ;
     } // if()
     else { // this S-exp is a cons
       // New observation: the function value can also process the S-exp
@@ -2857,14 +3068,20 @@ public:
         Node* funcNode = EvaluateSExp( treeRoot -> left, ++level ) ;
         originFuncName = funcNode -> lex ;
       } // if()
-      else {
-        originFuncName = treeRoot -> left -> lex ;
+      else { // this is a single symbol, we need to figure out the true value of this symbol
+        string reserveWord = GetReserveWordType( treeRoot -> left -> lex ) ;
+        if ( reserveWord != "" ) {
+          originFuncName = reserveWord ; // and this should be execute since it stands alone
+        } // if()
+        else {
+          originFuncName = treeRoot -> left -> lex ;
+        } // else()
       } // else()
       
       if ( originFuncName == "" ) {
         // not function name, because this may still be a CONS
         gErrNode = EvaluateSExp( treeRoot -> left, ++level ) ;
-        throw ApplyNonFunctionException() ;
+        throw new ApplyNonFunctionException() ;
       } // if()
       else if ( originFuncName[ 0 ] == '#' ) { // is a function value
         originFuncName = GetFuncNameFromFuncValue( originFuncName ) ;
@@ -2878,7 +3095,7 @@ public:
           } // if()
           else {
             gErrNode = EvaluateSExp( treeRoot -> left, ++level ) ;
-            throw ApplyNonFunctionException() ;
+            throw new ApplyNonFunctionException() ;
           } // else()
         } // if()
       } // else if()
@@ -2926,17 +3143,17 @@ public:
             CleanEnvironment() ;
           } // if()
           else {
-            throw LevelException( "CLEAN-ENVIRONMENT" ) ;
+            throw new LevelException( "CLEAN-ENVIRONMENT" ) ;
           } // else()
           
           return NULL ; // no tree to return
         } // else if()
         else if ( funcName == "exit" ) {
           if ( level != 0 ) {
-            throw LevelException( "EXIT" ) ;
+            throw new LevelException( "EXIT" ) ;
           } // if()
           else if ( CountArgument( treeRoot ) != 0 ) {
-            throw IncorrectNumberArgumentException( funcName ) ;
+            throw new IncorrectNumberArgumentException( funcName ) ;
           } // else if()
           
           gIsEOF = true ;
@@ -2948,7 +3165,7 @@ public:
       } // else if()
       else if ( IsSymbol( originFuncName ) ) {
         if ( FindDefinedSymbol( originFuncName ) == -1 ) {
-          throw UnboundValueException( originFuncName ) ;
+          throw new UnboundValueException( originFuncName ) ;
         } // if()
         else {
           return mSymbolTable[ FindDefinedSymbol( originFuncName ) ].tree ;
@@ -2956,12 +3173,12 @@ public:
       } // else if()
       else { // either a function name or a symbol
         gErrNode = EvaluateSExp( treeRoot -> left, ++level ) ;
-        throw ApplyNonFunctionException() ; // curious
+        throw new ApplyNonFunctionException() ; // curious
       } // else()
     } // if()
     else {
       gErrNode = treeRoot ;
-      throw NonListException() ; // curious
+      throw new NonListException() ; // curious
     } // else()
     
     return result ;
@@ -2999,48 +3216,49 @@ int main() {
         if ( !gIsEOF ) {
           // g.PrettyPrint( tree.GetRoot() ) ; // proj.1
           try {
+            // Evaluate the tree and start with level 0
             Node* result = eval.EvaluateSExp( tree.GetRoot(), 0 ) ;
             if ( result != NULL ) {
               g.PrettyPrint( result ) ;
             } // if()
           } // try
-          catch ( LevelException e ) {
-            cout << e.Err_mesg() << endl ;
+          catch ( LevelException* e ) {
+            cout << e -> Err_mesg() << endl ;
           } // catch()
-          catch ( NonListException e ) {
-            cout << e.Err_mesg() ;
+          catch ( NonListException* e ) {
+            cout << e -> Err_mesg() ;
             g.PrettyPrint( gErrNode ) ;
             // cout << endl ;
           } // catch()
-          catch ( UnboundValueException e ) {
-            cout << e.Err_mesg() << endl ;
+          catch ( UnboundValueException* e ) {
+            cout << e -> Err_mesg() << endl ;
           } // catch()
-          catch ( ApplyNonFunctionException e ) {
-            cout << e.Err_mesg() ;
+          catch ( ApplyNonFunctionException* e ) {
+            cout << e -> Err_mesg() ;
             g.PrettyPrint( gErrNode ) ;
           } // catch()
-          catch ( IncorrectNumberArgumentException e ) {
-            cout << e.Err_mesg() << endl ;
+          catch ( IncorrectNumberArgumentException* e ) {
+            cout << e -> Err_mesg() << endl ;
           } // catch()
-          catch ( IncorrectArgumentTypeException e ) {
-            cout << e.Err_mesg() ;
+          catch ( IncorrectArgumentTypeException* e ) {
+            cout << e -> Err_mesg() ;
             g.PrettyPrint( gErrNode ) ;
           } // catch()
-          catch ( NoReturnValueException e ) {
-            cout << e.Err_mesg() ;
-            g.PrettyPrint( gErrNode ) ;
-            // cout << endl ;
-          } // catch()
-          catch ( DivideByZeroException e ) {
-            cout << e.Err_mesg() << endl ;
-          } // catch()
-          catch ( DefineFormatException e ) {
-            cout << e.Err_mesg() ;
+          catch ( NoReturnValueException* e ) {
+            cout << e -> Err_mesg() ;
             g.PrettyPrint( gErrNode ) ;
             // cout << endl ;
           } // catch()
-          catch ( CondFormatException e ) {
-            cout << e.Err_mesg() ;
+          catch ( DivideByZeroException* e ) {
+            cout << e -> Err_mesg() << endl ;
+          } // catch()
+          catch ( DefineFormatException* e ) {
+            cout << e -> Err_mesg() ;
+            g.PrettyPrint( gErrNode ) ;
+            // cout << endl ;
+          } // catch()
+          catch ( CondFormatException* e ) {
+            cout << e -> Err_mesg() ;
             g.PrettyPrint( gErrNode ) ;
             // cout << endl ;
           } // catch()
@@ -3052,22 +3270,22 @@ int main() {
       gJustFinishAExp = true ;
       
     } // catch()
-    catch ( EOFException e ) {
-      cout << e.Err_mesg() << endl ;
+    catch ( EOFException* e ) {
+      cout << e -> Err_mesg() << endl ;
       gJustFinishAExp = true ;
       cout << "Thanks for using OurScheme!" << endl ;
       return 0 ;
     } // catch()
-    catch ( MissingAtomOrLeftParException e ) {
-      cout << e.Err_mesg() << endl ;
+    catch ( MissingAtomOrLeftParException* e ) {
+      cout << e -> Err_mesg() << endl ;
       gJustFinishAExp = true ;
     } // catch()
-    catch ( MissingRightParException e ) {
-      cout << e.Err_mesg() << endl ;
+    catch ( MissingRightParException* e ) {
+      cout << e -> Err_mesg() << endl ;
       gJustFinishAExp = true ;
     } // catch()
-    catch ( NoClosingQuoteException e ) {
-      cout << e.Err_mesg() << endl ;
+    catch ( NoClosingQuoteException* e ) {
+      cout << e -> Err_mesg() << endl ;
       gJustFinishAExp = true ;
     } // catch()
     
@@ -3075,8 +3293,6 @@ int main() {
   
   gOriginalList.Clear() ;
   g.Reset() ;
-  
-  if ( uTestNum == 2 ) cout << "NO!" ;
   
   cout << endl << "Thanks for using OurScheme!" ;
   

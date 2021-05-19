@@ -1802,7 +1802,6 @@ private:
   vector<ReserveWord> mReserveWords ;
   CallStack callStack ;
   vector<Function> mUserDefinedFunctionTable ;
-  vector<Function> mUserLambdaFunctionTable ;
   Function mLambdaFunc ; // used to temporary store the lambda function
   
   void InitialReserveWord() {
@@ -1937,6 +1936,18 @@ private:
     
     return index ;
   } // FindDefinedFunc()
+  
+  int FindUserDefinedFunc( string str ) {
+    int index = -1 ;
+    
+    for ( int i = 0 ; i < mUserDefinedFunctionTable.size() && index == -1 ; i ++ ) {
+      if ( str == mUserDefinedFunctionTable[ i ].name ) {
+        index = i ;
+      } // if()
+    } // for()
+    
+    return index ;
+  } // FindUserDefinedFunc()
   
   bool IsList( Node* originRoot, Node* root ) {
     if ( root -> type == ATOM || root -> type == SPECIAL ) { // the last node (should be an atom)
@@ -2113,6 +2124,17 @@ private:
     } // for()
   } // AddNewReserveWord()
   
+  void UpdateUserDefinedFunc( string funcName, Function func ) {
+    int funcIndex = FindUserDefinedFunc( funcName ) ;
+    if ( funcIndex != -1 ) { // this function is already exist
+      func.name = funcName ;
+      mUserDefinedFunctionTable[ funcIndex ] = func ;
+    } // if()
+    else { // a new function name
+      mUserDefinedFunctionTable.push_back( func ) ;
+    } // else()
+  } // UpdateUserDefinedFunc()
+  
   Node* Define( Node* inTree, int level ) {
     vector<Node*> argList = GetArgumentList( inTree ) ;
     
@@ -2142,6 +2164,10 @@ private:
                   } // if()
                   else {
                     mSymbolTable[ symIndex ].tree = value ; // copy
+                    
+                    if ( value -> type == ATOM && value -> lex == "lambda" ) {
+                      UpdateUserDefinedFunc( newSymbol.name, mLambdaFunc ) ;
+                    } // if()
                   } // else()
                 } // if()
                 else {
@@ -2185,6 +2211,11 @@ private:
                     // add this to the reserveWordList
                     AddNewReserveWord( reserveName, newSymbol.name ) ;
                   } // if()
+                } // if()
+                
+                if ( newSymbol.tree -> lex == "lambda" ) {
+                  mLambdaFunc.name = newSymbol.name ;
+                  UpdateUserDefinedFunc( mLambdaFunc.name, mLambdaFunc ) ;
                 } // if()
                 
                 mSymbolTable.push_back( newSymbol ) ;
@@ -2337,7 +2368,6 @@ private:
     // mSymbolTable.clear() ;
     mFunctionTable.clear() ;
     mUserDefinedFunctionTable.clear() ;
-    mUserLambdaFunctionTable.clear() ;
     // mReserveWords.clear() ;
     ResetSymbolTable() ;
     // AddOriginReserveWords() ;
@@ -3154,7 +3184,7 @@ private:
     
   } // ProcessLet()
   
-  // use when the defining lambda 
+  // use when the defining lambda
   int CountAndCkeckParameters( Node* arg, vector<string> &paraList ) {
     int countNum = 0 ;
     paraList.clear() ;
@@ -3277,6 +3307,12 @@ private:
     throw new LambdaFormatException() ;
     
   } // ProcessLambda()
+  
+  Node* ProcessUserDefinedFunc( Node* inTree, int funcIndex, int level ) {
+    Function func = mUserDefinedFunctionTable[ funcIndex ] ;
+    ParameterBinding( func.argList, inTree -> right ) ;
+    return EvaluateSExp( func.tree -> left, ++level ) ;
+  } // ProcessUserDefinedFunc()
   
   void AddOriginReserveWords() {
     
@@ -3401,13 +3437,18 @@ public:
       else if ( GetReserveWordType( originFuncName ) == "" ) {
         definedFuncIndex = FindDefinedFunc( originFuncName ) ;
         if ( definedFuncIndex == -1 ) {
-          Node* treeOfTheSymbol = EvaluateSExp( treeRoot -> left, ++level ) ;
-          if ( treeOfTheSymbol -> type == ATOM ) {
-            originFuncName = treeOfTheSymbol -> lex ;
+          if ( FindUserDefinedFunc( originFuncName ) == -1 ) { // not a user new defined func
+            Node* treeOfTheSymbol = EvaluateSExp( treeRoot -> left, ++level ) ;
+            if ( treeOfTheSymbol -> type == ATOM ) {
+              originFuncName = treeOfTheSymbol -> lex ;
+            } // if()
+            else {
+              gErrNode = EvaluateSExp( treeRoot -> left, ++level ) ;
+              throw new ApplyNonFunctionException() ;
+            } // else()
           } // if()
           else {
-            gErrNode = EvaluateSExp( treeRoot -> left, ++level ) ;
-            throw new ApplyNonFunctionException() ;
+            definedFuncIndex = FindUserDefinedFunc( originFuncName ) ;
           } // else()
         } // if()
       } // else if()
@@ -3483,6 +3524,7 @@ public:
       } // if()
       else if ( definedFuncIndex != -1 ) { // this user-defined function exist
         // process the user defined function
+        return ProcessUserDefinedFunc( treeRoot, definedFuncIndex, ++level ) ;
       } // else if()
       else if ( IsSymbol( originFuncName ) ) {
         if ( FindDefinedSymbol( originFuncName ) == -1 ) {

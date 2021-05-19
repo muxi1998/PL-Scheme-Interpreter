@@ -3154,6 +3154,7 @@ private:
     
   } // ProcessLet()
   
+  // use when the defining lambda 
   int CountAndCkeckParameters( Node* arg, vector<string> &paraList ) {
     int countNum = 0 ;
     paraList.clear() ;
@@ -3162,9 +3163,35 @@ private:
       return 0 ;
     } // if()
     
-    for ( Node* walk = arg ; walk -> lex == "nil" ; walk = walk -> right ) {
+    for ( Node* walk = arg ; walk -> lex != "nil" ; walk = walk -> right ) {
       if ( walk -> left -> type == ATOM ) {
-        paraList.push_back( walk -> left -> lex ) ;
+        if ( g.IsSymbol(  walk -> left -> lex ) ) {
+          paraList.push_back( walk -> left -> lex ) ;
+          countNum ++ ;
+        } // if()
+        else {
+          throw new LambdaFormatException() ;
+        } // else()
+      } // if()
+      else {
+        throw new LambdaFormatException() ;
+      } // else()
+    } // for()
+    
+    return countNum ;
+  } // CountAndCkeckParameters()
+  
+  int CountAndCkeckParameters( Node* arg, vector<Node*> &paraList ) {
+    int countNum = 0 ;
+    paraList.clear() ;
+    
+    if ( arg -> type == SPECIAL && arg -> lex == "nil" ) {
+      return 0 ;
+    } // if()
+    
+    for ( Node* walk = arg ; walk -> lex != "nil" ; walk = walk -> right ) {
+      if ( walk -> left -> type == ATOM ) {
+        paraList.push_back( walk -> left ) ;
         countNum ++ ;
       } // if()
       else {
@@ -3174,6 +3201,24 @@ private:
     
     return countNum ;
   } // CountAndCkeckParameters()
+  
+  void ParameterBinding( vector<string> paramList, Node* bindings ) {
+    vector<Node*> bindingList ;
+    int parNum = 0 ;
+    parNum = CountAndCkeckParameters( bindings, bindingList ) ;
+    
+    if ( paramList.size() == bindingList.size() ) {
+      for ( int i = 0 ; i < paramList.size() ; i ++ ) {
+        callStack.AddCurrentLocalVar( paramList[ i ], bindingList[ i ] ) ;
+      } // for()
+      
+      bindingList.clear() ;
+    } // if()
+    else {
+      bindingList.clear() ;
+      throw new IncorrectNumberArgumentException( "lambda expression" ) ;
+    } // else()
+  } // ParameterBinding()
   
   Node* ProcessLambda( Node* inTree, int level ) {
     // When in this function, there might be two circumstaces
@@ -3187,6 +3232,10 @@ private:
     lambda -> lex = "lambda" ;
     
     if ( inTree -> left -> type == CONS ) { // the second circumstances
+      if ( inTree -> right -> lex != "nil" ) { // immediately call the lambda function
+        ParameterBinding( mLambdaFunc.argList, inTree -> right ) ;
+      } // if()
+        
       if ( mLambdaFunc.tree != NULL ) {
         for ( Node* walk = mLambdaFunc.tree ; walk -> lex != "nil" ; walk = walk -> right ) {
           if ( walk -> right -> lex == "nil" ) {
@@ -3197,6 +3246,7 @@ private:
           } // else()
         } // for()
       } // if()
+      
     } // if()
     else {
       

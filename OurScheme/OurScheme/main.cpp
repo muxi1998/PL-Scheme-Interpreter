@@ -1694,6 +1694,14 @@ public:
   } // Err_mesg()
 } ; // LetFormatException
 
+class LambdaFormatException {
+public:
+  string Err_mesg() {
+    string mesg = "ERROR (Lambda format)" ;
+    return mesg ;
+  } // Err_mesg()
+} ; // LambdaFormatException
+
 class NonReturnAssignedException {
 public:
   string Err_mesg() {
@@ -1710,7 +1718,7 @@ struct Symbol {
 
 struct Function {
   string name ;
-  int augNum ;
+  int argNum ;
   vector<string> argList ;
   Node* tree ;
 } ; // Function
@@ -1793,6 +1801,9 @@ private:
   vector<Function> mFunctionTable ;
   vector<ReserveWord> mReserveWords ;
   CallStack callStack ;
+  vector<Function> mUserDefinedFunctionTable ;
+  vector<Function> mUserLambdaFunctionTable ;
+  Function mLambdaFunc ; // used to temporary store the lambda function
   
   void InitialReserveWord() {
     for ( int i = 0 ; i < gReserveWordNum ; i ++ ) {
@@ -1850,17 +1861,17 @@ private:
     mSymbolTable.push_back( symbol ) ; // add this new symbol to the table
   } // AddSymbol()
   
-  void AddFunction( string funcName, int numberOfAug, Node* assignedTree ) {
+  void AddUserDefineFunction( string funcName, int numberOfAug, Node* assignedTree ) {
     Function func ;
     func.name = "" ;
-    func.augNum = 0 ;
+    func.argNum = 0 ;
     func.tree = NULL ;
     
     func.name = funcName ;
-    func.augNum = numberOfAug ;
+    func.argNum = numberOfAug ;
     func.tree = assignedTree ;
     
-    mFunctionTable.push_back( func ) ;
+    mUserDefinedFunctionTable.push_back( func ) ;
   } // AddFunction()
   
   string GetReserveWordType( string str ) {
@@ -2325,6 +2336,8 @@ private:
   Node* CleanEnvironment() {
     // mSymbolTable.clear() ;
     mFunctionTable.clear() ;
+    mUserDefinedFunctionTable.clear() ;
+    mUserLambdaFunctionTable.clear() ;
     // mReserveWords.clear() ;
     ResetSymbolTable() ;
     // AddOriginReserveWords() ;
@@ -3136,10 +3149,84 @@ private:
       
       throw new LetFormatException() ;
     } // if()
-    else {
-      throw new LetFormatException() ;
-    } // else()
+    
+    throw new LetFormatException() ;
+    
   } // ProcessLet()
+  
+  int CountAndCkeckParameters( Node* arg, vector<string> &paraList ) {
+    int countNum = 0 ;
+    paraList.clear() ;
+    
+    if ( arg -> type == SPECIAL && arg -> lex == "nil" ) {
+      return 0 ;
+    } // if()
+    
+    for ( Node* walk = arg ; walk -> lex == "nil" ; walk = walk -> right ) {
+      if ( walk -> left -> type == ATOM ) {
+        paraList.push_back( walk -> left -> lex ) ;
+        countNum ++ ;
+      } // if()
+      else {
+        throw new LambdaFormatException() ;
+      } // else()
+    } // for()
+    
+    return countNum ;
+  } // CountAndCkeckParameters()
+  
+  Node* ProcessLambda( Node* inTree, int level ) {
+    // When in this function, there might be two circumstaces
+    // 1. Not yet be evaluated
+    // 2. Is the returned #<procedure lambda
+    Node* lambdaProc ;
+    int reserveIndex = FindGlobalSymbol( "lambda" ) ;
+    lambdaProc = mSymbolTable[ reserveIndex ].tree ;
+    Node* lambda = g.GetEmptyNode() ;
+    lambda -> type = ATOM ;
+    lambda -> lex = "lambda" ;
+    
+    if ( inTree -> left -> type == CONS ) { // the second circumstances
+      if ( mLambdaFunc.tree != NULL ) {
+        for ( Node* walk = mLambdaFunc.tree ; walk -> lex != "nil" ; walk = walk -> right ) {
+          if ( walk -> right -> lex == "nil" ) {
+            return EvaluateSExp( walk -> left, ++level ) ;
+          } // if()
+          else {
+            EvaluateSExp( walk -> left, ++level ) ;
+          } // else()
+        } // for()
+      } // if()
+    } // if()
+    else {
+      
+      if ( CountArgument( inTree ) >= 2 ) {
+        Node* allArg = inTree -> right ;
+        Node* localVarList = allArg -> left ;
+        Node* allSExp = allArg -> right ;
+        
+        if ( localVarList -> type == CONS
+            || ( localVarList -> type == SPECIAL && localVarList -> lex == "nil" ) ) {
+          mLambdaFunc.argNum = CountAndCkeckParameters( localVarList, mLambdaFunc.argList ) ;
+          mLambdaFunc.tree = allSExp ;
+          
+          if ( level == 1 ) {
+            return lambdaProc ;
+          } // if()
+          else {
+            return lambda ;
+          } // else()
+        } // if()
+        else {
+          throw new LambdaFormatException() ;
+        } // else()
+      } // else if()
+      
+    } // if()
+    
+    throw new LambdaFormatException() ;
+    
+  } // ProcessLambda()
   
   void AddOriginReserveWords() {
     
@@ -3175,10 +3262,17 @@ private:
     return name ;
   } // GetFuncNameFromFuncValue()
   
+  void InitialLambdaFunc() {
+    mLambdaFunc.name = "" ;
+    mLambdaFunc.argNum = 0 ;
+    mLambdaFunc.tree = NULL ;
+  } // InitialLambdaFunc()
+  
 public:
   Evaluator() {
     AddOriginReserveWords() ;
     InitialReserveWord() ;
+    InitialLambdaFunc() ;
   } // Evaluator()
   
   Node* EvaluateSExp( Node* treeRoot, int level ) {
@@ -3309,6 +3403,9 @@ public:
         else if ( funcName == "let" ) {
           return ProcessLet( treeRoot, ++level ) ;
         } // else if()
+        else if ( funcName == "lambda" ) {
+          return ProcessLambda( treeRoot, ++level ) ;
+        } // else if()
         else if ( funcName == "verbose" || funcName == "verbose?" ) {
           return ProcessVerbose( funcName, treeRoot, ++level ) ;
         } // else if()
@@ -3365,6 +3462,7 @@ public:
   
   void CleanLocalVariables() {
     callStack.ClearCurrentLocalVar() ;
+    InitialLambdaFunc() ;
   } // CleanLocalVariables()
   
 } ; // Evaluator
@@ -3447,6 +3545,9 @@ int main() {
             // cout << endl ;
           } // catch()
           catch ( LetFormatException* e ) {
+            cout << e -> Err_mesg() << endl  ;
+          } // catch()
+          catch ( LambdaFormatException* e ) {
             cout << e -> Err_mesg() << endl  ;
           } // catch()
           catch ( NonReturnAssignedException* e ) {

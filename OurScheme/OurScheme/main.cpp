@@ -3232,7 +3232,7 @@ private:
     return countNum ;
   } // CountAndCkeckParameters()
   
-  void ParameterBinding( vector<string> paramList, Node* bindings ) {
+  void ParameterBinding( vector<string> paramList, Node* bindings, string processName ) {
     vector<Node*> bindingList ;
     int parNum = 0 ;
     parNum = CountAndCkeckParameters( bindings, bindingList ) ;
@@ -3246,7 +3246,7 @@ private:
     } // if()
     else {
       bindingList.clear() ;
-      throw new IncorrectNumberArgumentException( "lambda expression" ) ;
+      throw new IncorrectNumberArgumentException( processName ) ;
     } // else()
   } // ParameterBinding()
   
@@ -3263,7 +3263,7 @@ private:
     
     if ( inTree -> left -> type == CONS ) { // the second circumstances
       if ( inTree -> right -> lex != "nil" ) { // immediately call the lambda function
-        ParameterBinding( mLambdaFunc.argList, inTree -> right ) ;
+        ParameterBinding( mLambdaFunc.argList, inTree -> right, "lambda expression" ) ;
       } // if()
         
       if ( mLambdaFunc.tree != NULL ) {
@@ -3310,7 +3310,7 @@ private:
   
   Node* ProcessUserDefinedFunc( Node* inTree, int funcIndex, int level ) {
     Function func = mUserDefinedFunctionTable[ funcIndex ] ;
-    ParameterBinding( func.argList, inTree -> right ) ;
+    ParameterBinding( func.argList, inTree -> right, "lambda" ) ;
     return EvaluateSExp( func.tree -> left, ++level ) ;
   } // ProcessUserDefinedFunc()
   

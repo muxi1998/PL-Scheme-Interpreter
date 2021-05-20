@@ -3118,9 +3118,19 @@ private:
   bool CheckAndStoreLocalVarSuccess( Node* localVars, int level ) {
     vector<Node*> varList ;
     // Seperate all the local variables from the tree structure into a vactor
-    for ( Node* walk = localVars ; walk -> lex != "nil" ; walk = walk -> right ) {
-      varList.push_back( walk -> left ) ;
-    } // for()
+    if ( IsList( localVars, localVars ) ) {
+      for ( Node* walk = localVars ; walk -> lex != "nil" ; walk = walk -> right ) {
+        if ( IsList( walk -> left, walk -> left ) ) {
+          varList.push_back( walk -> left ) ;
+        } // if()
+        else {
+          return false ;
+        } // else()
+      } // for()
+    } // if()
+    else {
+      return false ;
+    } // else()
     
     if ( varList.size() == 1 && varList[ 0 ] == NULL ) {
       return true ;
@@ -3193,21 +3203,26 @@ private:
       return 0 ;
     } // if()
     
-    for ( Node* walk = arg ; walk -> lex != "nil" ; walk = walk -> right ) {
-      if ( walk -> left -> type == ATOM ) {
-        if ( g.IsSymbol(  walk -> left -> lex ) ) {
-          paraList.push_back( walk -> left -> lex ) ;
-          countNum ++ ;
+    if ( IsList( arg, arg ) ) { // the parameter part is a list
+      for ( Node* walk = arg ; walk -> lex != "nil" ; walk = walk -> right ) {
+        if ( walk -> left -> type == ATOM ) {
+          if ( g.IsSymbol(  walk -> left -> lex ) ) {
+            paraList.push_back( walk -> left -> lex ) ;
+            countNum ++ ;
+          } // if()
+          else {
+            throw new LambdaFormatException() ;
+          } // else()
         } // if()
         else {
           throw new LambdaFormatException() ;
         } // else()
-      } // if()
-      else {
-        throw new LambdaFormatException() ;
-      } // else()
-    } // for()
-    
+      } // for()
+    } // if()
+    else {
+      throw new LambdaFormatException() ;
+    } // else()
+
     return countNum ;
   } // CountAndCkeckParameters()
   

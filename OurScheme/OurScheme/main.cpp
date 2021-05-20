@@ -1717,6 +1717,46 @@ public:
     return mesg ;
   } // Err_mesg()
 } ; // NonReturnAssignedException
+
+class ParamNotBoundException {
+public:
+  string Err_mesg() {
+    string mesg = "ERROR (unbound parameter) : " ;
+    return mesg ;
+  } // Err_mesg()
+} ; // ParamNotBoundException
+
+class TestCondNotBoundException {
+public:
+  string Err_mesg() {
+    string mesg = "ERROR (unbound test-condition) : " ;
+    return mesg ;
+  } // Err_mesg()
+} ; // TestCondNotBoundException
+
+class CondNotBoundException {
+public:
+  string Err_mesg() {
+    string mesg = "ERROR (unbound condition) : " ;
+    return mesg ;
+  } // Err_mesg()
+} ; // CondNotBoundException
+
+class AssignedNotBoundException {
+public:
+  string Err_mesg() {
+    string mesg = "ERROR (no return value) : " ;
+    return mesg ;
+  } // Err_mesg()
+} ; // AssignedNotBoundException
+
+class TopLevelNoReturnException {
+public:
+  string Err_mesg() {
+    string mesg = "ERROR (no return value) : " ;
+    return mesg ;
+  } // Err_mesg()
+} ; // TopLevelNoReturnException
 // --------------------- Error Definition Proj.3 (end) ---------------------
 
 struct Symbol {
@@ -2153,6 +2193,18 @@ private:
     } // else()
   } // UpdateUserDefinedFunc()
   
+  bool IsALambdaFunc( Node* tree ) {
+    if ( tree -> left -> type != CONS ) {
+      if ( tree -> left -> lex == "lambda" ) {
+        return true ;
+      } // if()
+      
+      return false ;
+    } // if()
+    
+    return IsALambdaFunc( tree -> left ) ;
+  } // IsALambdaFunc()
+  
   Node* DefineUserFunc( Node* inTree, int level ) {
     Node* funcNameAndArgPart = inTree -> right -> left ;
     Function newFunc ;
@@ -2167,9 +2219,11 @@ private:
     if ( IsList( funcNameAndArgPart, funcNameAndArgPart ) ) {
       string funcName = inTree -> right -> left -> left -> lex ;
       Node* argList = inTree -> right -> left -> right ;
-      Node* procedurePart = inTree -> right -> right -> left ;
+      Node* procedurePart = inTree -> right -> right ;
       
-      if ( !g.IsSymbol( funcName ) || procedurePart == NULL ) { // if the function name is not a symbol
+      // if the function name is not a symbol and the binding has more than one
+      if ( !g.IsSymbol( funcName ) || procedurePart == NULL
+           || CountArgument( procedurePart ) != 0 ) {
         throw new DefineFormatException() ;
       } // if()
       
@@ -2183,7 +2237,12 @@ private:
       
       // create a global symbol for this function, make it easy to find in the symbol
       Node* tmp = g.GetEmptyNode() ;
-      tmp -> lex = "#<procedure " + funcName + ">" ;
+      if ( IsALambdaFunc( procedurePart ) ) {
+        tmp -> lex = "#<procedure lambda>" ;
+      } // if()
+      else {
+        tmp -> lex = "#<procedure " + funcName + ">" ;
+      } // else()
       tmp -> type = ATOM ;
       
       if ( FindGlobalSymbol( funcName ) == -1 ) {
@@ -2291,6 +2350,14 @@ private:
                 if ( newSymbol.tree -> lex == "lambda" ) {
                   mLambdaFunc.name = newSymbol.name ;
                   UpdateUserDefinedFunc( mLambdaFunc.name, mLambdaFunc ) ;
+                  /*
+                  Function tmpFunc ;
+                  tmpFunc.name = newSymbol.name ;
+                  tmpFunc.argNum = mLambdaFunc.argNum ;
+                  tmpFunc.argList = mLambdaFunc.argList ;
+                  tmpFunc.tree = argList[ 1 ] ;
+                  UpdateUserDefinedFunc( mLambdaFunc.name, tmpFunc ) ;
+                   */
                 } // if()
                 
                 mSymbolTable.push_back( newSymbol ) ;
@@ -3414,9 +3481,12 @@ private:
         } // else()
       } // for()
     } // if()
-
-    return func.tree -> left -> type == CONS
-           ? EvaluateSExp( func.tree -> left, ++level ) : EvaluateSExp( func.tree, ++level ) ;
+    
+    if ( func.tree -> right -> lex == "nil" ) {
+      return EvaluateSExp( func.tree -> left, ++level ) ;
+    } // if()
+    
+    return EvaluateSExp( func.tree, ++level ) ;
   } // ProcessUserDefinedFunc()
   
   void AddOriginReserveWords() {

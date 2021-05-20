@@ -1653,7 +1653,7 @@ public:
     return mesg ;
   } // Err_mesg()
 } ; // DivideByZeroException
-
+/*
 class DefineFormatException {
 public:
   string Err_mesg() {
@@ -1661,7 +1661,7 @@ public:
     return mesg ;
   } // Err_mesg()
 } ; // DefineFormatException
-
+*/
 class CondFormatException {
 public:
   string Err_mesg() {
@@ -1689,7 +1689,7 @@ public:
 class LetFormatException {
 public:
   string Err_mesg() {
-    string mesg = "ERROR (Let format)" ;
+    string mesg = "ERROR (let format)" ;
     return mesg ;
   } // Err_mesg()
 } ; // LetFormatException
@@ -1697,10 +1697,18 @@ public:
 class LambdaFormatException {
 public:
   string Err_mesg() {
-    string mesg = "ERROR (Lambda format)" ;
+    string mesg = "ERROR (lambda format)" ;
     return mesg ;
   } // Err_mesg()
 } ; // LambdaFormatException
+
+class DefineFormatException {
+public:
+  string Err_mesg() {
+    string mesg = "ERROR (define format)" ;
+    return mesg ;
+  } // Err_mesg()
+} ; // DefineFormatException
 
 class NonReturnAssignedException {
 public:
@@ -1840,7 +1848,7 @@ private:
   
   void UpdateGlobalSymbol( string symName, Node* assignedTree ) {
     if ( !callStack.IsLocalVar( symName ) ) {
-      int symIndex = FindDefinedSymbol( symName ) ;
+      int symIndex = FindSymbolFromLocalAndGlobal( symName ) ;
       DeleteTree( mSymbolTable[ symIndex ].tree ) ;
       mSymbolTable[ symIndex ].tree = assignedTree ;
     } // if()
@@ -1916,20 +1924,20 @@ private:
     return callStack.GetLocalVarIndex( str ) ;
   } // FindLocalSymbol()
   
-  int FindDefinedSymbol( string str ) {
+  int FindSymbolFromLocalAndGlobal( string str ) {
     
     if ( callStack.IsLocalVar( str ) ) { // If this is a local variable, then find in stack
       return FindLocalSymbol( str ) ;
     } // if()
     
     return FindGlobalSymbol( str ) ;
-  } // FindDefinedSymbol()
+  } // FindSymbolFromLocalAndGlobal()
   
   int FindDefinedFunc( string str ) {
     int index = -1 ;
     
-    for ( int i = 0 ; i < mFunctionTable.size() && index == -1 ; i ++ ) {
-      if ( str == mFunctionTable[ i ].name ) {
+    for ( int i = 0 ; i < mUserDefinedFunctionTable.size() && index == -1 ; i ++ ) {
+      if ( str == mUserDefinedFunctionTable[ i ].name ) {
         index = i ;
       } // if()
     } // for()
@@ -1977,6 +1985,16 @@ private:
     return false ;
   } // IsSymbol()
   
+  bool IsUserDefinedFunc( string str ) {
+    for ( int i = 0 ; i < mUserDefinedFunctionTable.size() ; i ++ ) {
+      if ( str == mUserDefinedFunctionTable[ i ].name ) {
+        return true ;
+      } // if()
+    } // for()
+    
+    return false ;
+  } // IsUserDefinedFunc()
+  
   // Purpose combined the trees
   Node* EvaluateCONS( Node* inTree, int level ) {
     Node* consNode = NULL ;
@@ -1997,7 +2015,7 @@ private:
       if ( IsList( firstArg, firstArg ) ) {
         if ( firstArg -> type == ATOM
              && IsSymbol( firstArg -> lex  )
-             && FindDefinedSymbol( firstArg -> lex ) == -1 ) {
+             && FindSymbolFromLocalAndGlobal( firstArg -> lex ) == -1 ) {
           throw new UnboundValueException( firstArg -> lex ) ;
         } // if()
         else {
@@ -2006,7 +2024,7 @@ private:
           if ( IsList( secondArg, secondArg ) ) {
             if ( secondArg -> type == ATOM
                  && IsSymbol( secondArg -> lex )
-                 && FindDefinedSymbol( secondArg -> lex ) == -1 ) {
+                 && FindSymbolFromLocalAndGlobal( secondArg -> lex ) == -1 ) {
               throw new UnboundValueException( secondArg -> lex ) ;
             } // if()
             else {
@@ -2054,7 +2072,7 @@ private:
         if ( IsList( argList[ i ], argList[ i ] ) ) {
           if ( argList[ i ] -> type == ATOM
                && IsSymbol( argList[ i ] -> lex ) ) {
-            int symIndex = FindDefinedSymbol( argList[ i ] -> lex ) ;
+            int symIndex = FindSymbolFromLocalAndGlobal( argList[ i ] -> lex ) ;
             if ( symIndex != -1 ) {
               argList[ i ] = EvaluateSExp( argList[ i ], ++level ) ;
             } // if()
@@ -2135,10 +2153,67 @@ private:
     } // else()
   } // UpdateUserDefinedFunc()
   
+  Node* DefineUserFunc( Node* inTree, int level ) {
+    Node* funcNameAndArgPart = inTree -> right -> left ;
+    Function newFunc ;
+    newFunc.name = "" ;
+    newFunc.argNum = 0 ;
+    newFunc.tree = NULL ;
+    Symbol newSymbol ;
+    newSymbol.name = "" ;
+    newSymbol.tree = g.GetEmptyNode() ;
+  
+    
+    if ( IsList( funcNameAndArgPart, funcNameAndArgPart ) ) {
+      string funcName = inTree -> right -> left -> left -> lex ;
+      Node* argList = inTree -> right -> left -> right ;
+      Node* procedurePart = inTree -> right -> right -> left ;
+      
+      if ( !g.IsSymbol( funcName ) || procedurePart == NULL ) { // if the function name is not a symbol
+        throw new DefineFormatException() ;
+      } // if()
+      
+      Function newFunc ;
+      newFunc.name = funcName ;
+      newFunc.argNum = 0 ;
+      newFunc.tree = NULL ;
+      
+      newFunc.argNum = CountAndCkeckParameters( argList, newFunc.argList ) ;
+      newFunc.tree = procedurePart ;
+      
+      // create a global symbol for this function, make it easy to find in the symbol
+      Node* tmp = g.GetEmptyNode() ;
+      tmp -> lex = "#<procedure " + funcName + ">" ;
+      tmp -> type = ATOM ;
+      
+      if ( FindGlobalSymbol( funcName ) == -1 ) {
+        AddSymbol( funcName, tmp ) ;
+      } // if()
+      else {
+        UpdateGlobalSymbol( funcName, tmp ) ;
+      } // else()
+      
+      UpdateUserDefinedFunc( funcName, newFunc ) ;
+      
+      if ( gVerbose ) {
+        cout << funcName << " defined" << endl ;
+      } // if()
+      
+    } // if()
+    else {
+      throw new DefineFormatException() ;
+    } // else()
+    
+    return NULL ;
+  } // DefineUserFunc()
+  
   Node* Define( Node* inTree, int level ) {
     vector<Node*> argList = GetArgumentList( inTree ) ;
     
     if ( level == 1 ) {
+      if ( inTree -> right -> left -> type == CONS ) {
+        return DefineUserFunc( inTree, ++level ) ;
+      } // if()
       
       if ( CountArgument( inTree ) == 2 ) {
         Symbol newSymbol ;
@@ -2150,13 +2225,13 @@ private:
           if ( reserveName == "" ) {
             if ( g.GetTokenType( argList[ 0 ] -> lex ) == SYMBOL ) {
               
-              int symIndex = FindDefinedSymbol( argList[ 0 ] -> lex ) ;
+              int symIndex = FindSymbolFromLocalAndGlobal( argList[ 0 ] -> lex ) ;
               // check the be binded s-exp is correct
               Node* value = EvaluateSExp( argList[ 1 ], ++level ) ;
               
               if ( symIndex != -1 ) { // this symbol has already exist, update it
                 
-                if ( FindDefinedSymbol( argList[ 1 ] -> lex ) == -1 ) {
+                if ( FindSymbolFromLocalAndGlobal( argList[ 1 ] -> lex ) == -1 ) {
                   // the reference value is not a symbol
                   newSymbol.name = argList[ 0 ] -> lex ;
                   if ( callStack.IsLocalVar( newSymbol.name ) ) {
@@ -2183,7 +2258,7 @@ private:
               } // if()
               else {
                 newSymbol.name = argList[ 0 ] -> lex ;
-                if ( FindDefinedSymbol( argList[ 1 ] -> lex ) == -1 ) {
+                if ( FindSymbolFromLocalAndGlobal( argList[ 1 ] -> lex ) == -1 ) {
                   // the reference value is not a symbol
                   
                   // this been assigned S-exp is in the input
@@ -2192,7 +2267,7 @@ private:
                   
                 } // if()
                 else {
-                  int symIndex = FindDefinedSymbol( argList[ 1 ] -> lex ) ;
+                  int symIndex = FindSymbolFromLocalAndGlobal( argList[ 1 ] -> lex ) ;
                   if ( callStack.IsLocalVar( argList[ 1 ] -> lex ) ) {
                     newSymbol.tree =
                     callStack.GetLocalVarBinding( argList[ 1 ] -> lex ) ;
@@ -2819,8 +2894,8 @@ private:
         if ( argList[ 0 ] -> type != CONS && argList[ 1 ] -> type != CONS
              && g.GetTokenType( argList[ 0 ] -> lex ) == SYMBOL
              && g.GetTokenType( argList[ 1 ] -> lex ) == SYMBOL ) {
-          int symIndex1 = FindDefinedSymbol( argList[ 0 ] -> lex ) ;
-          int symIndex2 = FindDefinedSymbol( argList[ 1 ] -> lex ) ;
+          int symIndex1 = FindSymbolFromLocalAndGlobal( argList[ 0 ] -> lex ) ;
+          int symIndex2 = FindSymbolFromLocalAndGlobal( argList[ 1 ] -> lex ) ;
           if ( symIndex1 != -1 && symIndex2 != -1 ) {
             // case1. both of them are local
             if ( callStack.IsLocalVar( argList[ 0 ] -> lex )
@@ -3226,7 +3301,7 @@ private:
     return countNum ;
   } // CountAndCkeckParameters()
   
-  int CountAndCkeckParameters( Node* arg, vector<Node*> &paraList ) {
+  int CountAndCkeckParameters( Node* arg, vector<Node*> &paraList, int level ) {
     int countNum = 0 ;
     paraList.clear() ;
     
@@ -3235,26 +3310,22 @@ private:
     } // if()
     
     for ( Node* walk = arg ; walk -> lex != "nil" ; walk = walk -> right ) {
-      if ( walk -> left -> type == ATOM ) {
-        paraList.push_back( walk -> left ) ;
-        countNum ++ ;
-      } // if()
-      else {
-        throw new LambdaFormatException() ;
-      } // else()
+      paraList.push_back( walk -> left ) ;
+      countNum ++ ;
     } // for()
     
     return countNum ;
   } // CountAndCkeckParameters()
   
-  void ParameterBinding( vector<string> paramList, Node* bindings, string processName ) {
+  void ParameterBinding( vector<string> paramList, Node* bindings, string processName, int level ) {
     vector<Node*> bindingList ;
     int parNum = 0 ;
-    parNum = CountAndCkeckParameters( bindings, bindingList ) ;
+    parNum = CountAndCkeckParameters( bindings, bindingList, ++level ) ;
     
     if ( paramList.size() == bindingList.size() ) {
       for ( int i = 0 ; i < paramList.size() ; i ++ ) {
-        callStack.AddCurrentLocalVar( paramList[ i ], bindingList[ i ] ) ;
+        // the argument should be evaluate first, before binding to the symbol
+        callStack.AddCurrentLocalVar( paramList[ i ], EvaluateSExp( bindingList[ i ], ++level) ) ;
       } // for()
       
       bindingList.clear() ;
@@ -3278,7 +3349,7 @@ private:
     
     if ( inTree -> left -> type == CONS ) { // the second circumstances
       if ( inTree -> right -> lex != "nil" ) { // immediately call the lambda function
-        ParameterBinding( mLambdaFunc.argList, inTree -> right, "lambda expression" ) ;
+        ParameterBinding( mLambdaFunc.argList, inTree -> right, "lambda expression", ++level ) ;
       } // if()
         
       if ( mLambdaFunc.tree != NULL ) {
@@ -3325,8 +3396,27 @@ private:
   
   Node* ProcessUserDefinedFunc( Node* inTree, int funcIndex, int level ) {
     Function func = mUserDefinedFunctionTable[ funcIndex ] ;
-    ParameterBinding( func.argList, inTree -> right, "lambda" ) ;
-    return EvaluateSExp( func.tree -> left, ++level ) ;
+    Node* treeInSymbolTable = mSymbolTable[ FindSymbolFromLocalAndGlobal( func.name ) ].tree ;
+    if ( treeInSymbolTable -> type == ATOM && treeInSymbolTable -> lex == "lambda" ) {
+      ParameterBinding( func.argList, inTree -> right, "lambda", ++level ) ;
+    } // if()
+    else {
+      ParameterBinding( func.argList, inTree -> right, func.name, ++level ) ;
+    } // else()
+    
+    if ( CountArgument( func.tree -> parent ) > 1 ) {
+      for ( Node* walk = func.tree ; walk -> lex != "nil" ; walk = walk -> right ) {
+        if ( walk -> right -> lex == "nil" ) {
+          return EvaluateSExp( walk -> left, ++level ) ;
+        } // if()
+        else {
+          EvaluateSExp( walk -> left, ++level ) ;
+        } // else()
+      } // for()
+    } // if()
+
+    return func.tree -> left -> type == CONS
+           ? EvaluateSExp( func.tree -> left, ++level ) : EvaluateSExp( func.tree, ++level ) ;
   } // ProcessUserDefinedFunc()
   
   void AddOriginReserveWords() {
@@ -3400,13 +3490,13 @@ public:
         return mSymbolTable[ reserveIndex ].tree ;
       } // if()
       else if ( g.GetTokenType( treeRoot -> lex ) == SYMBOL ) { // not a reserve word
-        int symbolIndex = FindDefinedSymbol( treeRoot -> lex ) ;
+        int symbolIndex = FindSymbolFromLocalAndGlobal( treeRoot -> lex ) ;
         if ( symbolIndex != -1 ) { // this symbol exist in the symbol table
           Node* symBinding = callStack.IsLocalVar( treeRoot -> lex ) ?
-                             callStack.GetLocalVarBinding( treeRoot -> lex ) :
-                             mSymbolTable[ symbolIndex ].tree ;
+          callStack.GetLocalVarBinding( treeRoot -> lex ) :
+          mSymbolTable[ symbolIndex ].tree ;
           if ( symBinding -> type == CONS
-               && GetReserveWordType( symBinding -> left -> lex ) == "" ) {
+              && GetReserveWordType( symBinding -> left -> lex ) == "" ) {
             return symBinding ; // this symbol stands alone
           } // if()
           else { // this symbol is an Atom
@@ -3414,7 +3504,14 @@ public:
           } // else()
         } // if()
         else if ( treeRoot -> lex[ 0 ] == '#' ) { // the lex is start with #
-          return treeRoot ; // this is an ATOM of the Reserve Word
+          int funcIndex = FindDefinedFunc( GetFuncNameFromFuncValue( treeRoot -> lex ) ) ;
+          if ( funcIndex != -1 && treeRoot -> type == CONS ) {
+            // assert: this symbol is a user defined finction
+            return ProcessUserDefinedFunc( treeRoot, funcIndex, ++level ) ;
+          } // if()
+          else {
+            return treeRoot ; // this is an ATOM of the Reserve Word
+          } // else()
         } // else if()
         else {
           throw new UnboundValueException( treeRoot -> lex ) ;
@@ -3542,7 +3639,7 @@ public:
         return ProcessUserDefinedFunc( treeRoot, definedFuncIndex, ++level ) ;
       } // else if()
       else if ( IsSymbol( originFuncName ) ) {
-        if ( FindDefinedSymbol( originFuncName ) == -1 ) {
+        if ( FindSymbolFromLocalAndGlobal( originFuncName ) == -1 ) {
           throw new UnboundValueException( originFuncName ) ;
         } // if()
         else {
@@ -3550,7 +3647,7 @@ public:
             return callStack.GetLocalVarBinding( originFuncName ) ;
           } // if()
           else {
-            return mSymbolTable[ FindDefinedSymbol( originFuncName ) ].tree ;
+            return mSymbolTable[ FindSymbolFromLocalAndGlobal( originFuncName ) ].tree ;
           } // else()
         } // else()
       } // else if()
@@ -3642,8 +3739,9 @@ int main() {
             cout << e -> Err_mesg() << endl ;
           } // catch()
           catch ( DefineFormatException* e ) {
-            cout << e -> Err_mesg() ;
-            g.PrettyPrint( gErrNode ) ;
+            cout << e -> Err_mesg() << endl ;
+            // cout << e -> Err_mesg() ;
+            // g.PrettyPrint( gErrNode ) ;
             // cout << endl ;
           } // catch()
           catch ( CondFormatException* e ) {

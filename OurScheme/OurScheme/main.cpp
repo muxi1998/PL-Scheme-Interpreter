@@ -1777,13 +1777,69 @@ struct Function {
   Node* tree ;
 } ; // Function
 
+struct StackArea {
+  vector<string> currentArea ;
+  StackArea* next ;
+  StackArea* prev ;
+} ; // StackArea
+
 class CallStack { // to implement a callstack similar to the actual call stack
 private:
   vector<string> mCurrentVar ; // record the recent local variable (in smae level)
-  vector< vector<string> > mEachLevelLocalVar ;
+  // vector< vector<string> > mEachLevelLocalVar ;
+  StackArea* mStart ;
+  StackArea* mEnd ;
   vector<LocalSymbol> mCallStack ; // the first element is the lastest one
   
 public:
+  CallStack() {
+    mStart = NULL ;
+    mEnd = NULL ;
+  } // CallStack()
+  
+  void AddNewSymbolNameToStackArea() {
+    if ( mStart == NULL ) {
+      mStart = new StackArea ;
+      mStart -> next = NULL ;
+      mStart -> prev = NULL ;
+      
+      mStart -> currentArea.assign( mCurrentVar.begin(), mCurrentVar.end() ) ;
+      mEnd = mStart ;
+    } // if()
+    else { // insert the new names
+      mEnd -> next = new StackArea ;
+      mEnd -> next -> next = NULL ;
+      mEnd -> next -> prev = mEnd ;
+      mEnd = mEnd -> next ;
+      mEnd -> currentArea.assign( mCurrentVar.begin(), mCurrentVar.end() ) ;
+    } // else()
+  } // AddNewSymbolNameToStackArea()
+  
+  void DeleteLastStackArea() {
+    if ( mEnd == mStart ) {
+      if ( mEnd == NULL ) {
+        return; ;
+      } // if()
+      else {
+        delete mStart ;
+        mStart = NULL ;
+        mEnd = NULL ;
+      } // else()
+    } // if()
+    else if ( mEnd -> prev != NULL ) {
+      if ( mEnd -> prev == mStart ) {
+        mEnd = mEnd -> prev ;
+        delete mStart -> next ;
+        mStart -> next = NULL ;
+      } // if()
+      else {
+        mEnd = mEnd -> prev ;
+        delete mEnd -> next ;
+        mEnd -> next = NULL ;
+      } // else()
+    } // else()
+  } // DeleteLastStackArea()
+  
   void AddCurrentLocalVar( string name, Node* binding, int level ) {
     LocalSymbol newSym ;
     newSym.name = "" ;
@@ -1799,7 +1855,7 @@ public:
   } // AddCurrentLocalVar()
   
   void GetCleanLocalZone() {
-    mEachLevelLocalVar.push_back( mCurrentVar ) ;
+    AddNewSymbolNameToStackArea() ;
     mCurrentVar.clear() ;
   } // GetCleanLocalZone()
   
@@ -1815,9 +1871,9 @@ public:
     } // for()
     
     mCurrentVar.clear() ;
-    if ( mEachLevelLocalVar.size() > 0 ) {
-      mCurrentVar = mEachLevelLocalVar[ mEachLevelLocalVar.size() - 1 ] ;
-      mEachLevelLocalVar.pop_back() ;
+    if ( mEnd != NULL ) {
+      mCurrentVar = mEnd -> currentArea ;
+      DeleteLastStackArea() ;
     } // if()
   } // ClearCurrentLocalVar()
   
@@ -1873,6 +1929,7 @@ private:
   CallStack mCallStack ;
   vector<Function> mUserDefinedFunctionTable ;
   Function mLambdaFunc ; // used to temporary store the lambda function
+  vector<Function> mLambdaStack ;
   
   void InitialReserveWord() {
     for ( int i = 0 ; i < gReserveWordNum ; i ++ ) {
@@ -2253,9 +2310,15 @@ private:
   
   void UpdateUserDefinedFunc( string funcName, Function func ) {
     int funcIndex = FindUserDefinedFunc( funcName ) ;
+    func.name = funcName ;
+    
     if ( funcIndex != -1 ) { // this function is already exist
-      func.name = funcName ;
-      mUserDefinedFunctionTable[ funcIndex ] = func ;
+      if ( func.tree == NULL ) { // should delete the function with this name
+        mUserDefinedFunctionTable.erase( mUserDefinedFunctionTable.begin() + funcIndex ) ;
+      } // if()
+      else {
+        mUserDefinedFunctionTable[ funcIndex ] = func ;
+      } // else()
     } // if()
     else { // a new function name
       mUserDefinedFunctionTable.push_back( func ) ;
@@ -2375,12 +2438,13 @@ private:
               newSymbol.name = argList[ 0 ] -> lex ;
               // check the be binded s-exp is correct
               
-              Node* bind = EvaluateSExp( argList[ 1 ], ++level ) ;
-              // Node* bind = argList[ 1 ] ;
-              
+              Node* bind = NULL ;
               if ( IsQuoteExp( argList[ 1 ] ) ) {
                 bind = argList[ 1 ] ; // define should be the original binding
               } // if()
+              else {
+                bind = EvaluateSExp( argList[ 1 ], ++level ) ;
+              } // else()
               
               if ( symIndex != -1 ) { // this symbol has already exist, update it
                 
@@ -2395,13 +2459,22 @@ private:
                     if ( bind -> type == ATOM && bind -> lex == "lambda" ) {
                       UpdateUserDefinedFunc( newSymbol.name, mLambdaFunc ) ;
                     } // if()
+                    else if ( IsUserDefinedFunc( newSymbol.name ) ) {
+                      // this symbol name has already used to define a function
+                      // but now this symbol is used to a new binding which is not a function
+                      // so need to remove this symbol name from the UserDefinedFuncTable
+                      Function empty ;
+                      empty.name = "" ;
+                      empty.argNum = 0 ;
+                      empty.tree = NULL ;
+                      
+                      UpdateUserDefinedFunc( newSymbol.name, empty ) ;
+                    } // else if()
                   } // else()
                 } // if()
                 else {
                   string reserveName = GetReserveWordType( argList[ 1 ] -> lex ) ;
                   if ( reserveName != "" ) {
-                    // this is a special case, define your own reserve word
-                    // add this to the reserveWordList
                     AddNewReserveWord( reserveName, argList[ 0 ] -> lex ) ;
                   } // if()
                   
@@ -2672,7 +2745,7 @@ private:
       if ( currentAug != NULL && currentAug -> type == ATOM
            && ( g.IsINT( currentAug -> lex )
                 || g.IsFLOAT( currentAug -> lex ) ) ) {
-        argList[ i ] = EvaluateSExp( argList[ i ], ++level ) ;
+        argList[ i ] = currentAug ;
       } // if()
       else { // a non number atom exist
         gErrNode = currentAug ;
@@ -3533,7 +3606,10 @@ private:
     
     if ( inTree -> left -> type == CONS ) { // the second circumstances
       if ( inTree -> right -> lex != "nil" ) { // immediately call the lambda function
+        mLambdaStack.push_back( mLambdaFunc ) ;
         ParameterBinding( mLambdaFunc.argList, inTree -> right, "lambda expression", ++level ) ;
+        mLambdaFunc = mLambdaStack[ mLambdaStack.size() - 1 ] ;
+        mLambdaStack.pop_back() ;
       } // if()
         
       if ( mLambdaFunc.tree != NULL ) {
@@ -3858,6 +3934,12 @@ public:
       gErrNode = treeRoot ;
       throw new NonListException() ; // curious
     } // else()
+    
+    if ( level == 1 && result != NULL ) {
+      if ( result -> lex == "lambda" ) {
+        result -> lex = "#<procedure lambda>" ;
+      } // if()
+    } // if()
     
     mCallStack.ClearCurrentLocalVar() ;
     return result ;

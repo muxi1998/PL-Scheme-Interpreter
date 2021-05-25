@@ -1818,7 +1818,7 @@ public:
   void DeleteLastStackArea() {
     if ( mEnd == mStart ) {
       if ( mEnd == NULL ) {
-        return; ;
+        return;
       } // if()
       else {
         delete mStart ;
@@ -1837,7 +1837,7 @@ public:
         delete mEnd -> next ;
         mEnd -> next = NULL ;
       } // else()
-    } // else()
+    } // else if()
   } // DeleteLastStackArea()
   
   void AddCurrentLocalVar( string name, Node* binding, int level ) {
@@ -1970,29 +1970,56 @@ private:
       int symIndex = FindSymbolFromLocalAndGlobal( symName ) ;
       
       mSymbolTable[ symIndex ].name = symName ;
-      mSymbolTable[ symIndex ].tree -> lex = assignedTree -> lex ;
-      mSymbolTable[ symIndex ].tree -> type = assignedTree -> type ;
-      mSymbolTable[ symIndex ].tree -> left = assignedTree -> left ;
-      mSymbolTable[ symIndex ].tree -> right = assignedTree -> right ;
-      mSymbolTable[ symIndex ].tree -> parent = assignedTree -> parent ;
+      mSymbolTable[ symIndex ].tree = CopyTree( assignedTree ) ;
     } // if()
     else {
       cout << "### Error: this is a local variable ###" << endl ;
     } // else()
   } // UpdateGlobalSymbol()
   
+  Node* CopyNode( Node* node ) {
+    Node* newN = (Node*) malloc( sizeof( Node ) ) ;
+    newN -> lex = node -> lex ;
+    newN -> type = node -> type ;
+    newN -> left = node -> left ;
+    newN -> right = node -> right ;
+    newN -> parent = NULL ;
+    
+    return newN ;
+  } // CopyNode()
+  
+  Node* CopyTree( Node* oldTree ) {
+    if ( !oldTree ) {
+      return NULL ;
+    } // if()
+    
+    Node* newLeft = NULL ;
+    Node* newRight = NULL ;
+    
+    if ( oldTree -> left != NULL ) {
+      newLeft = CopyTree( oldTree -> left ) ;
+    } // if()
+    else newLeft = NULL ;
+    
+    if ( oldTree -> right != NULL ) {
+      newRight = CopyTree( oldTree -> right ) ;
+    } // if()
+    else newRight = NULL ;
+    
+    Node* newTree = CopyNode( oldTree ) ;
+    newTree -> left = newLeft ;
+    newTree -> right = newRight ;
+    
+    return newTree ;
+  } // CopyTree()
+  
   void AddSymbol( string symName, Node* assignedTree ) {
     Symbol symbol ;
     symbol.name = "" ;
-    symbol.tree = new Node ;
-    
+    symbol.tree = NULL ;
     symbol.name = symName ;
-    symbol.tree -> lex = assignedTree -> lex ;
-    symbol.tree -> type = assignedTree -> type ;
-    symbol.tree -> left = assignedTree -> left ;
-    symbol.tree -> right = assignedTree -> right ;
-    symbol.tree -> parent = assignedTree -> parent ;
-    
+    symbol.tree = CopyTree( assignedTree ) ; // not only copy the pointer but the content
+
     mSymbolTable.push_back( symbol ) ; // add this new symbol to the table
   } // AddSymbol()
   
@@ -2004,7 +2031,8 @@ private:
     
     func.name = funcName ;
     func.argNum = numberOfAug ;
-    func.tree = assignedTree ;
+    // func.tree = assignedTree ;
+    func.tree = CopyTree( assignedTree ) ;
     
     mUserDefinedFunctionTable.push_back( func ) ;
   } // AddUserDefineFunction()
@@ -2114,6 +2142,14 @@ private:
     
     return IsList( originRoot, root -> right ) ;
   } // IsList()
+  
+  int CountListElement( Node* tree ) {
+    if ( tree -> right == NULL ) {
+      return 0 ;
+    } // if()
+    
+    return CountArgument( tree -> right ) + 1 ;
+  } // CountListElement()
   
   int CountArgument( Node* tree ) {
     if ( tree -> right == NULL ) {
@@ -2365,7 +2401,8 @@ private:
       newFunc.tree = NULL ;
       
       newFunc.argNum = CountAndCkeckParameters( argList, newFunc.argList ) ;
-      newFunc.tree = procedurePart ;
+      // newFunc.tree = procedurePart ;
+      newFunc.tree = CopyTree( procedurePart ) ;
       
       // create a global symbol for this function, make it easy to find in the symbol
       Node* tmp = g.GetEmptyNode() ;
@@ -2453,8 +2490,9 @@ private:
                   if ( mCallStack.IsLocalVar( newSymbol.name ) ) {
                     mCallStack.UpdateVar( symIndex, bind ) ;
                   } // if()
-                  else {
-                    mSymbolTable[ symIndex ].tree = bind ; // copy
+                  else { // this new symbol should be a global symbol
+                    // mSymbolTable[ symIndex ].tree = bind ; // copy
+                    mSymbolTable[ symIndex ].tree = CopyTree( bind ) ;
                     
                     if ( bind -> type == ATOM && bind -> lex == "lambda" ) {
                       UpdateUserDefinedFunc( newSymbol.name, mLambdaFunc ) ;
@@ -2470,6 +2508,12 @@ private:
                       
                       UpdateUserDefinedFunc( newSymbol.name, empty ) ;
                     } // else if()
+                    
+                    string reserveName =
+                    GetReserveWordType( GetFuncNameFromFuncValue( bind -> lex ) ) ;
+                    if ( reserveName != "" ) {
+                      AddNewReserveWord( reserveName, newSymbol.name ) ;
+                    } // if()
                   } // else()
                 } // if()
                 else {
@@ -2487,17 +2531,18 @@ private:
                   
                   // this been assigned S-exp is in the input
                   // and haven't evaluated yet
-                  newSymbol.tree = bind ; // copy
-                  
+                  // newSymbol.tree = bind ; // copy
+                  newSymbol.tree = CopyTree( bind ) ;
                 } // if()
                 else {
                   int symIndex = FindSymbolFromLocalAndGlobal( argList[ 1 ] -> lex ) ;
                   if ( mCallStack.IsLocalVar( argList[ 1 ] -> lex ) ) {
-                    newSymbol.tree =
-                    mCallStack.GetLocalVarBinding( argList[ 1 ] -> lex ) ;
+                    // newSymbol.tree = mCallStack.GetLocalVarBinding( argList[ 1 ] -> lex ) ;
+                    newSymbol.tree = CopyTree( mCallStack.GetLocalVarBinding( argList[ 1 ] -> lex ) ) ;
                   } // if()
                   else {
                     newSymbol.tree = mSymbolTable[ symIndex ].tree ;
+                    newSymbol.tree = CopyTree( mSymbolTable[ symIndex ].tree ) ;
                   } // else()
                 } // else()
                 
@@ -3634,7 +3679,8 @@ private:
         if ( localVarList -> type == CONS
              || ( localVarList -> type == SPECIAL && localVarList -> lex == "nil" ) ) {
           mLambdaFunc.argNum = CountAndCkeckParameters( localVarList, mLambdaFunc.argList ) ;
-          mLambdaFunc.tree = allSExp ;
+          // mLambdaFunc.tree = allSExp ;
+          mLambdaFunc.tree = CopyTree( allSExp ) ;
           
           if ( level == 1 ) {
             return lambdaProc ;
@@ -3664,7 +3710,7 @@ private:
       ParameterBinding( func.argList, inTree -> right, func.name, ++level ) ;
     } // else()
     
-    if ( CountArgument( func.tree -> parent ) > 1 ) {
+    if ( CountListElement( func.tree ) > 1 ) {
       for ( Node* walk = func.tree ; walk -> lex != "nil" ; walk = walk -> right ) {
         if ( walk -> right -> lex == "nil" ) {
           return EvaluateSExp( walk -> left, ++level ) ;
@@ -3706,12 +3752,18 @@ private:
   
   string GetFuncNameFromFuncValue( string str ) {
     string name = "" ;
-    int whiteIndex = ( int ) str.find( ' ', 0 ) ;
-    for ( int i = whiteIndex + 1 ; i < str.length() ; i ++ ) {
-      if ( i != str.length() - 1 ) {
-        name += str[ i ] ;
-      } // if()
-    } // for()
+    
+    if ( str[ 0 ] == '#' ) {
+      int whiteIndex = ( int ) str.find( ' ', 0 ) ;
+      for ( int i = whiteIndex + 1 ; i < str.length() ; i ++ ) {
+        if ( i != str.length() - 1 ) {
+          name += str[ i ] ;
+        } // if()
+      } // for()
+    } // if()
+    else {
+      name = str ;
+    } // else()
     
     return name ;
   } // GetFuncNameFromFuncValue()
@@ -3827,6 +3879,8 @@ public:
             Node* treeOfTheSymbol = EvaluateSExp( treeRoot -> left, ++level ) ;
             if ( treeOfTheSymbol -> type == ATOM ) {
               originFuncName = treeOfTheSymbol -> lex ;
+              originFuncName = GetFuncNameFromFuncValue( originFuncName ) ; // make the the # is taken off
+              definedFuncIndex = FindUserDefinedFunc( originFuncName ) ;
             } // if()
             else {
               gErrNode = EvaluateSExp( treeRoot -> left, ++level ) ;

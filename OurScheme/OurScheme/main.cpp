@@ -2094,6 +2094,16 @@ private:
     return index ;
   } // FindGlobalSymbol()
   
+  bool IsGlobalSymbol( string str ) {
+    for ( int i = 0 ; i < mSymbolTable.size() ; i ++ ) {
+      if ( str == mSymbolTable[ i ].name ) {
+        return true ;
+      } // if()
+    } // for()
+    
+    return false ;
+  } // IsGlobalSymbol()
+  
   int FindLocalSymbol( string str ) {
     return mCallStack.GetLocalVarIndex( str ) ;
   } // FindLocalSymbol()
@@ -2106,6 +2116,35 @@ private:
     
     return FindGlobalSymbol( str ) ;
   } // FindSymbolFromLocalAndGlobal()
+  
+  bool SymbolExist( string str ) {
+    if ( mCallStack.IsLocalVar( str ) ) {
+      return true ;
+    } // if()
+    else if ( IsGlobalSymbol( str ) ) {
+      return true ;
+    } // else if()
+    else ; // symbol doesn't exist
+    
+    return false ;
+  } // SymbolExist()
+  
+  Node* FindSymbolBinding( string str ) {
+    
+    // always find in the local variable first
+    if ( mCallStack.IsLocalVar( str ) ) {
+      return mCallStack.GetLocalVarBinding( str ) ;
+    } // if()
+    else { // not a local variable, now try to find in the global area
+      int index = FindGlobalSymbol( str ) ;
+      if ( index != -1 ) {
+        return mSymbolTable[ index ].tree ;
+      } // if()
+      else ; // not a local variable, neither a global variable
+    } // else()
+    
+    return NULL ;
+  } // FindSymbolBinding()
   
   int FindDefinedFunc( string str ) {
     int index = -1 ;
@@ -3789,8 +3828,6 @@ public:
     // the first left atom should be the func name
     Node* result = NULL ; // used to store the evaluation result tree
     string originFuncName = "" ; // copy the original operator from the fiven tree
-    // the function name after evaluation ( if the original one is a symbol or some how)
-    string funcName = "" ;
     // the functions are stored in mFuncTable, consist of the function name and definition
     int definedFuncIndex = -1 ;
     mCallStack.GetCleanLocalZone() ;
@@ -3798,6 +3835,7 @@ public:
     if ( treeRoot == NULL ) { // to make sure the recent evaluated tree is not null
       return g.GetEmptyNode() ;
     } // if()
+    else ; // the input tree is not empty, keep evaluating
     
     if ( treeRoot -> type != CONS ) { // if the current tree is a ATOM (number or a symbol)
       originFuncName = treeRoot -> lex ;
@@ -3852,7 +3890,8 @@ public:
       else { // this is a single symbol, we need to figure out the true value of this symbol
         // should find in the local variable first
         if ( mCallStack.IsLocalVar( treeRoot -> left -> lex ) ) {
-          originFuncName = treeRoot -> left -> lex ;
+          // originFuncName = treeRoot -> left -> lex ;
+          originFuncName = EvaluateSExp( treeRoot -> left, ++level ) -> lex ;
         } // if()
         else {
           string reserveWord = GetReserveWordType( treeRoot -> left -> lex ) ;
@@ -3901,11 +3940,11 @@ public:
           } // else()
         } // if()
       } // else if()
-      
     } // else()
     
     if ( IsList( treeRoot, treeRoot ) ) { // keep doing the evaluation
-      funcName = GetReserveWordType( originFuncName ) ;
+      // the function name after evaluation ( if the original one is a symbol or some how)
+      string funcName = GetReserveWordType( originFuncName ) ;
       if ( funcName != "" ) {
         if ( funcName == "quote" ) {
           result = treeRoot -> right -> left ;
@@ -3976,16 +4015,11 @@ public:
         result = ProcessUserDefinedFunc( treeRoot, definedFuncIndex, ++level ) ;
       } // else if()
       else if ( IsSymbol( originFuncName ) ) {
-        if ( FindSymbolFromLocalAndGlobal( originFuncName ) == -1 ) {
+        if ( !SymbolExist( originFuncName ) ) {
           throw new UnboundValueException( originFuncName ) ;
         } // if()
         else {
-          if ( mCallStack.IsLocalVar( originFuncName ) ) { // this is a local variable
-            result = mCallStack.GetLocalVarBinding( originFuncName ) ;
-          } // if()
-          else {
-            result = mSymbolTable[ FindSymbolFromLocalAndGlobal( originFuncName ) ].tree ;
-          } // else()
+          result = FindSymbolBinding( originFuncName ) ;
         } // else()
       } // else if()
       else { // either a function name or a symbol

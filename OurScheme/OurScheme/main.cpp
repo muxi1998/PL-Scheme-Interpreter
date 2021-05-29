@@ -3649,7 +3649,10 @@ private:
     lambda -> type = ATOM ;
     lambda -> lex = "lambda" ;
     
-    if ( inTree -> left -> type == CONS ) { // the second circumstances
+    if ( IsUserDefinedFunc( inTree -> left -> lex ) ) {
+      return ProcessUserDefinedFunc( inTree, FindUserDefinedFunc( inTree -> left -> lex ), ++level );
+    } // if()
+    else if ( inTree -> left -> type == CONS ) { // the second circumstances
       if ( inTree -> right -> lex != "nil" ) { // immediately call the lambda function
         mLambdaStack.push_back( mLambdaFunc ) ;
         ParameterBinding( mLambdaFunc.argList, inTree -> right, "lambda expression", ++level ) ;
@@ -3668,7 +3671,7 @@ private:
         } // for()
       } // if()
       
-    } // if()
+    } // else if()
     else {
       
       if ( CountArgument( inTree ) >= 2 ) {
@@ -3847,12 +3850,18 @@ public:
         originFuncName = funcNode -> lex ;
       } // if()
       else { // this is a single symbol, we need to figure out the true value of this symbol
-        string reserveWord = GetReserveWordType( treeRoot -> left -> lex ) ;
-        if ( reserveWord != "" ) {
-          originFuncName = reserveWord ; // and this should be execute since it stands alone
+        // should find in the local variable first
+        if ( mCallStack.IsLocalVar( treeRoot -> left -> lex ) ) {
+          originFuncName = treeRoot -> left -> lex ;
         } // if()
         else {
-          originFuncName = treeRoot -> left -> lex ;
+          string reserveWord = GetReserveWordType( treeRoot -> left -> lex ) ;
+          if ( reserveWord != "" ) {
+            originFuncName = reserveWord ; // and this should be execute since it stands alone
+          } // if()
+          else {
+            originFuncName = treeRoot -> left -> lex ;
+          } // else()
         } // else()
       } // else()
       

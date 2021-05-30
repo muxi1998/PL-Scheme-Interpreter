@@ -44,7 +44,7 @@ struct Node {
   Node* left ;
   Node* right ;
   Node* parent ;
-  
+  bool isAddByMe ;
   // Node() : lex(""), type(EMPTY), left(NULL), right(NULL), parent(NULL) {} ;
 };
 
@@ -84,7 +84,7 @@ struct Node_Linear {
   Token token ;
   Node_Linear* next ;
   Node_Linear* prev ;
-  
+  bool isAddByMe ;
   //  Node_Linear(): next( NULL ), prev( NULL ) {} ;
 } ;
 
@@ -114,6 +114,7 @@ public:
     newNode -> token = token ;
     newNode -> prev = NULL ;
     newNode -> next = NULL ;
+    newNode -> isAddByMe = false ;
     
     if ( mRoot == NULL ) { // empty
       mRoot = newNode ;
@@ -163,6 +164,12 @@ public:
     newNode -> token = token ;
     newNode -> prev = NULL ;
     newNode -> next = NULL ;
+    newNode -> isAddByMe = false ;
+    
+    if ( type == NIL ) {
+      newNode -> isAddByMe = true ; // additionly add the NIL node by myself
+    } // if()
+    
     if ( nodeBefore == NULL ) {
       newNode -> next = mRoot ;
       newNode -> prev = NULL ;
@@ -446,6 +453,7 @@ public:
     nullNode -> parent = NULL ;
     nullNode -> left = NULL ;
     nullNode -> right = NULL ;
+    nullNode -> isAddByMe = false ;
     
     return nullNode ;
   } // GetNullNode()
@@ -457,6 +465,7 @@ public:
     nullNode -> parent = NULL ;
     nullNode -> left = NULL ;
     nullNode -> right = NULL ;
+    nullNode -> isAddByMe = false ;
     
     return nullNode ;
   } // GetEmptyNode()
@@ -1169,6 +1178,7 @@ private:
       nilNode -> token.type = NIL ;
       nilNode -> token.line = root -> token.line ;
       nilNode -> token.column = root -> token.column ;
+      nilNode -> isAddByMe = false ;
       
       nilNode -> next = root -> next -> next ;
       
@@ -1194,6 +1204,7 @@ private:
         nilNode -> token.type = NIL ;
         nilNode -> token.line = walk -> next -> token.line ;
         nilNode -> token.column = walk -> next -> token.column ;
+        nilNode -> isAddByMe = false ;
         
         nilNode -> next = walk -> next -> next -> next ;
         walk -> next -> next -> next -> prev = nilNode ;
@@ -1321,6 +1332,7 @@ private:
       nilNode -> token.line = mCopyList.mRoot -> token.line ;
       nilNode -> token.column = mCopyList.mRoot -> token.column ;
       nilNode -> next = NULL ;
+      nilNode -> isAddByMe = false ;
       
       while ( mCopyList.mRoot != NULL ) { // Clear ( )
         Node_Linear* current = mCopyList.mRoot ;
@@ -1448,10 +1460,16 @@ public:
       atomNode -> right = NULL ;
       atomNode -> parent = NULL ;
       atomNode -> type = EMPTY ;
+      atomNode -> isAddByMe = false ;
       
       atomNode -> lex = leftPointer -> next -> token.str ;
       if ( leftPointer -> next -> token.type == NIL || leftPointer -> next -> token.type == T ) {
         atomNode -> type = SPECIAL ;
+        
+        if ( leftPointer -> next -> isAddByMe ) {
+          atomNode -> isAddByMe = true ;
+        } // if()
+        else ;
       } // if()
       else {
         atomNode -> type = ATOM ;
@@ -1469,10 +1487,16 @@ public:
       atomNode -> right = NULL ;
       atomNode -> parent = NULL ;
       atomNode -> type = EMPTY ;
+      atomNode -> isAddByMe = false ;
       
       atomNode -> lex = leftPointer -> token.str ;
       if ( leftPointer -> token.type == NIL || leftPointer -> token.type == T ) {
         atomNode -> type = SPECIAL ;
+        
+        if ( leftPointer -> isAddByMe ) {
+          atomNode -> isAddByMe = true ;
+        } // if()
+        else ;
       } // if()
       else {
         atomNode -> type = ATOM ;
@@ -1494,6 +1518,7 @@ public:
       cons -> right = NULL ;
       cons -> parent = NULL ;
       cons -> type = EMPTY ;
+      cons -> isAddByMe = false ;
       
       cons -> type = CONS ;
       cons -> left = leftSubTree ;
@@ -1518,6 +1543,7 @@ public:
       leaf -> right = NULL ;
       leaf -> parent = NULL ;
       leaf -> type = EMPTY ;
+      leaf -> isAddByMe = false ;
       
       leaf -> lex = mCopyList.mRoot -> token.str ;
       if ( mCopyList.mRoot -> token.type == NIL || mCopyList.mRoot -> token.type == T ) {
@@ -1978,11 +2004,12 @@ private:
   } // UpdateGlobalSymbol()
   
   Node* CopyNode( Node* node ) {
-    Node* newN = (Node*) malloc( sizeof( Node ) ) ;
+    Node* newN = ( Node* ) malloc( sizeof( Node ) ) ;
     newN -> lex = node -> lex ;
     newN -> type = node -> type ;
     newN -> left = node -> left ;
     newN -> right = node -> right ;
+    newN -> isAddByMe = node -> isAddByMe ;
     newN -> parent = NULL ;
     
     return newN ;
@@ -2018,7 +2045,7 @@ private:
     symbol.name = "" ;
     symbol.tree = NULL ;
     symbol.name = symName ;
-    symbol.tree = CopyTree( assignedTree ) ; // not only copy the pointer but the content
+    symbol.tree = assignedTree ; // not only copy the pointer but the content
 
     mSymbolTable.push_back( symbol ) ; // add this new symbol to the table
   } // AddSymbol()
@@ -2172,7 +2199,7 @@ private:
   
   bool IsList( Node* originRoot, Node* root ) {
     if ( root -> type == ATOM || root -> type == SPECIAL ) { // the last node (should be an atom)
-      if ( root -> lex == "nil" || root == originRoot ) {
+      if ( ( root -> lex == "nil" && root -> isAddByMe ) || root == originRoot ) {
         return true ;
       } // if()
       
@@ -2232,6 +2259,7 @@ private:
       consNode -> left = NULL ;
       consNode -> right = NULL ;
       consNode -> parent = NULL ;
+      consNode -> isAddByMe = false ;
       
       if ( IsList( firstArg, firstArg ) ) {
         if ( firstArg -> type == ATOM
@@ -2319,6 +2347,7 @@ private:
         node -> parent = NULL ;
         node -> left = NULL ;
         node -> right = NULL ;
+        node -> isAddByMe = false ;
         
         node -> left = argList[ i ] ;
         
@@ -2333,10 +2362,11 @@ private:
           
           Node* nilNode = new Node ;
           nilNode -> lex = "nil" ;
-          nilNode -> type = ATOM ;
+          nilNode -> type = SPECIAL ;
           nilNode -> parent = node ;
           nilNode -> left = NULL ;
           nilNode -> right = NULL ;
+          nilNode -> isAddByMe = true ;
           node -> right = nilNode ;
           
         } // if()
@@ -2487,7 +2517,7 @@ private:
     vector<Node*> argList = GetArgumentList( inTree ) ;
     
     if ( level == 1 ) {
-      if ( inTree -> right -> left -> type == CONS ) {
+      if ( inTree -> right -> left != NULL && inTree -> right -> left -> type == CONS ) {
         return DefineUserFunc( inTree, ++level ) ;
       } // if()
       
@@ -2516,7 +2546,8 @@ private:
               
               Node* bind = NULL ;
               if ( IsQuoteExp( argList[ 1 ] ) ) {
-                bind = argList[ 1 ] ; // define should be the original binding
+                // define should be the original binding except the quote
+                bind = argList[ 1 ] -> right -> left ;
               } // if()
               else {
                 bind = EvaluateSExp( argList[ 1 ], ++level ) ;
@@ -2570,8 +2601,7 @@ private:
                   
                   // this been assigned S-exp is in the input
                   // and haven't evaluated yet
-                  // newSymbol.tree = bind ; // copy
-                  newSymbol.tree = CopyTree( bind ) ;
+                  newSymbol.tree = bind ;
                 } // if()
                 else {
                   int symIndex = FindSymbolFromLocalAndGlobal( argList[ 1 ] -> lex ) ;
@@ -2581,7 +2611,6 @@ private:
                   } // if()
                   else {
                     newSymbol.tree = mSymbolTable[ symIndex ].tree ;
-                    newSymbol.tree = CopyTree( mSymbolTable[ symIndex ].tree ) ;
                   } // else()
                 } // else()
                 
@@ -2661,6 +2690,15 @@ private:
             return targetTree -> left ;
           } // if()
           else if ( funcName == "cdr" ) {
+            // because the right most node may possibly be a NIL which is added by myself
+            /*
+            if ( targetTree -> right != NULL && targetTree -> right -> right -> isAddByMe ) {
+              return targetTree -> right -> left ;
+            } // if()
+            else {
+              return targetTree -> right ;
+            } // else()
+            */
             return targetTree -> right ;
           } // else if()
         } // else()
@@ -2685,13 +2723,14 @@ private:
     ansNode -> parent = NULL ;
     ansNode -> left = NULL ;
     ansNode -> right = NULL ;
+    ansNode -> isAddByMe = false ;
     // can only have ONE argement
     if ( CountArgument( inTree ) == 1 ) {
       Node* target = EvaluateSExp( inTree -> right -> left, ++level ) ;
       
       if ( target != NULL ) {
         if ( func == "atom?" ) {
-          if ( target -> type == ATOM ) {
+          if ( target -> type == ATOM || target -> type == SPECIAL ) {
             ans = true ;
           } // if()
         } // if()
@@ -2706,8 +2745,7 @@ private:
           } // if()
         } // else if()
         else if ( func == "null?" ) {
-          if ( target -> type == SPECIAL
-               && ( target -> lex == "nil" || target -> lex == "#f" ) ) {
+          if ( target -> lex == "nil" || target -> lex == "#f" ) {
             ans = true ;
           } // if()
         } // else if()
@@ -2822,6 +2860,7 @@ private:
     ansNode -> parent = NULL ;
     ansNode -> left = NULL ;
     ansNode -> right = NULL ;
+    ansNode -> isAddByMe = false ;
     
     // check whether all the arguments are numbers
     for ( int i = 0 ; i < argList.size() ; i ++ ) {
@@ -2921,6 +2960,7 @@ private:
     ansNode -> parent = NULL ;
     ansNode -> left = NULL ;
     ansNode -> right = NULL ;
+    ansNode -> isAddByMe = false ;
     
     // check whether all the arguments are numbers
     for ( int i = 0 ; i < argList.size() ; i ++ ) {
@@ -3011,6 +3051,7 @@ private:
     ansNode -> parent = NULL ;
     ansNode -> left = NULL ;
     ansNode -> right = NULL ;
+    ansNode -> isAddByMe = false ;
     
     // check whether all the arguments are numbers
     for ( int i = 0 ; i < argList.size() ; i ++ ) {
@@ -3076,6 +3117,7 @@ private:
     ansNode -> parent = NULL ;
     ansNode -> left = NULL ;
     ansNode -> right = NULL ;
+    ansNode -> isAddByMe = false ;
     
     bool resultIsTrue = true ;
     for ( int i = 0 ; i < argList.size() ; i ++ ) {
@@ -3200,6 +3242,7 @@ private:
     ansNode -> parent = NULL ;
     ansNode -> left = NULL ;
     ansNode -> right = NULL ;
+    ansNode -> isAddByMe = false ;
     
     if ( CountArgument( inTree ) == 2 ) {
       vector<Node*> argList = GetArgumentList( inTree ) ;
@@ -3779,6 +3822,7 @@ private:
       tmpNode -> parent = NULL ;
       tmpNode -> left = NULL ;
       tmpNode -> right = NULL ;
+      tmpNode -> isAddByMe = false ;
       
       Symbol tmpSym ;
       tmpSym.name = gOriginReserveWordList[ i ] ;
@@ -3828,8 +3872,7 @@ public:
     // the first left atom should be the func name
     Node* result = NULL ; // used to store the evaluation result tree
     string originFuncName = "" ; // copy the original operator from the fiven tree
-    // the functions are stored in mFuncTable, consist of the function name and definition
-    int definedFuncIndex = -1 ;
+    
     mCallStack.GetCleanLocalZone() ;
 
     if ( treeRoot == NULL ) { // to make sure the recent evaluated tree is not null
@@ -3837,114 +3880,67 @@ public:
     } // if()
     else ; // the input tree is not empty, keep evaluating
     
-    if ( treeRoot -> type != CONS ) { // if the current tree is a ATOM (number or a symbol)
-      originFuncName = treeRoot -> lex ;
-      // transfer all symbol to the correspond reserveword
-      string reserveWord = GetReserveWordType( treeRoot -> lex ) ;
-      if ( g.GetTokenType( treeRoot -> lex ) == SYMBOL ) { // not a reserve word
-        int symbolIndex = FindSymbolFromLocalAndGlobal( treeRoot -> lex ) ;
-        if ( symbolIndex != -1 ) { // this symbol exist in the symbol table
-          Node* symBinding = mCallStack.IsLocalVar( treeRoot -> lex ) ?
-          mCallStack.GetLocalVarBinding( treeRoot -> lex ) :
-          mSymbolTable[ symbolIndex ].tree ;
-          if ( symBinding -> type == CONS
-               && GetReserveWordType( symBinding -> left -> lex ) == "" ) {
-            result = symBinding ; // this symbol stands alone
-          } // if()
-          else { // this symbol is an Atom
-            result = EvaluateSExp( symBinding, ++level ) ;
-          } // else()
-        } // if()
-        else if ( treeRoot -> lex[ 0 ] == '#' ) { // the lex is start with #
-          int funcIndex = FindDefinedFunc( GetFuncNameFromFuncValue( treeRoot -> lex ) ) ;
-          if ( funcIndex != -1 && treeRoot -> type == CONS ) {
-            // assert: this symbol is a user defined finction
-            result = ProcessUserDefinedFunc( treeRoot, funcIndex, ++level ) ;
-          } // if()
-          else {
-            result = treeRoot ; // this is an ATOM of the Reserve Word
-          } // else()
-        } // else if()
-        else {
-          throw new UnboundValueException( treeRoot -> lex ) ;
-        } // else()
+    // Two conditions in evaluating S-exp
+    // 1. Atom
+    // 2. CONS
+    if ( treeRoot -> type == ATOM ) { // This S-exp is an Atom
+      // may be p pure number or a symbol
+      string atomStr = treeRoot -> lex ;
+      // this S-exp is a number
+      if ( g.IsINT( atomStr ) || g.IsFLOAT( atomStr ) || g.IsStr( atomStr ) ) {
+        result = treeRoot ;
       } // if()
-      else if ( reserveWord != "" ) { // this ATOM truely is a reserveword
-        int reserveIndex = FindGlobalSymbol( reserveWord ) ; // find the correspond index in
-        originFuncName = reserveWord ;
-        result = mSymbolTable[ reserveIndex ].tree ;
+      else if ( SymbolExist( atomStr ) ) { // this S-exp is a exist symbol
+        result = FindSymbolBinding( atomStr ) ;
+        
+        if ( result -> lex == "lambda" ) {
+          result = mSymbolTable[ FindGlobalSymbol( "lambda" ) ].tree ;
+        } // if()
       } // else if()
       else {
-        result = treeRoot ;
+        throw new UnboundValueException( atomStr ) ;
       } // else()
       
       mCallStack.ClearCurrentLocalVar() ;
       return result ;
     } // if()
-    else { // this S-exp is a cons
-      // New observation: the function value can also process the S-exp
-      if ( treeRoot -> left -> type == CONS ) {
-        Node* funcNode = EvaluateSExp( treeRoot -> left, ++level ) ;
-        originFuncName = funcNode -> lex ;
-      } // if()
-      else { // this is a single symbol, we need to figure out the true value of this symbol
-        // should find in the local variable first
-        if ( mCallStack.IsLocalVar( treeRoot -> left -> lex ) ) {
-          // originFuncName = treeRoot -> left -> lex ;
-          originFuncName = EvaluateSExp( treeRoot -> left, ++level ) -> lex ;
+    else if ( treeRoot -> type == SPECIAL ) {
+      mCallStack.ClearCurrentLocalVar() ;
+      return treeRoot ;
+    } // else if()
+    else if ( treeRoot -> type == CONS ) { // This S-exp is a CONS
+      Node* funcPart = treeRoot -> left ; // the left node of the root must be function part
+      
+      if ( funcPart -> type == ATOM ) { // if this is an atom, then check what it represents
+        if ( SymbolExist( funcPart -> lex ) ) {
+          originFuncName = FindSymbolBinding( funcPart -> lex ) -> lex ;
         } // if()
         else {
-          string reserveWord = GetReserveWordType( treeRoot -> left -> lex ) ;
-          if ( reserveWord != "" ) {
-            originFuncName = reserveWord ; // and this should be execute since it stands alone
-          } // if()
-          else {
-            originFuncName = treeRoot -> left -> lex ;
-          } // else()
+          originFuncName = funcPart -> lex ;
         } // else()
-      } // else()
-      
-      if ( originFuncName == "" ) {
-        // not function name, because this may still be a CONS
-        gErrNode = EvaluateSExp( treeRoot -> left, ++level ) ;
-        throw new ApplyNonFunctionException() ;
       } // if()
-      else if ( originFuncName[ 0 ] == '#' ) { // is a function value
-        originFuncName = GetFuncNameFromFuncValue( originFuncName ) ;
+      else if ( funcPart -> type == CONS ) {
+        funcPart = EvaluateSExp( funcPart, ++level ) ;
+        originFuncName = funcPart -> lex ;
       } // else if()
-      else if ( GetReserveWordType( originFuncName ) == "" ) {
-        
-        string representInSymTable = "" ;
-        int globalIndex = FindGlobalSymbol( originFuncName ) ;
-        if ( globalIndex != -1 ) {
-          representInSymTable = mSymbolTable[ globalIndex ].tree -> lex ;
-        } // if()
-        
-        definedFuncIndex = FindDefinedFunc( GetFuncNameFromFuncValue( representInSymTable ) ) ;
-        
-        if ( definedFuncIndex == -1 ) {
-          if ( FindUserDefinedFunc( originFuncName ) == -1 ) { // not a user new defined func
-            Node* treeOfTheSymbol = EvaluateSExp( treeRoot -> left, ++level ) ;
-            if ( treeOfTheSymbol -> type == ATOM ) {
-              originFuncName = treeOfTheSymbol -> lex ;
-              originFuncName = GetFuncNameFromFuncValue( originFuncName ) ; // make the the # is taken off
-              definedFuncIndex = FindUserDefinedFunc( originFuncName ) ;
-            } // if()
-            else {
-              gErrNode = EvaluateSExp( treeRoot -> left, ++level ) ;
-              throw new ApplyNonFunctionException() ;
-            } // else()
-          } // if()
-          else {
-            definedFuncIndex = FindUserDefinedFunc( originFuncName ) ;
-          } // else()
-        } // if()
-      } // else if()
+      else { // the function part is neither an atom, not a CONS
+        gErrNode = treeRoot ;
+        throw new ApplyNonFunctionException() ;
+      } // else()
+    } // else if()
+    else { // This is S-exp must be an Error
+      gErrNode = treeRoot ;
+      throw new ApplyNonFunctionException() ;
     } // else()
+    
+    originFuncName = GetFuncNameFromFuncValue( originFuncName ) ;
     
     if ( IsList( treeRoot, treeRoot ) ) { // keep doing the evaluation
       // the function name after evaluation ( if the original one is a symbol or some how)
       string funcName = GetReserveWordType( originFuncName ) ;
+      // the functions are stored in mFuncTable, consist of the function name and definition
+      int definedFuncIndex = FindUserDefinedFunc( originFuncName ) ;
+      
       if ( funcName != "" ) {
         if ( funcName == "quote" ) {
           result = treeRoot -> right -> left ;
@@ -4013,14 +4009,6 @@ public:
       else if ( definedFuncIndex != -1 ) { // this user-defined function exist
         // process the user defined function
         result = ProcessUserDefinedFunc( treeRoot, definedFuncIndex, ++level ) ;
-      } // else if()
-      else if ( IsSymbol( originFuncName ) ) {
-        if ( !SymbolExist( originFuncName ) ) {
-          throw new UnboundValueException( originFuncName ) ;
-        } // if()
-        else {
-          result = FindSymbolBinding( originFuncName ) ;
-        } // else()
       } // else if()
       else { // either a function name or a symbol
         gErrNode = EvaluateSExp( treeRoot -> left, ++level ) ;

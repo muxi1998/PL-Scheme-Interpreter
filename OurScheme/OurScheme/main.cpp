@@ -231,7 +231,9 @@ public:
       current = NULL ;
     } // while()
     
+    delete mRoot ;
     mRoot = NULL ;
+    mTail = NULL ;
   } // Clear()
   
 } ;
@@ -350,7 +352,7 @@ public:
   } // GetTokenType()
   
   bool IsSymbol( string str ) {
-    if ( GetTokenType( str ) == SYMBOL ) {
+    if ( str != "" && GetTokenType( str ) == SYMBOL ) {
       for ( int i = 0 ; i < gReserveWordNum ; i ++ ) {
         if ( str == gOriginReserveWordList[ i ] ) {
           return false ;
@@ -402,8 +404,8 @@ public:
     return num ;
   } // GetValueOfIntStr()
   
-  float GetValueOfFloatStr( string str ) {
-    float num = 0.0 ;
+  double GetValueOfFloatStr( string str ) {
+    double num = 0.0 ;
     char sign = '\0' ;
     
     if ( str[ 0 ] == '+' || str[ 0 ] == '-' ) {
@@ -771,8 +773,7 @@ private:
   } // IsSeparator()
   
   bool IsReturnLine( char ch ) {
-    // Because Linux has '\r' character, I added '\r' as one circumstance
-    if ( ch == '\n' || ch == '\r' ) {
+    if ( ch == '\n' ) {
       return true ;
     } // if()
     
@@ -781,7 +782,7 @@ private:
   
   bool IsWhiteSpace( char ch ) {
     // Because Linux has '\r' character, I added '\r' as one circumstance
-    if ( ch == ' ' || ch == '\t' || IsReturnLine( ch ) ) {
+    if ( ch == ' ' || ch == '\t' || ch == '\r' || IsReturnLine( ch ) ) {
       return true ;
     } // if()
     
@@ -982,6 +983,7 @@ public:
       // assert: we get the whole token
       gPeekToken = tokenStrWeGet ;
     } // if()
+    else ;
     
     gJustFinishAExp = false ;
     
@@ -992,6 +994,7 @@ public:
   Token GetToken() {
     
     if ( gPeekToken == "" ) PeekToken() ;
+    else ; // PeekToken is already peeked before
     
     Token tokenWeWant = LexToToken( gPeekToken ) ;
     gPeekToken = "" ;
@@ -1675,6 +1678,7 @@ public:
 
 // --------------------- Error Definition Proj.2 (end) ---------------------
 // --------------------- Error Definition Proj.3 (start) ---------------------
+/*
 class LetFormatException {
 public:
   string Err_mesg() {
@@ -1690,7 +1694,7 @@ public:
     return mesg ;
   } // Err_mesg()
 } ; // LambdaFormatException
-
+*/
 
 class DefineFormatException2 {
 public:
@@ -1700,6 +1704,19 @@ public:
   } // Err_mesg()
 } ; // DefineFormatException
 
+class FormatException {
+private:
+  string mLex ;
+public:
+  FormatException( string funcName ) {
+    mLex = funcName ;
+  } // FormatException()
+  
+  string Err_mesg() {
+    string mesg = "ERROR (" + mLex + " format) : " ;
+    return mesg ;
+  } // Err_mesg()
+} ; // DefineFormatException
 
 class NonReturnAssignedException {
 public:
@@ -1793,7 +1810,11 @@ public:
       mStart -> next = NULL ;
       mStart -> prev = NULL ;
       
-      mStart -> currentArea.assign( mCurrentVar.begin(), mCurrentVar.end() ) ;
+      if ( mCurrentVar.size() != 0 ) {
+        mStart -> currentArea.assign( mCurrentVar.begin(), mCurrentVar.end() ) ;
+      } // if()
+      else ; // the current stack area is empty
+      
       mEnd = mStart ;
     } // if()
     else { // insert the new names
@@ -1801,7 +1822,10 @@ public:
       mEnd -> next -> next = NULL ;
       mEnd -> next -> prev = mEnd ;
       mEnd = mEnd -> next ;
-      mEnd -> currentArea.assign( mCurrentVar.begin(), mCurrentVar.end() ) ;
+      if ( mCurrentVar.size() != 0 ) {
+        mEnd -> currentArea.assign( mCurrentVar.begin(), mCurrentVar.end() ) ;
+      } // if()
+      else ;
     } // else()
   } // AddNewSymbolNameToStackArea()
   
@@ -1902,6 +1926,10 @@ public:
     mCallStack[ index ].tree = newBinding ;
   } // UpdateVar()
   
+  void CleanStack() {
+    mCallStack.clear() ;
+  } // CleanStack()
+  
 } ; // CallStack
 
 // Purpose: Do the evaluation and store the user definitions
@@ -1980,7 +2008,7 @@ private:
   } // CopyNode()
   
   Node* CopyTree( Node* oldTree ) {
-    if ( !oldTree ) {
+    if ( oldTree == NULL ) {
       return NULL ;
     } // if()
     
@@ -2000,6 +2028,14 @@ private:
     Node* newTree = CopyNode( oldTree ) ;
     newTree -> left = newLeft ;
     newTree -> right = newRight ;
+    if ( newLeft != NULL ) {
+      newLeft -> parent = newTree ;
+    } // if()
+    else ;
+    if ( newRight != NULL ) {
+      newLeft -> parent = newTree ;
+    } // if()
+    else ;
     
     return newTree ;
   } // CopyTree()
@@ -2029,6 +2065,8 @@ private:
   } // AddUserDefineFunction()
   
   string GetReserveWordType( string str ) {
+    str = GetFuncNameFromFuncValue( str ) ;
+    
     for ( int i = 0 ; i < mReserveWords.size() ; i ++ ) {
       if ( str == mReserveWords[ i ].name ) {
         return mReserveWords[ i ].name ;
@@ -2045,6 +2083,8 @@ private:
   } // GetReserveWordType()
   
   string GetReserveWordType( string str, int &index ) {
+    str = GetFuncNameFromFuncValue( str ) ;
+    
     for ( int i = 0 ; i < mReserveWords.size() ; i ++ ) {
       if ( str == mReserveWords[ i ].name ) {
         index = i ;
@@ -2151,6 +2191,7 @@ private:
   
   int FindUserDefinedFunc( string str ) {
     int index = -1 ;
+    str = GetFuncNameFromFuncValue( str ) ;
     
     for ( int i = 0 ; i < mUserDefinedFunctionTable.size() && index == -1 ; i ++ ) {
       if ( str == mUserDefinedFunctionTable[ i ].name ) {
@@ -2166,6 +2207,9 @@ private:
       if ( ( root -> lex == "nil" && root -> isAddByMe ) || root == originRoot ) {
         return true ;
       } // if()
+      else if ( root -> lex == "nil" && !root -> isAddByMe ) {
+        return true ;
+      } // else if()
       
       return false ;
     } // if()
@@ -2178,7 +2222,7 @@ private:
       return 0 ;
     } // if()
     
-    return CountArgument( tree -> right ) + 1 ;
+    return CountListElement( tree -> right ) + 1 ;
   } // CountListElement()
   
   int CountArgument( Node* tree ) {
@@ -2232,7 +2276,14 @@ private:
           throw new UnboundValueException( firstArg -> lex ) ;
         } // if()
         else {
-          consNode -> left = EvaluateSExp( firstArg, ++level ) ;
+          Node* leftCons = EvaluateSExp( firstArg, ++level ) ;
+          if ( !CheckHasReturnBinding( leftCons, firstArg ) ) {
+            throw new ParamNotBoundException() ;
+          } // if()
+          else {
+            consNode -> left = leftCons ;
+          } // else()
+          
           
           if ( IsList( secondArg, secondArg ) ) {
             if ( secondArg -> type == ATOM
@@ -2242,7 +2293,13 @@ private:
             } // if()
             else {
               // Step3. If no error create a new Node
-              consNode -> right = EvaluateSExp( secondArg, ++level ) ;
+              Node* rightCons = EvaluateSExp( secondArg, ++level ) ;
+              if ( !CheckHasReturnBinding( rightCons, secondArg ) ) {
+                throw new ParamNotBoundException() ;
+              } // if()
+              else {
+                consNode -> right = rightCons ;
+              } // else()
             } // else()
           } // if()
           else {
@@ -2287,14 +2344,20 @@ private:
                && IsSymbol( argList[ i ] -> lex ) ) {
             int symIndex = FindSymbolFromLocalAndGlobal( argList[ i ] -> lex ) ;
             if ( symIndex != -1 ) {
-              argList[ i ] = EvaluateSExp( argList[ i ], ++level ) ;
+              Node* result = EvaluateSExp( argList[ i ], ++level ) ;
+              CheckHasReturnBindingOrThrow( result, argList[ i ] ) ;
+              // the result of this element in the list has a binding, keep going
+              argList[ i ] = result ;
             } // if()
             else {
               throw new UnboundValueException( argList[ i ] -> lex ) ;
             } // else()
           } // if()
           else { // this is a list, but need to check more detail
-            argList[ i ] = EvaluateSExp( argList[ i ], ++level ) ;
+            Node* result = EvaluateSExp( argList[ i ], ++level ) ;
+            CheckHasReturnBindingOrThrow( result, argList[ i ] ) ;
+            // the result of this element in the list has a binding, keep going
+            argList[ i ] = result ;
           } // else()
         } // if()
         else {
@@ -2344,8 +2407,12 @@ private:
       
       return result ;
     } // if()
+    else if ( CountArgument( inTree ) == 0 ) { // no element list
+      return g.GetNullNode() ;
+    } // else if()
+    else ;
     
-    return g.GetNullNode() ; // it is empty in the argument
+    return NULL ; // it is empty in the argument
   } // EvaluateLIST()
   
   bool IsOriginalReserveWord( string name ) {
@@ -2424,7 +2491,7 @@ private:
       
       // if the function name is not a symbol and the binding has more than one
       if ( !g.IsSymbol( funcName ) || procedurePart == NULL
-           || CountArgument( procedurePart ) != 0 ) {
+           || CountListElement( procedurePart ) == 0 ) {
         gErrNode = inTree ;
         throw new DefineFormatException() ;
       } // if()
@@ -2435,8 +2502,8 @@ private:
       newFunc.tree = NULL ;
       
       newFunc.argNum = CountAndCkeckParameters( argList, newFunc.argList ) ;
-      // newFunc.tree = procedurePart ;
-      newFunc.tree = CopyTree( procedurePart ) ;
+      newFunc.tree = procedurePart ;
+      // newFunc.tree = CopyTree( procedurePart ) ;
       
       // create a global symbol for this function, make it easy to find in the symbol
       Node* tmp = g.GetEmptyNode() ;
@@ -2519,12 +2586,7 @@ private:
                 // the definition of this symbol, need to check whether the binding exist
                 // if not, then this is a non return value error
                 bind = EvaluateSExp( argList[ 1 ], ++level ) ;
-                
-                if ( bind == NULL ) {
-                  gErrNode = argList[ 1 ] ;
-                  throw new NoReturnValueException() ;
-                } // if()
-                else ;
+                CheckHasReturnBindingOrThrow( bind, argList[ 1 ] ) ;
                 
               } // else()
               
@@ -2539,7 +2601,7 @@ private:
                     // mSymbolTable[ symIndex ].tree = bind ; // copy
                     mSymbolTable[ symIndex ].tree = CopyTree( bind ) ;
                     
-                    if ( bind -> type == ATOM && bind -> lex == "lambda" ) {
+                    if ( bind -> type == ATOM && bind -> lex == "#<procedure lambda>" ) {
                       UpdateUserDefinedFunc( newSymbol.name, mLambdaFunc ) ;
                     } // if()
                     else if ( IsUserDefinedFunc( newSymbol.name ) ) {
@@ -2589,7 +2651,7 @@ private:
                   } // else()
                 } // else()
                 
-                if ( newSymbol.tree -> type == ATOM && newSymbol.tree -> lex != "lambda" ) {
+                if ( newSymbol.tree -> type == ATOM && newSymbol.tree -> lex != "#<procedure lambda>" ) {
                   string reserveName1 =
                   GetReserveWordType( GetFuncNameFromFuncValue( newSymbol.tree -> lex ) ) ;
                   string reserveName2 = GetReserveWordType( newSymbol.tree -> lex ) ;
@@ -2605,14 +2667,15 @@ private:
                 } // if()
                 
                 if ( newSymbol.tree -> type != CONS
-                     && newSymbol.tree -> lex == "lambda" ) {
+                     && newSymbol.tree -> lex == "#<procedure lambda>" ) {
                   mLambdaFunc.name = newSymbol.name ;
                   UpdateUserDefinedFunc( mLambdaFunc.name, mLambdaFunc ) ;
-                  
+                  /*
                   Node* lambda = g.GetEmptyNode() ;
                   lambda -> type = ATOM ;
-                  lambda -> lex = "lambda" ;
+                  lambda -> lex = "#<procedure lambda>" ;
                   newSymbol.tree = lambda ;
+                  */
                 } // if()
                 
                 AddSymbol( newSymbol.name, newSymbol.tree ) ;
@@ -2665,15 +2728,6 @@ private:
             return targetTree -> left ;
           } // if()
           else if ( funcName == "cdr" ) {
-            // because the right most node may possibly be a NIL which is added by myself
-          /*
-             if ( targetTree -> right != NULL && targetTree -> right -> right -> isAddByMe ) {
-             return targetTree -> right -> left ;
-             } // if()
-             else {
-             return targetTree -> right ;
-             } // else()
-          */
             return targetTree -> right ;
           } // else if()
         } // else()
@@ -2775,7 +2829,7 @@ private:
     // mSymbolTable.clear() ;
     mFunctionTable.clear() ;
     mUserDefinedFunctionTable.clear() ;
-    CleanLocalVariables() ;
+    // CleanLocalVariables() ;
     // mReserveWords.clear() ;
     ResetSymbolTable() ;
     // AddOriginReserveWords() ;
@@ -2846,7 +2900,11 @@ private:
                 || g.IsFLOAT( currentAug -> lex ) ) ) {
         argList[ i ] = currentAug ;
       } // if()
-      else { // a non number atom exist
+      else if ( currentAug == NULL ) { // a non number atom exist
+        gErrNode = argList[ i ] ;
+        throw new ParamNotBoundException() ;
+      } // else if()
+      else {
         gErrNode = currentAug ;
         throw new IncorrectArgumentTypeException( funcName ) ;
       } // else()
@@ -2946,7 +3004,11 @@ private:
                 || g.IsFLOAT( currentAug -> lex ) ) ) {
         argList[ i ] = EvaluateSExp( argList[ i ], ++level ) ;
       } // if()
-      else { // a non number atom exist
+      else if ( currentAug == NULL ) { // a non number atom exist
+        gErrNode = argList[ i ] ;
+        throw new ParamNotBoundException() ;
+      } // else if()
+      else {
         gErrNode = currentAug ;
         throw new IncorrectArgumentTypeException( funcName ) ;
       } // else()
@@ -3036,6 +3098,10 @@ private:
            && currentAug -> type == ATOM && g.IsStr( currentAug -> lex ) ) {
         argList[ i ] = currentAug ;
       } // if()
+      else if ( currentAug == NULL ) {
+        gErrNode = argList[ i ] ;
+        throw new ParamNotBoundException() ;
+      } // else if()
       else {
         gErrNode = currentAug ;
         throw new IncorrectArgumentTypeException( funcName ) ;
@@ -3294,11 +3360,13 @@ private:
         
         if ( argList[ 0 ] == NULL ) {
           gErrNode = argList[ 0 ] ;
-          throw new IncorrectArgumentTypeException( funcName ) ;
+          // throw new IncorrectArgumentTypeException( funcName ) ;
+          throw new ParamNotBoundException() ;
         } // if()
         else if ( argList[ 1 ] == NULL ) {
           gErrNode = argList[ 1 ] ;
-          throw new IncorrectArgumentTypeException( funcName ) ;
+          // throw new IncorrectArgumentTypeException( funcName ) ;
+          throw new ParamNotBoundException() ;
         } // else if()
         else {
           if ( ! TwoTreesAreTheSame( argList[ 0 ], argList[ 1 ] ) ) {
@@ -3315,7 +3383,6 @@ private:
   } // ProcessEqvAndEqual()
   
   Node* ProcessIf( Node* inTree, int level ) {
-    Node* emptyNode = g.GetEmptyNode() ;
     // has two or three arguments
     if ( CountArgument( inTree ) == 2 || CountArgument( inTree ) == 3 ) {
       vector<Node*> argList = GetArgumentList( inTree ) ;
@@ -3328,10 +3395,13 @@ private:
           if ( condition -> lex != "#f" && condition -> lex != "nil" ) {
             return EvaluateSExp( argList[ 1 ], ++level ) ;
           } // if()
+          else ;
+          /*
           else {
             gErrNode = inTree ;
             throw new NoReturnValueException() ;
           } // else()
+          */
         } // if()
         else if ( CountArgument( inTree ) == 3 ) {
           if ( condition -> lex != "#f" && condition -> lex != "nil" ) {
@@ -3352,12 +3422,11 @@ private:
       throw new IncorrectNumberArgumentException( "if" ) ; // curious here
     } // else()
     
-    return emptyNode ;
+    return NULL ;
   } // ProcessIf()
   
   Node* ProcessCond( Node* inTree, int level ) {
     // cond expression cam take more than 1 arguments, at least one
-    Node* emptyNode = g.GetEmptyNode() ;
     
     if ( CountArgument( inTree ) >= 1 ) {
       vector<Node*> argList = GetArgumentList( inTree ) ;
@@ -3374,9 +3443,9 @@ private:
       
       // start finding the first satisfying statement
       for ( int i = 0 ; i < argList.size() ; i ++ ) {
-        Node* condResult = g.GetEmptyNode() ;
+        Node* condResult = NULL ;
         Node* condPart = argList[ i ] -> left ;
-        Node* statePart = g.GetEmptyNode() ;
+        Node* statePart = NULL ;
         vector<Node*> subAugList = GetArgumentList( argList[ i ] ) ;
         
         if ( i < argList.size() - 1 ) {
@@ -3460,14 +3529,13 @@ private:
       throw new CondFormatException() ; // curious
     } // else()
     
-    gErrNode = inTree ;
-    throw new NoReturnValueException() ; // curious
+    // gErrNode = inTree ;
+    // throw new NoReturnValueException() ; // curious
     
-    return emptyNode ;
+    return NULL ;
   } // ProcessCond()
   
   Node* ProcessBegin( Node* inTree, int level ) {
-    Node* emptyNode = g.GetEmptyNode() ;
     if ( CountArgument( inTree ) >= 1 ) {
       // sequencing evaluate all argements, but return the final one
       vector<Node*> argList = GetArgumentList( inTree ) ;
@@ -3492,7 +3560,7 @@ private:
       throw new IncorrectNumberArgumentException( "begin" ) ;
     } // else()
     
-    return emptyNode ;
+    return NULL ;
   } // ProcessBegin()
   
   Node* ProcessVerbose( string funcName, Node* inTree, int level ) {
@@ -3532,7 +3600,7 @@ private:
       } // else()
     } // else if()
     
-    return g.GetEmptyNode() ;
+    return NULL ;
   } // ProcessVerbose()
   
   bool CheckAndStoreLocalVarSuccess( Node* localVars, int level ) {
@@ -3541,7 +3609,7 @@ private:
     // Seperate all the local variables from the tree structure into a vactor
     if ( IsList( localVars, localVars ) ) {
       for ( Node* walk = localVars ; walk -> lex != "nil" ; walk = walk -> right ) {
-        if ( IsList( walk -> left, walk -> left ) ) {
+        if ( IsList( walk -> left, walk -> left ) && CountListElement( walk -> left ) == 2 ) {
           varList.push_back( walk -> left ) ;
         } // if()
         else {
@@ -3559,9 +3627,6 @@ private:
     
     for ( int i = 0 ; i < varList.size() ; i ++ ) {
       if ( varList[ i ] -> type == CONS ) { // Should be a cons structure
-        if ( CountArgument( varList[ i ] ) != 1 ) { // the definition of the local variable should vbe a pair
-          return false ;
-        } // if()
         
         string varName = varList[ i ] -> left -> lex ;
         Node* bind = varList[ i ] -> right -> left ;
@@ -3569,14 +3634,8 @@ private:
         if ( g.IsSymbol( varName ) ) { // local variable should be a symbol
           
           Node* binding = NULL ;
-          try {
-            
-            binding = EvaluateSExp( bind, ++level ) ;
-            
-          } catch ( NoReturnValueException* e ) {
-            gErrNode = bind ;
-            throw new NoReturnValueException() ;
-          } // catch()
+          binding = EvaluateSExp( bind, ++level ) ;
+          CheckHasReturnBindingOrThrow( binding, bind ) ;
           
           if ( binding == NULL || binding -> type == EMPTY ) {
             varList.clear() ;
@@ -3585,7 +3644,6 @@ private:
             throw new NonReturnAssignedException() ;
           } // if()
           else {
-            // mCallStack.AddCurrentLocalVar( varName, binding, level ) ;
             bindingList.push_back( binding ) ;
           } // else()
         } // if()
@@ -3606,6 +3664,8 @@ private:
       mCallStack.AddCurrentLocalVar( varName, bindingList[ i ], level ) ;
     } // for()
     
+    bindingList.clear() ;
+    
     return true ;
   } // CheckAndStoreLocalVarSuccess()
   
@@ -3623,11 +3683,12 @@ private:
         
         return EvaluateSExp( walk -> left, ++level ) ; // return the last expression result
       } // if()
-      
-      throw new LetFormatException() ;
+      else ;
     } // if()
     
-    throw new LetFormatException() ;
+    gErrNode = inTree ;
+    throw new FormatException( "LET" ) ;
+    return NULL ;
     
   } // ProcessLet()
   
@@ -3648,16 +3709,19 @@ private:
             countNum ++ ;
           } // if()
           else {
-            throw new LambdaFormatException() ;
+            gErrNode = arg ;
+            throw new FormatException( "LAMBDA" ) ;
           } // else()
         } // if()
         else {
-          throw new LambdaFormatException() ;
+          gErrNode = arg ;
+          throw new FormatException( "LAMBDA" ) ;
         } // else()
       } // for()
     } // if()
     else {
-      throw new LambdaFormatException() ;
+      gErrNode = arg ;
+      throw new FormatException( "LAMBDA" ) ;
     } // else()
     
     return countNum ;
@@ -3689,7 +3753,7 @@ private:
       for ( int i = 0 ; i < paramList.size() ; i ++ ) {
         // the argument should be evaluate first, before binding to the symbol
         Node* bindValue = EvaluateSExp( bindingList[ i ], ++level ) ;
-        if ( bindValue != NULL && bindValue -> type != EMPTY ) {
+        if ( bindValue != NULL ) {
           tmpBindingList.push_back( bindValue ) ;
         } // if()
         else {
@@ -3720,9 +3784,6 @@ private:
     Node* lambdaProc ;
     int reserveIndex = FindGlobalSymbol( "lambda" ) ;
     lambdaProc = mSymbolTable[ reserveIndex ].tree ;
-    Node* lambda = g.GetEmptyNode() ;
-    lambda -> type = ATOM ;
-    lambda -> lex = "lambda" ;
     
     if ( IsUserDefinedFunc( inTree -> left -> lex ) ) {
       return ProcessUserDefinedFunc( inTree, FindUserDefinedFunc( inTree -> left -> lex ), ++level );
@@ -3732,7 +3793,7 @@ private:
         mLambdaStack.push_back( mLambdaFunc ) ;
         
         try {
-          ParameterBinding( mLambdaFunc.argList, inTree -> right, "lambda expression", ++level ) ;
+          ParameterBinding( mLambdaFunc.argList, inTree -> right, "lambda", ++level ) ;
         } catch ( NoReturnValueException* e ) {
           gErrNode = inTree ;
           throw new NoReturnValueException() ;
@@ -3763,45 +3824,57 @@ private:
         
         if ( localVarList -> type == CONS
              || ( localVarList -> type == SPECIAL && localVarList -> lex == "nil" ) ) {
-          mLambdaFunc.argNum = CountAndCkeckParameters( localVarList, mLambdaFunc.argList ) ;
-          // mLambdaFunc.tree = allSExp ;
-          mLambdaFunc.tree = CopyTree( allSExp ) ;
           
-          if ( level == 1 ) {
-            return lambdaProc ;
-          } // if()
-          else {
-            return lambda ;
-          } // else()
+          try {
+            
+            mLambdaFunc.argNum = CountAndCkeckParameters( localVarList, mLambdaFunc.argList ) ;
+            // mLambdaFunc.tree = allSExp ;
+            mLambdaFunc.tree = CopyTree( allSExp ) ;
+            
+            if ( level > 1 ) {
+              try {
+                ParameterBinding( mLambdaFunc.argList, inTree -> right, "lambda", ++level ) ;
+              } catch ( NoReturnValueException* e ) {
+                gErrNode = inTree ;
+                throw new NoReturnValueException() ;
+              } // catch()
+              
+              for ( Node* walk = mLambdaFunc.tree ; walk -> lex != "nil" ; walk = walk -> right ) {
+                EvaluateSExp( walk -> left, ++level ) ;
+              } // for()
+            } // if()
+            else ;
+            
+          } catch ( FormatException* e ) {
+            gErrNode = inTree ;
+            throw new FormatException( "LAMBDA" ) ;
+          } // catch()
+          
+          return lambdaProc ;
         } // if()
         else {
-          throw new LambdaFormatException() ;
+          gErrNode = inTree ;
+          throw new FormatException( "LAMBDA" ) ;
         } // else()
       } // else if()
       
     } // else()
     
-    throw new LambdaFormatException() ;
-    
+    gErrNode = inTree ;
+    throw new FormatException( "LAMBDA" ) ;
+    return NULL ;
   } // ProcessLambda()
   
   Node* ProcessUserDefinedFunc( Node* inTree, int funcIndex, int level ) {
     Function func = mUserDefinedFunctionTable[ funcIndex ] ;
     Node* treeInSymbolTable = mSymbolTable[ FindSymbolFromLocalAndGlobal( func.name ) ].tree ;
     
-    try {
-      
-      if ( treeInSymbolTable -> type == ATOM && treeInSymbolTable -> lex == "lambda" ) {
-        ParameterBinding( func.argList, inTree -> right, "lambda", ++level ) ;
-      } // if()
-      else {
-        ParameterBinding( func.argList, inTree -> right, func.name, ++level ) ;
-      } // else()
-      
-    } catch ( NoReturnValueException* e ) {
-      gErrNode = treeInSymbolTable ;
-      throw new NoReturnValueException() ;
-    } // catch()
+    if ( treeInSymbolTable -> type == ATOM && treeInSymbolTable -> lex == "#<procedure lambda>" ) {
+      ParameterBinding( func.argList, inTree -> right, "lambda", ++level ) ;
+    } // if()
+    else {
+      ParameterBinding( func.argList, inTree -> right, func.name, ++level ) ;
+    } // else()
     
     if ( CountListElement( func.tree ) > 1 ) {
       for ( Node* walk = func.tree ; walk -> lex != "nil" ; walk = walk -> right ) {
@@ -3814,11 +3887,18 @@ private:
       } // for()
     } // if()
     
+    Node* walk = NULL ;
+    
     if ( func.tree -> right -> lex == "nil" ) {
       return EvaluateSExp( func.tree -> left, ++level ) ;
     } // if()
+    else {
+      for ( walk = func.tree ; walk -> lex != "nil" ; walk = walk -> right ) {
+        EvaluateSExp( walk -> left, ++level ) ;
+      } // for()
+    } // else()
     
-    return EvaluateSExp( func.tree, ++level ) ;
+    return EvaluateSExp( walk -> left, ++level ) ;
   } // ProcessUserDefinedFunc()
   
   void AddOriginReserveWords() {
@@ -3875,6 +3955,36 @@ public:
     InitialLambdaFunc() ;
   } // Evaluator()
   
+  bool CheckHasReturnBinding( Node* result, Node* binding ) {
+    if ( result == NULL ) {
+      gErrNode = binding ;
+      return false ;
+    } // if()
+    else ;
+    
+    return true ;
+  } // CheckHasReturnBinding()
+  
+  bool CheckHasReturnBindingOrThrow( Node* result, Node* binding ) {
+    if ( result == NULL ) {
+      gErrNode = binding ;
+      throw new NoReturnValueException() ;
+    } // if()
+    else ;
+    
+    return true ;
+  } // CheckHasReturnBindingOrThrow()
+  
+  bool CheckTopLevelHasReturnBinding( Node* result, Node* binding ) {
+    if ( result == NULL ) {
+      gErrNode = binding ;
+      return false ;
+    } // if()
+    else ;
+    
+    return true ;
+  } // CheckTopLevelHasReturnBinding()
+  
   Node* EvaluateSExp( Node* treeRoot, int level ) {
     
     // the first left atom should be the func name
@@ -3901,10 +4011,11 @@ public:
       } // if()
       else if ( SymbolExist( atomStr ) ) { // this S-exp is a exist symbol
         result = FindSymbolBinding( atomStr, level ) ;
-        
-        if ( result -> lex == "lambda" ) {
+        /*
+        if ( GetFuncNameFromFuncValue( result -> lex ) == "lambda" ) {
           result = mSymbolTable[ FindGlobalSymbol( "lambda" ) ].tree ;
         } // if()
+        */
       } // else if()
       else {
         throw new UnboundValueException( atomStr ) ;
@@ -3929,8 +4040,9 @@ public:
         } // else()
       } // if()
       else if ( funcPart -> type == CONS ) {
-        funcPart = EvaluateSExp( funcPart, ++level ) ;
-        originFuncName = funcPart -> lex ;
+        Node* funcResult = EvaluateSExp( funcPart, ++level ) ;
+        CheckHasReturnBindingOrThrow( funcResult, funcPart ) ;
+        originFuncName = funcResult -> lex ;
       } // else if()
       else { // the function part is neither an atom, not a CONS
         gErrNode = treeRoot ;
@@ -3942,13 +4054,19 @@ public:
       throw new ApplyNonFunctionException() ;
     } // else()
     
-    originFuncName = GetFuncNameFromFuncValue( originFuncName ) ;
+    // originFuncName = GetFuncNameFromFuncValue( originFuncName ) ;
+    // After evaluate the function name part, now we can decide which function to process
+    string funcName = "" ;
+    int definedFuncIndex = -1 ;
+    if ( originFuncName[ 0 ] == '#' || originFuncName == "lambda" ) {
+      // the function name after evaluation ( if the original one is a symbol or some how)
+      funcName = GetReserveWordType( originFuncName ) ;
+      // the functions are stored in mFuncTable, consist of the function name and definition
+      definedFuncIndex = FindUserDefinedFunc( originFuncName ) ;
+    } // if()
+    else ; // this function name is not start with the symbol #
     
     if ( IsList( treeRoot, treeRoot ) ) { // keep doing the evaluation
-      // the function name after evaluation ( if the original one is a symbol or some how)
-      string funcName = GetReserveWordType( originFuncName ) ;
-      // the functions are stored in mFuncTable, consist of the function name and definition
-      int definedFuncIndex = FindUserDefinedFunc( originFuncName ) ;
       
       if ( funcName != "" ) {
         if ( funcName == "quote" ) {
@@ -4044,9 +4162,23 @@ public:
     InitialLambdaFunc() ;
   } // CleanLocalVariables()
   
+  void CleanWholeStack() {
+    mCallStack.CleanStack() ;
+  } // CleanWholeStack()
+  
 } ; // Evaluator
 
-// isList()
+bool IsDefineOrCleanSExp( Node* node ) {
+  if ( node -> type == CONS ) {
+    if ( node -> left -> lex == "define" || node -> left -> lex == "clean-environment" ) {
+      return true ;
+    } // if()
+    else ;
+  } // if()
+  else ;
+  
+  return false ;
+} // IsDefineOrCleanSExp()
 
 int main() {
   
@@ -4078,7 +4210,15 @@ int main() {
           try {
             // Evaluate the tree and start with level 0
             Node* result = eval.EvaluateSExp( tree.GetRoot(), 0 ) ;
-            eval.CleanLocalVariables() ;
+            // check whether the result has a binding
+            // Two exceptions: 1.define 2. clean-environment
+            if ( !eval.CheckTopLevelHasReturnBinding( result, tree.GetRoot() )
+                 && !IsDefineOrCleanSExp( tree.GetRoot() ) ) {
+              gErrNode = tree.GetRoot() ;
+              throw new NoReturnValueException() ;
+            } // if()
+            else ;
+            
             if ( result != NULL ) {
               g.PrettyPrint( result ) ;
             } // if()
@@ -4110,6 +4250,10 @@ int main() {
             g.PrettyPrint( gErrNode ) ;
             // cout << endl ;
           } // catch()
+          catch ( ParamNotBoundException* e ) {
+            cout << e -> Err_mesg() ;
+            g.PrettyPrint( gErrNode ) ;
+          } // catch()
           catch ( DivideByZeroException* e ) {
             cout << e -> Err_mesg() << endl ;
           } // catch()
@@ -4123,15 +4267,17 @@ int main() {
             g.PrettyPrint( gErrNode ) ;
             // cout << endl ;
           } // catch()
+          catch ( CondNotBoundException* e ) {
+            cout << e ->Err_mesg() ;
+            g.PrettyPrint( gErrNode ) ;
+          } // catch()
           catch ( TestCondNotBoundException* e ) {
             cout << e ->Err_mesg() ;
             g.PrettyPrint( gErrNode ) ;
           } // catch()
-          catch ( LetFormatException* e ) {
-            cout << e -> Err_mesg() << endl  ;
-          } // catch()
-          catch ( LambdaFormatException* e ) {
-            cout << e -> Err_mesg() << endl  ;
+          catch ( FormatException* e ) {
+            cout << e ->Err_mesg() ;
+            g.PrettyPrint( gErrNode ) ;
           } // catch()
           catch ( NonReturnAssignedException* e ) {
             cout << e -> Err_mesg() ;
@@ -4143,7 +4289,7 @@ int main() {
       gOriginalList.Clear() ;
       g.Reset() ;
       gJustFinishAExp = true ;
-      
+      eval.CleanWholeStack() ;
     } // catch()
     catch ( EOFException* e ) {
       cout << e -> Err_mesg() << endl ;

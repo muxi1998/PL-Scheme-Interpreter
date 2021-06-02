@@ -479,17 +479,14 @@ public:
   } // Reset()
   
   void SkipLine() {
-    int tmpCinValue = 0 ;
     char ch = '\0' ;
-    tmpCinValue = cin.peek() ;
-    ch = ( char ) tmpCinValue ;
-    while ( ch != '\n' && !IsEOF( tmpCinValue ) ) {
+    ch = cin.peek() ;
+    while ( ch != '\n' && !IsEOF( ch ) ) {
       ch = cin.get() ;
-      tmpCinValue = cin.peek() ;
-      ch = ( char ) tmpCinValue ;
+      ch = cin.peek() ;
     } // while()
     
-    if ( !IsEOF( tmpCinValue ) ) {
+    if ( !IsEOF( ch ) ) {
       ch = cin.get() ; // return-line
     } // if()
     
@@ -549,8 +546,8 @@ public:
     cout << endl ;
   } // PrintStr()
   
-  bool IsEOF( int cinValue ) {
-    if ( cinValue == -1 ) { // -1 means -1 for cin.peek
+  bool IsEOF( char ch ) {
+    if ( ( int ) ch == -1 ) { // -1 means -1 for cin.peek
       return true ;
     } // if()
     
@@ -793,11 +790,9 @@ private:
   
   // Purpose: not only call the func. cin.get(), but also increase the column or line
   char GetChar() {
-    int tmpCh = 0 ;
     char ch = '\0' ;
-    tmpCh = cin.get() ;
-    ch = ( char ) tmpCh ;
-    if ( g.IsEOF( tmpCh ) ) {
+    ch = cin.get() ;
+    if ( g.IsEOF( ch ) ) {
       gIsEOF = true ;
       throw new EOFException() ;
     } // if()
@@ -818,10 +813,8 @@ private:
     bool keepRead = true ;
     char ch_get = '\0' ;
     char ch_peek = '\0' ;
-    int tmpCinValue = 0 ;
     
-    tmpCinValue = cin.peek() ;
-    ch_peek = ( char ) tmpCinValue ;
+    ch_peek = cin.peek() ;
     
     if ( ch_peek == '\"' && fullStr.length() == 1 ) {
       ch_get = cin.get() ;
@@ -830,15 +823,15 @@ private:
     } // if()
     // because we need to get a string, keep reading the input until
     // encounter the next '\"' or return-line
-    while ( keepRead && !IsReturnLine( ch_peek ) && !g.IsEOF( tmpCinValue ) ) {
+    while ( keepRead && !IsReturnLine( ch_peek ) && !g.IsEOF( ch_peek ) ) {
       ch_get = cin.get() ;
       fullStr += ch_get ;
-      tmpCinValue = cin.peek() ;
-      if ( g.IsEOF( tmpCinValue ) ) {
+      ch_peek = cin.peek() ;
+      if ( g.IsEOF( ch_peek ) ) {
         throw new EOFException() ;
       } // if()
       
-      ch_peek = ( char ) tmpCinValue ;
+      // ch_peek = ( char ) tmpCinValue ;
       
       if ( ch_peek == '\"' && ch_get != '\\' )  { // >"< stands alone
         keepRead = false ;
@@ -918,12 +911,10 @@ public:
     
     if ( gPeekToken == "" ) {
       char ch = '\0' ;
-      int cinValue = 0 ;
       
       // peek whether the next char is in input
-      cinValue = cin.peek() ;
-      ch = ( char ) cinValue ;
-      if ( g.IsEOF( cinValue ) ) { // -1 means -1 for cin.peek
+      ch = cin.peek() ;
+      if ( g.IsEOF( ch ) ) { // -1 means -1 for cin.peek
         gIsEOF = true ;
         throw new EOFException() ;
       } // if()
@@ -946,9 +937,8 @@ public:
           gJustFinishAExp = false ;
         } // if()
         
-        cinValue = cin.peek() ;  // keep peeking next char
-        ch = ( char ) cinValue ;
-        if ( g.IsEOF( cinValue ) ) { // -1 means -1 for cin.peek
+        ch = cin.peek() ;
+        if ( g.IsEOF( ch ) ) { // -1 means -1 for cin.peek
           gIsEOF = true ;
           throw new EOFException() ;
         } // if()
@@ -966,10 +956,8 @@ public:
       
       // if this char is already a separator then STOP reading, or keep getting the next char
       if ( !IsSeparator( ch ) && ch != '\"' ) {  // 'ch' here is the first char overall
-        cinValue = cin.peek() ;
-        ch = ( char ) cinValue ;
-
-        if ( g.IsEOF( cinValue ) ) { // -1 means -1 for cin.peek
+        ch = cin.peek() ;
+        if ( g.IsEOF( ch ) ) { // -1 means -1 for cin.peek
           gIsEOF = true ;
           throw new EOFException() ;
         } // if()
@@ -978,9 +966,8 @@ public:
         while ( !IsSeparator( ch ) && !IsWhiteSpace( ch ) && ( int ) ch != -1 ) {
           ch = GetChar() ;
           tokenStrWeGet += ch ;
-          cinValue = cin.peek() ;
-          ch = ( char ) cinValue ;
-          if ( g.IsEOF( cinValue ) ) { // -1 means -1 for cin.peek
+          ch = cin.peek() ;
+          if ( g.IsEOF( ch ) ) { // -1 means -1 for cin.peek
             gIsEOF = true ;
             throw new EOFException() ;
           } // if()
@@ -1002,38 +989,14 @@ public:
     
   } // PeekToken()
   
-  /*
   Token GetToken() {
-    char ch_get = '\0' ;
-    string lexWeGet = "" ;
     
-    if ( gPeekToken == "" ) {
-      PeekToken() ;
-    } // if()
-    
-    ch_get = GetNextNonWhiteChar() ; // get the first char of the token
-    lexWeGet += ch_get ;
-    for ( int i = 1 ; i < gPeekToken.length() ; i ++ ) {
-      ch_get = GetChar() ;
-      lexWeGet += ch_get ;
-    } // for()
-    
-    Token tokenWeWant = LexToToken( lexWeGet ) ;
-    gPeekToken = "" ;
-    gOriginalList.AddNode( tokenWeWant ) ;
-    return tokenWeWant ;
-  
-  } // GetToken()
-  */
-  
-  Token GetToken() {
-   
     if ( gPeekToken == "" ) PeekToken() ;
-   
+    
     Token tokenWeWant = LexToToken( gPeekToken ) ;
     gPeekToken = "" ;
     gOriginalList.AddNode( tokenWeWant ) ;
-   
+    
     return tokenWeWant ;
   } // GetToken()
   
@@ -1572,10 +1535,10 @@ public:
       mRoot = Build( mCopyList.mRoot, mCopyList.mTail ) ;
       
       /*
-      if ( mRoot -> type == CONS && mRoot -> left -> lex == "exit"
-           && mRoot -> right -> lex == "nil" ) {
-        gIsEOF = true ;
-      } // if()
+       if ( mRoot -> type == CONS && mRoot -> left -> lex == "exit"
+       && mRoot -> right -> lex == "nil" ) {
+       gIsEOF = true ;
+       } // if()
       */
       // gOriginalList.Print() ;
       // mCopyList.PrintForward() ;
@@ -1679,7 +1642,7 @@ public:
     return mesg ;
   } // Err_mesg()
 } ; // DivideByZeroException
-/*
+
 class DefineFormatException {
 public:
   string Err_mesg() {
@@ -1687,7 +1650,7 @@ public:
     return mesg ;
   } // Err_mesg()
 } ; // DefineFormatException
-*/
+
 class CondFormatException {
 public:
   string Err_mesg() {
@@ -1728,13 +1691,15 @@ public:
   } // Err_mesg()
 } ; // LambdaFormatException
 
-class DefineFormatException {
+
+class DefineFormatException2 {
 public:
   string Err_mesg() {
     string mesg = "ERROR (define format)" ;
     return mesg ;
   } // Err_mesg()
 } ; // DefineFormatException
+
 
 class NonReturnAssignedException {
 public:
@@ -1914,9 +1879,9 @@ public:
     return isLocal ;
   } // IsLocalVar()
   
-  int GetLocalVarIndex( string varName ) {
+  int GetLocalVarIndex( string varName, int level ) {
     for ( int i = ( int ) mCallStack.size() - 1 ; i >= 0 ; i -- ) {
-      if ( varName == mCallStack[ i ].name ) {
+      if ( varName == mCallStack[ i ].name && mCallStack[ i ].level < level ) {
         return i ;
       } // if()
     } // for()
@@ -1924,9 +1889,9 @@ public:
     return -1 ;
   } // GetLocalVarIndex()
   
-  Node* GetLocalVarBinding( string varName ) {
+  Node* GetLocalVarBinding( string varName, int level ) {
     for ( int i = ( int ) mCallStack.size() - 1 ; i >= 0 ; i -- ) {
-      if ( varName == mCallStack[ i ].name ) {
+      if ( varName == mCallStack[ i ].name && mCallStack[ i ].level < level ) {
         return mCallStack[ i ].tree ;
       } // if()
     } // for()
@@ -1991,9 +1956,9 @@ private:
     } // if()
   } // DeleteTree()
   
-  void UpdateGlobalSymbol( string symName, Node* assignedTree ) {
+  void UpdateGlobalSymbol( string symName, Node* assignedTree, int level ) {
     if ( !mCallStack.IsLocalVar( symName ) ) {
-      int symIndex = FindSymbolFromLocalAndGlobal( symName ) ;
+      int symIndex = FindSymbolFromLocalAndGlobal( symName, level ) ;
       
       mSymbolTable[ symIndex ].name = symName ;
       mSymbolTable[ symIndex ].tree = CopyTree( assignedTree ) ;
@@ -2004,7 +1969,7 @@ private:
   } // UpdateGlobalSymbol()
   
   Node* CopyNode( Node* node ) {
-    Node* newN = ( Node* ) malloc( sizeof( Node ) ) ;
+    Node* newN = g.GetEmptyNode() ;
     newN -> lex = node -> lex ;
     newN -> type = node -> type ;
     newN -> left = node -> left ;
@@ -2046,7 +2011,7 @@ private:
     symbol.tree = NULL ;
     symbol.name = symName ;
     symbol.tree = assignedTree ; // not only copy the pointer but the content
-
+    
     mSymbolTable.push_back( symbol ) ; // add this new symbol to the table
   } // AddSymbol()
   
@@ -2131,14 +2096,14 @@ private:
     return false ;
   } // IsGlobalSymbol()
   
-  int FindLocalSymbol( string str ) {
-    return mCallStack.GetLocalVarIndex( str ) ;
+  int FindLocalSymbol( string str, int level ) {
+    return mCallStack.GetLocalVarIndex( str, level ) ;
   } // FindLocalSymbol()
   
-  int FindSymbolFromLocalAndGlobal( string str ) {
+  int FindSymbolFromLocalAndGlobal( string str, int level ) {
     
     if ( mCallStack.IsLocalVar( str ) ) { // If this is a local variable, then find in stack
-      return FindLocalSymbol( str ) ;
+      return FindLocalSymbol( str, level ) ;
     } // if()
     
     return FindGlobalSymbol( str ) ;
@@ -2156,11 +2121,11 @@ private:
     return false ;
   } // SymbolExist()
   
-  Node* FindSymbolBinding( string str ) {
+  Node* FindSymbolBinding( string str, int level ) {
     
     // always find in the local variable first
     if ( mCallStack.IsLocalVar( str ) ) {
-      return mCallStack.GetLocalVarBinding( str ) ;
+      return mCallStack.GetLocalVarBinding( str, level ) ;
     } // if()
     else { // not a local variable, now try to find in the global area
       int index = FindGlobalSymbol( str ) ;
@@ -2264,7 +2229,7 @@ private:
       if ( IsList( firstArg, firstArg ) ) {
         if ( firstArg -> type == ATOM
              && IsSymbol( firstArg -> lex  )
-             && FindSymbolFromLocalAndGlobal( firstArg -> lex ) == -1 ) {
+             && FindSymbolFromLocalAndGlobal( firstArg -> lex, level ) == -1 ) {
           throw new UnboundValueException( firstArg -> lex ) ;
         } // if()
         else {
@@ -2273,7 +2238,7 @@ private:
           if ( IsList( secondArg, secondArg ) ) {
             if ( secondArg -> type == ATOM
                  && IsSymbol( secondArg -> lex )
-                 && FindSymbolFromLocalAndGlobal( secondArg -> lex ) == -1 ) {
+                 && FindSymbolFromLocalAndGlobal( secondArg -> lex, level ) == -1 ) {
               throw new UnboundValueException( secondArg -> lex ) ;
             } // if()
             else {
@@ -2321,7 +2286,7 @@ private:
         if ( IsList( argList[ i ], argList[ i ] ) ) {
           if ( argList[ i ] -> type == ATOM
                && IsSymbol( argList[ i ] -> lex ) ) {
-            int symIndex = FindSymbolFromLocalAndGlobal( argList[ i ] -> lex ) ;
+            int symIndex = FindSymbolFromLocalAndGlobal( argList[ i ] -> lex, level ) ;
             if ( symIndex != -1 ) {
               argList[ i ] = EvaluateSExp( argList[ i ], ++level ) ;
             } // if()
@@ -2377,7 +2342,7 @@ private:
           prevNode = node ;
         } // else()
       } // for()
-
+      
       return result ;
     } // if()
     
@@ -2451,7 +2416,7 @@ private:
     Symbol newSymbol ;
     newSymbol.name = "" ;
     newSymbol.tree = g.GetEmptyNode() ;
-  
+    
     
     if ( IsList( funcNameAndArgPart, funcNameAndArgPart ) ) {
       string funcName = inTree -> right -> left -> left -> lex ;
@@ -2461,6 +2426,7 @@ private:
       // if the function name is not a symbol and the binding has more than one
       if ( !g.IsSymbol( funcName ) || procedurePart == NULL
            || CountArgument( procedurePart ) != 0 ) {
+        gErrNode = inTree ;
         throw new DefineFormatException() ;
       } // if()
       
@@ -2488,7 +2454,7 @@ private:
         AddSymbol( funcName, tmp ) ;
       } // if()
       else {
-        UpdateGlobalSymbol( funcName, tmp ) ;
+        UpdateGlobalSymbol( funcName, tmp, level ) ;
       } // else()
       
       UpdateUserDefinedFunc( funcName, newFunc ) ;
@@ -2499,6 +2465,7 @@ private:
       
     } // if()
     else {
+      gErrNode = inTree ;
       throw new DefineFormatException() ;
     } // else()
     
@@ -2540,7 +2507,7 @@ private:
           if ( reserveName == "" ) {
             if ( g.GetTokenType( argList[ 0 ] -> lex ) == SYMBOL ) {
               
-              int symIndex = FindSymbolFromLocalAndGlobal( argList[ 0 ] -> lex ) ;
+              int symIndex = FindSymbolFromLocalAndGlobal( argList[ 0 ] -> lex, level ) ;
               newSymbol.name = argList[ 0 ] -> lex ;
               // check the be binded s-exp is correct
               
@@ -2550,12 +2517,21 @@ private:
                 bind = argList[ 1 ] -> right -> left ;
               } // if()
               else {
+                // the definition of this symbol, need to check whether the binding exist
+                // if not, then this is a non return value error
                 bind = EvaluateSExp( argList[ 1 ], ++level ) ;
+                
+                if ( bind == NULL ) {
+                  gErrNode = argList[ 1 ] ;
+                  throw new NoReturnValueException() ;
+                } // if()
+                else ;
+                
               } // else()
               
               if ( symIndex != -1 ) { // this symbol has already exist, update it
                 
-                if ( FindSymbolFromLocalAndGlobal( argList[ 1 ] -> lex ) == -1 ) {
+                if ( FindSymbolFromLocalAndGlobal( argList[ 1 ] -> lex, level ) == -1 ) {
                   // the reference value is not a symbol
                   if ( mCallStack.IsLocalVar( newSymbol.name ) ) {
                     mCallStack.UpdateVar( symIndex, bind ) ;
@@ -2592,11 +2568,11 @@ private:
                     AddNewReserveWord( reserveName, argList[ 0 ] -> lex ) ;
                   } // if()
                   
-                  UpdateGlobalSymbol( argList[ 0 ] -> lex, bind ) ;
+                  UpdateGlobalSymbol( argList[ 0 ] -> lex, bind, level ) ;
                 } // else()
               } // if()
               else {
-                if ( FindSymbolFromLocalAndGlobal( argList[ 1 ] -> lex ) == -1 ) {
+                if ( FindSymbolFromLocalAndGlobal( argList[ 1 ] -> lex, level ) == -1 ) {
                   // the reference value is not a symbol
                   
                   // this been assigned S-exp is in the input
@@ -2604,10 +2580,10 @@ private:
                   newSymbol.tree = bind ;
                 } // if()
                 else {
-                  int symIndex = FindSymbolFromLocalAndGlobal( argList[ 1 ] -> lex ) ;
+                  int symIndex = FindSymbolFromLocalAndGlobal( argList[ 1 ] -> lex, level ) ;
                   if ( mCallStack.IsLocalVar( argList[ 1 ] -> lex ) ) {
                     // newSymbol.tree = mCallStack.GetLocalVarBinding( argList[ 1 ] -> lex ) ;
-                    newSymbol.tree = CopyTree( mCallStack.GetLocalVarBinding( argList[ 1 ] -> lex ) ) ;
+                    newSymbol.tree = CopyTree( mCallStack.GetLocalVarBinding( argList[ 1 ] -> lex, level ) ) ;
                   } // if()
                   else {
                     newSymbol.tree = mSymbolTable[ symIndex ].tree ;
@@ -2691,14 +2667,14 @@ private:
           } // if()
           else if ( funcName == "cdr" ) {
             // because the right most node may possibly be a NIL which is added by myself
-            /*
-            if ( targetTree -> right != NULL && targetTree -> right -> right -> isAddByMe ) {
-              return targetTree -> right -> left ;
-            } // if()
-            else {
-              return targetTree -> right ;
-            } // else()
-            */
+          /*
+             if ( targetTree -> right != NULL && targetTree -> right -> right -> isAddByMe ) {
+             return targetTree -> right -> left ;
+             } // if()
+             else {
+             return targetTree -> right ;
+             } // else()
+          */
             return targetTree -> right ;
           } // else if()
         } // else()
@@ -2800,6 +2776,7 @@ private:
     // mSymbolTable.clear() ;
     mFunctionTable.clear() ;
     mUserDefinedFunctionTable.clear() ;
+    CleanLocalVariables() ;
     // mReserveWords.clear() ;
     ResetSymbolTable() ;
     // AddOriginReserveWords() ;
@@ -3167,7 +3144,7 @@ private:
   } // ProcessCondOperation()
   
   Node* ProcessOperation( string funcName, Node* inTree, int level ) {
-
+    
     vector<Node*> argList = GetArgumentList( inTree ) ;
     
     if ( IsMathOperator( funcName ) ) { // need to have more than two arguments
@@ -3257,14 +3234,14 @@ private:
         if ( argList[ 0 ] -> type != CONS && argList[ 1 ] -> type != CONS
              && g.GetTokenType( argList[ 0 ] -> lex ) == SYMBOL
              && g.GetTokenType( argList[ 1 ] -> lex ) == SYMBOL ) {
-          int symIndex1 = FindSymbolFromLocalAndGlobal( argList[ 0 ] -> lex ) ;
-          int symIndex2 = FindSymbolFromLocalAndGlobal( argList[ 1 ] -> lex ) ;
+          int symIndex1 = FindSymbolFromLocalAndGlobal( argList[ 0 ] -> lex, level ) ;
+          int symIndex2 = FindSymbolFromLocalAndGlobal( argList[ 1 ] -> lex, level ) ;
           if ( symIndex1 != -1 && symIndex2 != -1 ) {
             // case1. both of them are local
             if ( mCallStack.IsLocalVar( argList[ 0 ] -> lex )
                  && mCallStack.IsLocalVar( argList[ 1 ] -> lex ) ) {
-              if ( mCallStack.GetLocalVarBinding( argList[ 0 ] -> lex )
-                   == mCallStack.GetLocalVarBinding( argList[ 1 ] -> lex ) ) {
+              if ( mCallStack.GetLocalVarBinding( argList[ 0 ] -> lex, level )
+                   == mCallStack.GetLocalVarBinding( argList[ 1 ] -> lex, level ) ) {
                 isInSameMemory = true ;
               } // if()
             } // if()
@@ -3590,7 +3567,16 @@ private:
         Node* bind = varList[ i ] -> right -> left ;
         
         if ( g.IsSymbol( varName ) ) { // local variable should be a symbol
-          Node* binding = EvaluateSExp( bind, ++level ) ;
+          
+          Node* binding = NULL ;
+          try {
+            
+            binding = EvaluateSExp( bind, ++level ) ;
+            
+          } catch ( NoReturnValueException* e ) {
+            gErrNode = bind ;
+            throw new NoReturnValueException() ;
+          } // catch()
           
           if ( binding == NULL || binding -> type == EMPTY ) {
             varList.clear() ;
@@ -3666,7 +3652,7 @@ private:
     else {
       throw new LambdaFormatException() ;
     } // else()
-
+    
     return countNum ;
   } // CountAndCkeckParameters()
   
@@ -3737,11 +3723,18 @@ private:
     else if ( inTree -> left -> type == CONS ) { // the second circumstances
       if ( inTree -> right -> lex != "nil" ) { // immediately call the lambda function
         mLambdaStack.push_back( mLambdaFunc ) ;
-        ParameterBinding( mLambdaFunc.argList, inTree -> right, "lambda expression", ++level ) ;
+        
+        try {
+          ParameterBinding( mLambdaFunc.argList, inTree -> right, "lambda expression", ++level ) ;
+        } catch ( NoReturnValueException* e ) {
+          gErrNode = inTree ;
+          throw new NoReturnValueException() ;
+        } // catch()
+        
         mLambdaFunc = mLambdaStack[ mLambdaStack.size() - 1 ] ;
         mLambdaStack.pop_back() ;
       } // if()
-        
+      
       if ( mLambdaFunc.tree != NULL ) {
         for ( Node* walk = mLambdaFunc.tree ; walk -> lex != "nil" ; walk = walk -> right ) {
           if ( walk -> right -> lex == "nil" ) {
@@ -3787,13 +3780,21 @@ private:
   
   Node* ProcessUserDefinedFunc( Node* inTree, int funcIndex, int level ) {
     Function func = mUserDefinedFunctionTable[ funcIndex ] ;
-    Node* treeInSymbolTable = mSymbolTable[ FindSymbolFromLocalAndGlobal( func.name ) ].tree ;
-    if ( treeInSymbolTable -> type == ATOM && treeInSymbolTable -> lex == "lambda" ) {
-      ParameterBinding( func.argList, inTree -> right, "lambda", ++level ) ;
-    } // if()
-    else {
-      ParameterBinding( func.argList, inTree -> right, func.name, ++level ) ;
-    } // else()
+    Node* treeInSymbolTable = mSymbolTable[ FindSymbolFromLocalAndGlobal( func.name, level ) ].tree ;
+    
+    try {
+      
+      if ( treeInSymbolTable -> type == ATOM && treeInSymbolTable -> lex == "lambda" ) {
+        ParameterBinding( func.argList, inTree -> right, "lambda", ++level ) ;
+      } // if()
+      else {
+        ParameterBinding( func.argList, inTree -> right, func.name, ++level ) ;
+      } // else()
+      
+    } catch ( NoReturnValueException* e ) {
+      gErrNode = treeInSymbolTable ;
+      throw new NoReturnValueException() ;
+    } // catch()
     
     if ( CountListElement( func.tree ) > 1 ) {
       for ( Node* walk = func.tree ; walk -> lex != "nil" ; walk = walk -> right ) {
@@ -3868,13 +3869,13 @@ public:
   } // Evaluator()
   
   Node* EvaluateSExp( Node* treeRoot, int level ) {
-
+    
     // the first left atom should be the func name
     Node* result = NULL ; // used to store the evaluation result tree
     string originFuncName = "" ; // copy the original operator from the fiven tree
     
     mCallStack.GetCleanLocalZone() ;
-
+    
     if ( treeRoot == NULL ) { // to make sure the recent evaluated tree is not null
       return g.GetEmptyNode() ;
     } // if()
@@ -3891,7 +3892,7 @@ public:
         result = treeRoot ;
       } // if()
       else if ( SymbolExist( atomStr ) ) { // this S-exp is a exist symbol
-        result = FindSymbolBinding( atomStr ) ;
+        result = FindSymbolBinding( atomStr, level ) ;
         
         if ( result -> lex == "lambda" ) {
           result = mSymbolTable[ FindGlobalSymbol( "lambda" ) ].tree ;
@@ -3913,7 +3914,7 @@ public:
       
       if ( funcPart -> type == ATOM ) { // if this is an atom, then check what it represents
         if ( SymbolExist( funcPart -> lex ) ) {
-          originFuncName = FindSymbolBinding( funcPart -> lex ) -> lex ;
+          originFuncName = FindSymbolBinding( funcPart -> lex, level ) -> lex ;
         } // if()
         else {
           originFuncName = funcPart -> lex ;
@@ -4105,10 +4106,9 @@ int main() {
             cout << e -> Err_mesg() << endl ;
           } // catch()
           catch ( DefineFormatException* e ) {
-            cout << e -> Err_mesg() << endl ;
-            // cout << e -> Err_mesg() ;
-            // g.PrettyPrint( gErrNode ) ;
-            // cout << endl ;
+            // cout << e -> Err_mesg() << endl ;
+            cout << e -> Err_mesg() ;
+            g.PrettyPrint( gErrNode ) ;
           } // catch()
           catch ( CondFormatException* e ) {
             cout << e -> Err_mesg() ;

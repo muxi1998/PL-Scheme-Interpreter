@@ -1777,7 +1777,6 @@ struct StackArea {
 class CallStack { // to implement a callstack similar to the actual call stack
 private:
   vector<string> mCurrentVar ; // record the recent local variable (in smae level)
-  // vector< vector<string> > mEachLevelLocalVar ;
   StackArea* mStart ;
   StackArea* mEnd ;
   vector<LocalSymbol> mCallStack ; // the first element is the lastest one
@@ -1879,9 +1878,9 @@ public:
     return isLocal ;
   } // IsLocalVar()
   
-  int GetLocalVarIndex( string varName, int level ) {
+  int GetLocalVarIndex( string varName ) {
     for ( int i = ( int ) mCallStack.size() - 1 ; i >= 0 ; i -- ) {
-      if ( varName == mCallStack[ i ].name && mCallStack[ i ].level < level ) {
+      if ( varName == mCallStack[ i ].name ) {
         return i ;
       } // if()
     } // for()
@@ -1889,9 +1888,9 @@ public:
     return -1 ;
   } // GetLocalVarIndex()
   
-  Node* GetLocalVarBinding( string varName, int level ) {
+  Node* GetLocalVarBinding( string varName ) {
     for ( int i = ( int ) mCallStack.size() - 1 ; i >= 0 ; i -- ) {
-      if ( varName == mCallStack[ i ].name && mCallStack[ i ].level < level ) {
+      if ( varName == mCallStack[ i ].name ) {
         return mCallStack[ i ].tree ;
       } // if()
     } // for()
@@ -1958,7 +1957,7 @@ private:
   
   void UpdateGlobalSymbol( string symName, Node* assignedTree, int level ) {
     if ( !mCallStack.IsLocalVar( symName ) ) {
-      int symIndex = FindSymbolFromLocalAndGlobal( symName, level ) ;
+      int symIndex = FindSymbolFromLocalAndGlobal( symName ) ;
       
       mSymbolTable[ symIndex ].name = symName ;
       mSymbolTable[ symIndex ].tree = CopyTree( assignedTree ) ;
@@ -2096,14 +2095,14 @@ private:
     return false ;
   } // IsGlobalSymbol()
   
-  int FindLocalSymbol( string str, int level ) {
-    return mCallStack.GetLocalVarIndex( str, level ) ;
+  int FindLocalSymbol( string str ) {
+    return mCallStack.GetLocalVarIndex( str ) ;
   } // FindLocalSymbol()
   
-  int FindSymbolFromLocalAndGlobal( string str, int level ) {
+  int FindSymbolFromLocalAndGlobal( string str ) {
     
     if ( mCallStack.IsLocalVar( str ) ) { // If this is a local variable, then find in stack
-      return FindLocalSymbol( str, level ) ;
+      return FindLocalSymbol( str ) ;
     } // if()
     
     return FindGlobalSymbol( str ) ;
@@ -2125,7 +2124,7 @@ private:
     
     // always find in the local variable first
     if ( mCallStack.IsLocalVar( str ) ) {
-      return mCallStack.GetLocalVarBinding( str, level ) ;
+      return mCallStack.GetLocalVarBinding( str ) ;
     } // if()
     else { // not a local variable, now try to find in the global area
       int index = FindGlobalSymbol( str ) ;
@@ -2229,7 +2228,7 @@ private:
       if ( IsList( firstArg, firstArg ) ) {
         if ( firstArg -> type == ATOM
              && IsSymbol( firstArg -> lex  )
-             && FindSymbolFromLocalAndGlobal( firstArg -> lex, level ) == -1 ) {
+             && FindSymbolFromLocalAndGlobal( firstArg -> lex ) == -1 ) {
           throw new UnboundValueException( firstArg -> lex ) ;
         } // if()
         else {
@@ -2238,7 +2237,7 @@ private:
           if ( IsList( secondArg, secondArg ) ) {
             if ( secondArg -> type == ATOM
                  && IsSymbol( secondArg -> lex )
-                 && FindSymbolFromLocalAndGlobal( secondArg -> lex, level ) == -1 ) {
+                 && FindSymbolFromLocalAndGlobal( secondArg -> lex ) == -1 ) {
               throw new UnboundValueException( secondArg -> lex ) ;
             } // if()
             else {
@@ -2286,7 +2285,7 @@ private:
         if ( IsList( argList[ i ], argList[ i ] ) ) {
           if ( argList[ i ] -> type == ATOM
                && IsSymbol( argList[ i ] -> lex ) ) {
-            int symIndex = FindSymbolFromLocalAndGlobal( argList[ i ] -> lex, level ) ;
+            int symIndex = FindSymbolFromLocalAndGlobal( argList[ i ] -> lex ) ;
             if ( symIndex != -1 ) {
               argList[ i ] = EvaluateSExp( argList[ i ], ++level ) ;
             } // if()
@@ -2507,7 +2506,7 @@ private:
           if ( reserveName == "" ) {
             if ( g.GetTokenType( argList[ 0 ] -> lex ) == SYMBOL ) {
               
-              int symIndex = FindSymbolFromLocalAndGlobal( argList[ 0 ] -> lex, level ) ;
+              int symIndex = FindSymbolFromLocalAndGlobal( argList[ 0 ] -> lex ) ;
               newSymbol.name = argList[ 0 ] -> lex ;
               // check the be binded s-exp is correct
               
@@ -2531,7 +2530,7 @@ private:
               
               if ( symIndex != -1 ) { // this symbol has already exist, update it
                 
-                if ( FindSymbolFromLocalAndGlobal( argList[ 1 ] -> lex, level ) == -1 ) {
+                if ( FindSymbolFromLocalAndGlobal( argList[ 1 ] -> lex ) == -1 ) {
                   // the reference value is not a symbol
                   if ( mCallStack.IsLocalVar( newSymbol.name ) ) {
                     mCallStack.UpdateVar( symIndex, bind ) ;
@@ -2572,7 +2571,7 @@ private:
                 } // else()
               } // if()
               else {
-                if ( FindSymbolFromLocalAndGlobal( argList[ 1 ] -> lex, level ) == -1 ) {
+                if ( FindSymbolFromLocalAndGlobal( argList[ 1 ] -> lex ) == -1 ) {
                   // the reference value is not a symbol
                   
                   // this been assigned S-exp is in the input
@@ -2580,10 +2579,10 @@ private:
                   newSymbol.tree = bind ;
                 } // if()
                 else {
-                  int symIndex = FindSymbolFromLocalAndGlobal( argList[ 1 ] -> lex, level ) ;
+                  int symIndex = FindSymbolFromLocalAndGlobal( argList[ 1 ] -> lex ) ;
                   if ( mCallStack.IsLocalVar( argList[ 1 ] -> lex ) ) {
                     // newSymbol.tree = mCallStack.GetLocalVarBinding( argList[ 1 ] -> lex ) ;
-                    newSymbol.tree = CopyTree( mCallStack.GetLocalVarBinding( argList[ 1 ] -> lex, level ) ) ;
+                    newSymbol.tree = CopyTree( mCallStack.GetLocalVarBinding( argList[ 1 ] -> lex ) ) ;
                   } // if()
                   else {
                     newSymbol.tree = mSymbolTable[ symIndex ].tree ;
@@ -3234,14 +3233,14 @@ private:
         if ( argList[ 0 ] -> type != CONS && argList[ 1 ] -> type != CONS
              && g.GetTokenType( argList[ 0 ] -> lex ) == SYMBOL
              && g.GetTokenType( argList[ 1 ] -> lex ) == SYMBOL ) {
-          int symIndex1 = FindSymbolFromLocalAndGlobal( argList[ 0 ] -> lex, level ) ;
-          int symIndex2 = FindSymbolFromLocalAndGlobal( argList[ 1 ] -> lex, level ) ;
+          int symIndex1 = FindSymbolFromLocalAndGlobal( argList[ 0 ] -> lex ) ;
+          int symIndex2 = FindSymbolFromLocalAndGlobal( argList[ 1 ] -> lex ) ;
           if ( symIndex1 != -1 && symIndex2 != -1 ) {
             // case1. both of them are local
             if ( mCallStack.IsLocalVar( argList[ 0 ] -> lex )
                  && mCallStack.IsLocalVar( argList[ 1 ] -> lex ) ) {
-              if ( mCallStack.GetLocalVarBinding( argList[ 0 ] -> lex, level )
-                   == mCallStack.GetLocalVarBinding( argList[ 1 ] -> lex, level ) ) {
+              if ( mCallStack.GetLocalVarBinding( argList[ 0 ] -> lex )
+                   == mCallStack.GetLocalVarBinding( argList[ 1 ] -> lex ) ) {
                 isInSameMemory = true ;
               } // if()
             } // if()
@@ -3538,6 +3537,7 @@ private:
   
   bool CheckAndStoreLocalVarSuccess( Node* localVars, int level ) {
     vector<Node*> varList ;
+    vector<Node*> bindingList ;
     // Seperate all the local variables from the tree structure into a vactor
     if ( IsList( localVars, localVars ) ) {
       for ( Node* walk = localVars ; walk -> lex != "nil" ; walk = walk -> right ) {
@@ -3585,7 +3585,8 @@ private:
             throw new NonReturnAssignedException() ;
           } // if()
           else {
-            mCallStack.AddCurrentLocalVar( varName, binding, level ) ;
+            // mCallStack.AddCurrentLocalVar( varName, binding, level ) ;
+            bindingList.push_back( binding ) ;
           } // else()
         } // if()
         else {
@@ -3597,6 +3598,12 @@ private:
         varList.clear() ;
         return false ;
       } // else()
+    } // for()
+    
+    // assert: all parameter binding should benn evaluated
+    for ( int i = 0 ; i < varList.size() ; i ++ ) {
+      string varName = varList[ i ] -> left -> lex ;
+      mCallStack.AddCurrentLocalVar( varName, bindingList[ i ], level ) ;
     } // for()
     
     return true ;
@@ -3780,7 +3787,7 @@ private:
   
   Node* ProcessUserDefinedFunc( Node* inTree, int funcIndex, int level ) {
     Function func = mUserDefinedFunctionTable[ funcIndex ] ;
-    Node* treeInSymbolTable = mSymbolTable[ FindSymbolFromLocalAndGlobal( func.name, level ) ].tree ;
+    Node* treeInSymbolTable = mSymbolTable[ FindSymbolFromLocalAndGlobal( func.name ) ].tree ;
     
     try {
       
@@ -3875,6 +3882,7 @@ public:
     string originFuncName = "" ; // copy the original operator from the fiven tree
     
     mCallStack.GetCleanLocalZone() ;
+    // Local vairables in each zone (S-exp) cannot be push until all evaluation is done
     
     if ( treeRoot == NULL ) { // to make sure the recent evaluated tree is not null
       return g.GetEmptyNode() ;

@@ -1014,13 +1014,11 @@ public:
   
 };
 
+LexicalAnalyzer gLA ;
+
 // Purpose: Check the statement, if nothin wrong the build the tree, else Print the error
 class SyntaxAnalyzer {
-  
-private:
-  
-  LexicalAnalyzer mLa ;
-  
+
 public:
   
   bool CheckSExp( Token startToken ) {
@@ -1028,8 +1026,8 @@ public:
     // 1.Atom 2.LP 3.Quote *4.LR RP
     
     // this is a NIL with special format >()<
-    if ( startToken.type == LPAREN && g.GetTokenType( mLa.PeekToken() ) == RPAREN ) {
-      mLa.GetToken() ; // take away the RP from the input
+    if ( startToken.type == LPAREN && g.GetTokenType( gLA.PeekToken() ) == RPAREN ) {
+      gLA.GetToken() ; // take away the RP from the input
       
       return true ; // one of an ATOM
     } // if()
@@ -1037,7 +1035,7 @@ public:
       return true ;
     } // else if()
     else if ( startToken.type == QUOTE ) {
-      Token token = mLa.GetToken() ; // get the next token, suppose to be the start of a S-exp
+      Token token = gLA.GetToken() ; // get the next token, suppose to be the start of a S-exp
       
       return  CheckSExp( token ) ;
     } // else if()
@@ -1046,19 +1044,19 @@ public:
       bool hasOneSExpCorrect = false ;
       bool moreSExpCorrect = true ;
       
-      Token token = mLa.GetToken() ; // get the next token, suppose to be the start of a S-exp
+      Token token = gLA.GetToken() ; // get the next token, suppose to be the start of a S-exp
       hasOneSExpCorrect = CheckSExp( token ) ;
       
       if ( hasOneSExpCorrect ) {
         
-        while ( ( g.GetTokenType( mLa.PeekToken() ) == LPAREN
-                  || IsATOM( mLa.PeekToken() )
-                  || g.GetTokenType( mLa.PeekToken() ) == QUOTE )
+        while ( ( g.GetTokenType( gLA.PeekToken() ) == LPAREN
+                  || IsATOM( gLA.PeekToken() )
+                  || g.GetTokenType( gLA.PeekToken() ) == QUOTE )
                 && moreSExpCorrect ) {
-          token = mLa.GetToken() ;
+          token = gLA.GetToken() ;
           moreSExpCorrect = CheckSExp( token ) ;
           
-          mLa.PeekToken() ; // maybe successfully check a correct S-exp, keep peeking the next one
+          gLA.PeekToken() ; // maybe successfully check a correct S-exp, keep peeking the next one
         } // while()
         
         if ( !moreSExpCorrect ) { // there are more S-exp, but not all correct
@@ -1066,10 +1064,10 @@ public:
         } // if()
         else {
           // means only one S-exp in this left S-exp
-          if ( g.GetTokenType( mLa.PeekToken() ) == DOT ) {
-            token = mLa.GetToken() ; // must be DOT
+          if ( g.GetTokenType( gLA.PeekToken() ) == DOT ) {
+            token = gLA.GetToken() ; // must be DOT
             // must be the start of the next S-exp according to the grammer
-            token = mLa.GetToken() ;
+            token = gLA.GetToken() ;
             
             hasOneSExpCorrect = CheckSExp( token ) ;
             if ( !hasOneSExpCorrect ) {
@@ -1077,8 +1075,8 @@ public:
               return false ;
             } // if()
             else {
-              if ( g.GetTokenType( mLa.PeekToken() ) == RPAREN ) {
-                token = mLa.GetToken() ; // must be >)<
+              if ( g.GetTokenType( gLA.PeekToken() ) == RPAREN ) {
+                token = gLA.GetToken() ; // must be >)<
                 
                 return true ;
               } // if()
@@ -1089,8 +1087,8 @@ public:
             } // else()
             
           } // if()
-          else if ( g.GetTokenType( mLa.PeekToken() ) == RPAREN ) {
-            token = mLa.GetToken() ; // must be >)<
+          else if ( g.GetTokenType( gLA.PeekToken() ) == RPAREN ) {
+            token = gLA.GetToken() ; // must be >)<
             
             return true ;
           } // else if()
@@ -1130,15 +1128,14 @@ public:
   
 } ;
 
+SyntaxAnalyzer gSA ;
+
 class Tree {
   
 private:
   
   Node *mRoot ;
   SingleList mCopyList ;
-  
-  LexicalAnalyzer mLa ;
-  SyntaxAnalyzer mS ;
   
   void TransferNIL( Node_Linear* root, Node_Linear* tail ) {
     bool finish = false ;
@@ -1510,7 +1507,7 @@ public:
     TranslateQuote() ;
     
     // Substitude () with nil and put on the ( )
-    if ( mS.IsATOM( mCopyList.mRoot -> token ) ) {
+    if ( gSA.IsATOM( mCopyList.mRoot -> token ) ) {
       Node* leaf = new Node ;
       leaf -> lex = "" ;
       leaf -> left = NULL ;
@@ -1560,6 +1557,30 @@ public:
   Node* GetRoot() {
     return mRoot ;
   } // GetRoot()
+  
+  void CleanInputList() {
+    mCopyList.Clear() ;
+  } // CleanInputList()
+  
+  
+  void DeleteTree( Node* root ) {
+    if ( root != NULL ) {
+      // leaf
+      if ( root -> left == NULL && root -> right == NULL ) {
+        delete root ;
+        root = NULL ;
+      } // if()
+      else  { // still some subtrees in left or right node
+        if ( root -> left != NULL ) {
+          return DeleteTree( root -> left ) ;
+        } // if()
+        
+        if ( root -> right != NULL ) {
+          return DeleteTree( root -> right ) ;
+        } // if()
+      } // else()
+    } // if()
+  } // DeleteTree()
   
 };
 
@@ -1988,25 +2009,6 @@ private:
       mReserveWords[ i ].list.clear() ;
     } // for()
   } // ResetReserveWord()
-  
-  void DeleteTree( Node* root ) {
-    if ( root != NULL ) {
-      // leaf
-      if ( root -> left == NULL && root -> right == NULL ) {
-        delete root ;
-        root = NULL ;
-      } // if()
-      else  { // still some subtrees in left or right node
-        if ( root -> left != NULL ) {
-          return DeleteTree( root -> left ) ;
-        } // if()
-        
-        if ( root -> right != NULL ) {
-          return DeleteTree( root -> right ) ;
-        } // if()
-      } // else()
-    } // if()
-  } // DeleteTree()
   
   void UpdateGlobalSymbol( string symName, Node* assignedTree, int level ) {
     if ( !mCallStack.IsLocalVar( symName ) ) {
@@ -3569,6 +3571,7 @@ private:
     if ( CountArgument( inTree ) >= 1 ) {
       // sequencing evaluate all argements, but return the final one
       vector<Node*> argList = GetArgumentList( inTree ) ;
+      Node* result = NULL ;
       
       for ( int i = 0 ; i < argList.size() ; i ++ ) {
         if ( !IsList( argList[ i ] ) && argList[ i ] -> type == CONS ) {
@@ -3579,12 +3582,16 @@ private:
       
       for ( int i = 0 ; i < argList.size() ; i ++ ) {
         if ( i == argList.size() - 1 ) {
-          return EvaluateSExp( argList[ i ], ++level ) ;
+          result = EvaluateSExp( argList[ i ], ++level ) ;
         } // if()
         else {
           EvaluateSExp( argList[ i ], ++level ) ;
         } // else()
       } // for()
+      
+      argList.clear() ;
+      
+      return result ;
     } // if()
     else {
       throw new IncorrectNumberArgumentException( "begin" ) ;
@@ -3718,6 +3725,8 @@ private:
 
         mCallStack.RestoreLocalVar( localVarNameList ) ;
         mCallStack.ClearCurrentLocalVar() ;
+        
+        localVarNameList.clear() ;
         
         return finalResult ;
       } // if()
@@ -3893,7 +3902,6 @@ private:
     Function func = mUserDefinedFunctionTable[ funcIndex ] ;
     Node* treeInSymbolTable = mSymbolTable[ FindSymbolFromLocalAndGlobal( func.name ) ].tree ;
     Node* finalResult = NULL ;
-    vector<string> paramList ;
     
     if ( treeInSymbolTable -> type == ATOM && treeInSymbolTable -> lex == "#<procedure lambda>" ) {
       ParameterBinding( func.argList, inTree -> right, "lambda", ++level ) ;
@@ -3901,10 +3909,6 @@ private:
     else {
       ParameterBinding( func.argList, inTree -> right, func.name, ++level ) ;
     } // else()
-    
-    // copy the local variables
-    // after processing this S-exp, these local cariables need to be erased
-    paramList.assign( func.argList.begin(), func.argList.end() ) ;
     
     for ( Node* walk = func.tree ; walk -> lex != "nil" ; walk = walk -> right ) {
       if ( walk -> right -> lex == "nil" ) {
@@ -4192,14 +4196,12 @@ bool IsDefineOrCleanSExp( Node* node ) {
 
 int main() {
   
-  LexicalAnalyzer la ;
-  SyntaxAnalyzer sa ;
   Evaluator eval ;
   bool grammerCorrect = false ;
   
   cin >> uTestNum ;
   char retuenLine = cin.get() ;
-  
+   
   cout << "Welcome to OurScheme!" << endl ;
   string inputStr = "" ;
   
@@ -4208,14 +4210,15 @@ int main() {
     try {
       
       cout << endl << "> " ;
-      la.PeekToken() ;
-      Token token = la.GetToken() ;
+      gLA.PeekToken() ;
+      Token token = gLA.GetToken() ;
       
-      grammerCorrect = sa.CheckSExp( token ) ;
+      grammerCorrect = gSA.CheckSExp( token ) ;
       if ( grammerCorrect ) {
         Tree tree( gOriginalList ) ;
         tree.BuildTree() ;
-        g.Reset() ;
+        // tree.CleanInputList() ; // as the tree has built, the original input list is useless
+        g.Reset() ; // reset all information that used in Lexical analyzer
         
         if ( !gIsEOF ) {
           // g.PrettyPrint( tree.GetRoot() ) ; // proj.1
@@ -4296,6 +4299,9 @@ int main() {
             g.PrettyPrint( gErrNode ) ;
           } // catch()
         } // if()
+        
+        tree.DeleteTree( tree.GetRoot() ) ;
+        
       } // if()
       
       // gOriginalList.Clear() ;
@@ -4324,7 +4330,7 @@ int main() {
     
   } // while()
   
-  gOriginalList.Clear() ;
+  eval.CleanWholeStack() ;
   g.Reset() ;
   
   cout << endl << "Thanks for using OurScheme!" ;

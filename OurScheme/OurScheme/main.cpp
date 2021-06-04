@@ -824,27 +824,34 @@ private:
     } // if()
     // because we need to get a string, keep reading the input until
     // encounter the next '\"' or return-line
-    while ( keepRead && !IsReturnLine( ch_peek ) && !g.IsEOF( ch_peek ) ) {
-      ch_get = cin.get() ;
-      fullStr += ch_get ;
-      ch_peek = cin.peek() ;
-      if ( g.IsEOF( ch_peek ) ) {
-        throw new EOFException() ;
-      } // if()
+    
+    try {
       
-      // ch_peek = ( char ) tmpCinValue ;
+      while ( keepRead && !IsReturnLine( ch_peek ) && !g.IsEOF( ch_peek ) ) {
+        ch_get = cin.get() ;
+        fullStr += ch_get ;
+        ch_peek = cin.peek() ;
+        if ( g.IsEOF( ch_peek ) ) {
+          throw new EOFException() ;
+        } // if()
+        
+        // ch_peek = ( char ) tmpCinValue ;
+        
+        if ( ch_peek == '\"' && ch_get != '\\' )  { // >"< stands alone
+          keepRead = false ;
+        } // if()
+      } // while()
       
-      if ( ch_peek == '\"' && ch_get != '\\' )  { // >"< stands alone
-        keepRead = false ;
-      } // if()
-    } // while()
+    } catch ( EOFException* e ) {
+      gColumn += ( int ) fullStr.length() - 1 ;
+      throw new NoClosingQuoteException( gLine, gColumn + 1 ) ;
+    } // catch()
     
     if ( ch_peek == '\"' ) {  // a complete string with a correct syntax
       ch_get = cin.get() ;
       fullStr += ch_get ;
     } // if()
     else { // miss the ending quote
-      // cin.putback( cin.get() ) ;
       gColumn += ( int ) fullStr.length() - 1 ;
       throw new NoClosingQuoteException( gLine, gColumn + 1 ) ;
     } // else()
@@ -1829,6 +1836,10 @@ public:
     } // else()
   } // AddNewSymbolNameToStackArea()
   
+  void RestoreLocalVar( vector<string> paramList ) {
+    mCurrentVar.assign( paramList.begin(), paramList.end() ) ;
+  } // RestoreLocalVar()
+  
   void DeleteLastStackArea() {
     if ( mEnd == mStart ) {
       if ( mEnd == NULL ) {
@@ -1854,7 +1865,18 @@ public:
     } // else if()
   } // DeleteLastStackArea()
   
-  void AddCurrentLocalVar( string name, Node* binding, int level ) {
+  void AddLocalVars( vector<string> nameList, vector<Node*> bindList, int level ) {
+    if ( nameList.size() != bindList.size() ) {
+      cout << "### Error: Local variabl and binding number failure ###" << endl ;
+    } // if()
+    else {
+      for ( int i = 0 ; i < nameList.size() ; i ++ ) {
+        AddOneLocalVar( nameList[ i ], bindList[ i ], level ) ;
+      } // for()
+    } // else()
+  } // AddLocalVars()
+  
+  void AddOneLocalVar( string name, Node* binding, int level ) {
     LocalSymbol newSym ;
     newSym.name = "" ;
     newSym.level = 0 ;
@@ -1866,7 +1888,7 @@ public:
     
     mCurrentVar.push_back( name ) ;
     mCallStack.push_back( newSym ) ;
-  } // AddCurrentLocalVar()
+  } // AddOneLocalVar()
   
   void GetCleanLocalZone() {
     AddNewSymbolNameToStackArea() ;
@@ -1919,7 +1941,7 @@ public:
       } // if()
     } // for()
     
-    return g.GetNullNode() ;
+    return NULL ;
   } // GetLocalVarBinding()
   
   void UpdateVar( int index, Node* newBinding ) {
@@ -1928,6 +1950,8 @@ public:
   
   void CleanStack() {
     mCallStack.clear() ;
+    mStart = NULL ;
+    mEnd = NULL ;
   } // CleanStack()
   
 } ; // CallStack
@@ -3603,13 +3627,14 @@ private:
     return NULL ;
   } // ProcessVerbose()
   
-  bool CheckAndStoreLocalVarSuccess( Node* localVars, int level ) {
+  bool CheckAndStoreLocalVarSuccess( Node* localVars, vector<string> &varNameList, int level ) {
     vector<Node*> varList ;
     vector<Node*> bindingList ;
     // Seperate all the local variables from the tree structure into a vactor
     if ( IsList( localVars, localVars ) ) {
       for ( Node* walk = localVars ; walk -> lex != "nil" ; walk = walk -> right ) {
         if ( IsList( walk -> left, walk -> left ) && CountListElement( walk -> left ) == 2 ) {
+          varNameList.push_back( walk -> left -> left -> lex ) ;
           varList.push_back( walk -> left ) ;
         } // if()
         else {
@@ -3659,11 +3684,9 @@ private:
     } // for()
     
     // assert: all parameter binding should benn evaluated
-    for ( int i = 0 ; i < varList.size() ; i ++ ) {
-      string varName = varList[ i ] -> left -> lex ;
-      mCallStack.AddCurrentLocalVar( varName, bindingList[ i ], level ) ;
-    } // for()
+    mCallStack.AddLocalVars( varNameList, bindingList, level ) ;
     
+    varList.clear() ;
     bindingList.clear() ;
     
     return true ;
@@ -3673,15 +3696,24 @@ private:
     Node* allArg = inTree -> right ;
     Node* localVarList = allArg -> left ;
     Node* allSExp = allArg -> right ;
+    vector<string> localVarNameList ;
     
     if ( CountArgument( inTree ) >= 2 ) {
-      if ( CheckAndStoreLocalVarSuccess( localVarList, ++level ) ) {
+      mCallStack.GetCleanLocalZone() ;
+      
+      if ( CheckAndStoreLocalVarSuccess( localVarList, localVarNameList, ++level ) ) {
+        
         Node* walk ;
         for ( walk = allSExp ; walk -> right -> lex != "nil" ; walk = walk -> right ) {
           EvaluateSExp( walk -> left, ++level ) ;
         } // for()
         
-        return EvaluateSExp( walk -> left, ++level ) ; // return the last expression result
+        Node* finalResult = EvaluateSExp( walk -> left, ++level ) ; // the last expression result
+
+        mCallStack.RestoreLocalVar( localVarNameList ) ;
+        mCallStack.ClearCurrentLocalVar() ;
+        
+        return finalResult ;
       } // if()
       else ;
     } // if()
@@ -3763,9 +3795,7 @@ private:
         
       } // for()
       
-      for ( int i = 0 ; i < paramList.size() ; i ++ ) {
-        mCallStack.AddCurrentLocalVar( paramList[ i ], tmpBindingList[ i ], level ) ;
-      } // for()
+      mCallStack.AddLocalVars( paramList, tmpBindingList, level ) ;
       
       bindingList.clear() ;
       tmpBindingList.clear() ;
@@ -3778,6 +3808,7 @@ private:
   } // ParameterBinding()
   
   Node* ProcessLambda( Node* inTree, int level ) {
+    mCallStack.GetCleanLocalZone() ;
     // When in this function, there might be two circumstaces
     // 1. Not yet be evaluated
     // 2. Is the returned #<procedure lambda
@@ -3789,6 +3820,9 @@ private:
       return ProcessUserDefinedFunc( inTree, FindUserDefinedFunc( inTree -> left -> lex ), ++level );
     } // if()
     else if ( inTree -> left -> type == CONS ) { // the second circumstances
+      mCallStack.GetCleanLocalZone() ;
+      Node* finalResult = NULL ;
+      
       if ( inTree -> right -> lex != "nil" ) { // immediately call the lambda function
         mLambdaStack.push_back( mLambdaFunc ) ;
         
@@ -3806,7 +3840,7 @@ private:
       if ( mLambdaFunc.tree != NULL ) {
         for ( Node* walk = mLambdaFunc.tree ; walk -> lex != "nil" ; walk = walk -> right ) {
           if ( walk -> right -> lex == "nil" ) {
-            return EvaluateSExp( walk -> left, ++level ) ;
+            finalResult = EvaluateSExp( walk -> left, ++level ) ;
           } // if()
           else {
             EvaluateSExp( walk -> left, ++level ) ;
@@ -3814,8 +3848,14 @@ private:
         } // for()
       } // if()
       
+      mCallStack.RestoreLocalVar( mLambdaFunc.argList ) ;
+      mCallStack.ClearCurrentLocalVar() ;
+      
+      return finalResult ;
     } // else if()
     else {
+      // the left node of the input tree is "lambda", means this is the procedure of defineing
+      // a lambda function
       
       if ( CountArgument( inTree ) >= 2 ) {
         Node* allArg = inTree -> right ;
@@ -3831,20 +3871,6 @@ private:
             // mLambdaFunc.tree = allSExp ;
             mLambdaFunc.tree = CopyTree( allSExp ) ;
             
-            if ( level > 1 ) {
-              try {
-                ParameterBinding( mLambdaFunc.argList, inTree -> right, "lambda", ++level ) ;
-              } catch ( NoReturnValueException* e ) {
-                gErrNode = inTree ;
-                throw new NoReturnValueException() ;
-              } // catch()
-              
-              for ( Node* walk = mLambdaFunc.tree ; walk -> lex != "nil" ; walk = walk -> right ) {
-                EvaluateSExp( walk -> left, ++level ) ;
-              } // for()
-            } // if()
-            else ;
-            
           } catch ( FormatException* e ) {
             gErrNode = inTree ;
             throw new FormatException( "LAMBDA" ) ;
@@ -3856,7 +3882,7 @@ private:
           gErrNode = inTree ;
           throw new FormatException( "LAMBDA" ) ;
         } // else()
-      } // else if()
+      } // if()
       
     } // else()
     
@@ -3866,8 +3892,12 @@ private:
   } // ProcessLambda()
   
   Node* ProcessUserDefinedFunc( Node* inTree, int funcIndex, int level ) {
+    mCallStack.GetCleanLocalZone() ;
+    
     Function func = mUserDefinedFunctionTable[ funcIndex ] ;
     Node* treeInSymbolTable = mSymbolTable[ FindSymbolFromLocalAndGlobal( func.name ) ].tree ;
+    Node* finalResult = NULL ;
+    vector<string> paramList ;
     
     if ( treeInSymbolTable -> type == ATOM && treeInSymbolTable -> lex == "#<procedure lambda>" ) {
       ParameterBinding( func.argList, inTree -> right, "lambda", ++level ) ;
@@ -3876,29 +3906,22 @@ private:
       ParameterBinding( func.argList, inTree -> right, func.name, ++level ) ;
     } // else()
     
-    if ( CountListElement( func.tree ) > 1 ) {
-      for ( Node* walk = func.tree ; walk -> lex != "nil" ; walk = walk -> right ) {
-        if ( walk -> right -> lex == "nil" ) {
-          return EvaluateSExp( walk -> left, ++level ) ;
-        } // if()
-        else {
-          EvaluateSExp( walk -> left, ++level ) ;
-        } // else()
-      } // for()
-    } // if()
+    // copy the local variables
+    // after processing this S-exp, these local cariables need to be erased
+    paramList.assign( func.argList.begin(), func.argList.end() ) ;
     
-    Node* walk = NULL ;
-    
-    if ( func.tree -> right -> lex == "nil" ) {
-      return EvaluateSExp( func.tree -> left, ++level ) ;
-    } // if()
-    else {
-      for ( walk = func.tree ; walk -> lex != "nil" ; walk = walk -> right ) {
+    for ( Node* walk = func.tree ; walk -> lex != "nil" ; walk = walk -> right ) {
+      if ( walk -> right -> lex == "nil" ) {
+        finalResult = EvaluateSExp( walk -> left, ++level ) ;
+      } // if()
+      else {
         EvaluateSExp( walk -> left, ++level ) ;
-      } // for()
-    } // else()
+      } // else()
+    } // for()
     
-    return EvaluateSExp( walk -> left, ++level ) ;
+    mCallStack.RestoreLocalVar( func.argList ) ;
+    mCallStack.ClearCurrentLocalVar() ;
+    return finalResult ;
   } // ProcessUserDefinedFunc()
   
   void AddOriginReserveWords() {
@@ -3991,7 +4014,6 @@ public:
     Node* result = NULL ; // used to store the evaluation result tree
     string originFuncName = "" ; // copy the original operator from the fiven tree
     
-    mCallStack.GetCleanLocalZone() ;
     // Local vairables in each zone (S-exp) cannot be push until all evaluation is done
     
     if ( treeRoot == NULL ) { // to make sure the recent evaluated tree is not null
@@ -4011,21 +4033,14 @@ public:
       } // if()
       else if ( SymbolExist( atomStr ) ) { // this S-exp is a exist symbol
         result = FindSymbolBinding( atomStr, level ) ;
-        /*
-        if ( GetFuncNameFromFuncValue( result -> lex ) == "lambda" ) {
-          result = mSymbolTable[ FindGlobalSymbol( "lambda" ) ].tree ;
-        } // if()
-        */
       } // else if()
       else {
         throw new UnboundValueException( atomStr ) ;
       } // else()
       
-      mCallStack.ClearCurrentLocalVar() ;
       return result ;
     } // if()
     else if ( treeRoot -> type == SPECIAL ) {
-      mCallStack.ClearCurrentLocalVar() ;
       return treeRoot ;
     } // else if()
     else if ( treeRoot -> type == CONS ) { // This S-exp is a CONS
@@ -4153,7 +4168,6 @@ public:
       } // if()
     } // if()
     
-    mCallStack.ClearCurrentLocalVar() ;
     return result ;
   } // EvaluateSExp()
   

@@ -829,13 +829,12 @@ private:
       
       while ( keepRead && !IsReturnLine( ch_peek ) && !g.IsEOF( ch_peek ) ) {
         ch_get = cin.get() ;
-        fullStr += ch_get ;
-        ch_peek = cin.peek() ;
         if ( g.IsEOF( ch_peek ) ) {
           throw new EOFException() ;
         } // if()
         
-        // ch_peek = ( char ) tmpCinValue ;
+        fullStr += ch_get ;
+        ch_peek = cin.peek() ;
         
         if ( ch_peek == '\"' && ch_get != '\\' )  { // >"< stands alone
           keepRead = false ;
@@ -922,10 +921,12 @@ public:
       
       // peek whether the next char is in input
       ch = cin.peek() ;
+      /*
       if ( g.IsEOF( ch ) ) { // -1 means -1 for cin.peek
         gIsEOF = true ;
         throw new EOFException() ;
       } // if()
+      */
       
       // before get a actual char, we need to skip all the white-spaces first
       while ( IsWhiteSpace( ch ) ) {
@@ -946,10 +947,12 @@ public:
         } // if()
         
         ch = cin.peek() ;
+        /*
         if ( g.IsEOF( ch ) ) { // -1 means -1 for cin.peek
           gIsEOF = true ;
           throw new EOFException() ;
         } // if()
+        */
       } // while()
       
       if ( ch == ';' ) {
@@ -965,20 +968,18 @@ public:
       // if this char is already a separator then STOP reading, or keep getting the next char
       if ( !IsSeparator( ch ) && ch != '\"' ) {  // 'ch' here is the first char overall
         ch = cin.peek() ;
+        /*
         if ( g.IsEOF( ch ) ) { // -1 means -1 for cin.peek
           gIsEOF = true ;
           throw new EOFException() ;
         } // if()
+        */
         
         // check whether EOF because we may encounter EOF while making a peek token
-        while ( !IsSeparator( ch ) && !IsWhiteSpace( ch ) && ( int ) ch != -1 ) {
+        while ( !IsSeparator( ch ) && !IsWhiteSpace( ch ) && !g.IsEOF( ch ) ) {
           ch = GetChar() ;
           tokenStrWeGet += ch ;
           ch = cin.peek() ;
-          if ( g.IsEOF( ch ) ) { // -1 means -1 for cin.peek
-            gIsEOF = true ;
-            throw new EOFException() ;
-          } // if()
         } // while()
         
       } // if()
@@ -2184,21 +2185,21 @@ private:
     return false ;
   } // SymbolExist()
   
-  Node* FindSymbolBinding( string str, int level ) {
-    
+  Node* FindSymbolBinding( string str ) {
+    Node* bindResult = NULL ;
     // always find in the local variable first
     if ( mCallStack.IsLocalVar( str ) ) {
-      return mCallStack.GetLocalVarBinding( str ) ;
+      bindResult = mCallStack.GetLocalVarBinding( str ) ;
     } // if()
     else { // not a local variable, now try to find in the global area
       int index = FindGlobalSymbol( str ) ;
       if ( index != -1 ) {
-        return mSymbolTable[ index ].tree ;
+        bindResult = mSymbolTable[ index ].tree ;
       } // if()
       else ; // not a local variable, neither a global variable
     } // else()
     
-    return NULL ;
+    return bindResult ;
   } // FindSymbolBinding()
   
   int FindDefinedFunc( string str ) {
@@ -2226,32 +2227,44 @@ private:
     return index ;
   } // FindUserDefinedFunc()
   
+  bool IsList( Node* origin ) {
+    Node* walk = origin ;
+    for ( ; walk -> right != NULL ; walk = walk -> right ) { } ;
+    
+    if ( walk -> type != CONS && walk -> lex == "nil" ) {
+      return true ;
+    } // if()
+    else ;
+    
+    return false ;
+  } // IsList()
+  
+  /*
   bool IsList( Node* originRoot, Node* root ) {
-    if ( root -> type == ATOM || root -> type == SPECIAL ) { // the last node (should be an atom)
-      if ( ( root -> lex == "nil" && root -> isAddByMe ) || root == originRoot ) {
+    // the last node (should be an atom)
+    if ( root != NULL && ( root -> type == ATOM || root -> type == SPECIAL ) ) {
+      if ( ( root -> lex == "nil" ) || root == originRoot ) {
         return true ;
       } // if()
-      else if ( root -> lex == "nil" && !root -> isAddByMe ) {
-        return true ;
-      } // else if()
       
       return false ;
     } // if()
     
     return IsList( originRoot, root -> right ) ;
   } // IsList()
+  */
   
   int CountListElement( Node* tree ) {
-    if ( tree -> right == NULL ) {
-      return 0 ;
+    if ( tree == NULL ) {
+      return -1 ;
     } // if()
     
     return CountListElement( tree -> right ) + 1 ;
   } // CountListElement()
   
   int CountArgument( Node* tree ) {
-    if ( tree -> right == NULL ) {
-      return -1 ;
+    if ( tree == NULL ) {
+      return -2 ;
     } // if()
     
     return CountArgument( tree -> right ) + 1 ;
@@ -2293,7 +2306,7 @@ private:
       consNode -> parent = NULL ;
       consNode -> isAddByMe = false ;
       
-      if ( IsList( firstArg, firstArg ) ) {
+      if ( IsList( firstArg ) || firstArg -> type != CONS ) {
         if ( firstArg -> type == ATOM
              && IsSymbol( firstArg -> lex  )
              && FindSymbolFromLocalAndGlobal( firstArg -> lex ) == -1 ) {
@@ -2309,7 +2322,7 @@ private:
           } // else()
           
           
-          if ( IsList( secondArg, secondArg ) ) {
+          if ( IsList( secondArg ) || secondArg -> type != CONS ) {
             if ( secondArg -> type == ATOM
                  && IsSymbol( secondArg -> lex )
                  && FindSymbolFromLocalAndGlobal( secondArg -> lex ) == -1 ) {
@@ -2363,7 +2376,7 @@ private:
       argList = GetArgumentList( inTree )  ;
       // Step2. start to check the type and mean time replace the symbol
       for ( int i = 0 ; i < argList.size() ; i ++ ) {
-        if ( IsList( argList[ i ], argList[ i ] ) ) {
+        if ( IsList( argList[ i ] ) || argList[ i ] -> type != CONS ) {
           if ( argList[ i ] -> type == ATOM
                && IsSymbol( argList[ i ] -> lex ) ) {
             int symIndex = FindSymbolFromLocalAndGlobal( argList[ i ] -> lex ) ;
@@ -2508,7 +2521,7 @@ private:
     newSymbol.tree = g.GetEmptyNode() ;
     
     
-    if ( IsList( funcNameAndArgPart, funcNameAndArgPart ) ) {
+    if ( IsList( funcNameAndArgPart ) ) {
       string funcName = inTree -> right -> left -> left -> lex ;
       Node* argList = inTree -> right -> left -> right ;
       Node* procedurePart = inTree -> right -> right ;
@@ -2581,7 +2594,7 @@ private:
       if ( CountArgument( inTree ) == 2 ) {
         Symbol newSymbol ;
         newSymbol.name = "" ;
-        newSymbol.tree = g.GetEmptyNode() ;
+        newSymbol.tree = NULL ;
         // the first argument should be a symbol
         if ( argList[ 0 ] -> type == ATOM ) {
           int reserveIndex = -1 ;
@@ -2694,12 +2707,6 @@ private:
                      && newSymbol.tree -> lex == "#<procedure lambda>" ) {
                   mLambdaFunc.name = newSymbol.name ;
                   UpdateUserDefinedFunc( mLambdaFunc.name, mLambdaFunc ) ;
-                  /*
-                  Node* lambda = g.GetEmptyNode() ;
-                  lambda -> type = ATOM ;
-                  lambda -> lex = "#<procedure lambda>" ;
-                  newSymbol.tree = lambda ;
-                  */
                 } // if()
                 
                 AddSymbol( newSymbol.name, newSymbol.tree ) ;
@@ -2793,7 +2800,7 @@ private:
           } // if()
         } // else if()
         else if ( func == "list?" ) {
-          if ( target -> type == CONS && IsList( target, target ) ) {
+          if ( target -> type == CONS && IsList( target ) ) {
             ans = true ;
           } // if()
         } // else if()
@@ -2853,10 +2860,9 @@ private:
     // mSymbolTable.clear() ;
     mFunctionTable.clear() ;
     mUserDefinedFunctionTable.clear() ;
-    // CleanLocalVariables() ;
-    // mReserveWords.clear() ;
+    CleanWholeStack() ;
+    
     ResetSymbolTable() ;
-    // AddOriginReserveWords() ;
     ResetReserveWord() ;
     
     if ( gVerbose ) {
@@ -3458,7 +3464,7 @@ private:
       // check each arguments should all be cons
       for ( int i = 0 ; i < argList.size() ; i ++ ) {
         if ( argList[ i ] -> type != CONS
-             || ! IsList( argList[ i ], argList[ i ] )
+             || ! IsList( argList[ i ] )
              || CountArgument( argList[ i ] ) == 0 ) {
           gErrNode = inTree ;
           throw new CondFormatException() ;
@@ -3565,7 +3571,7 @@ private:
       vector<Node*> argList = GetArgumentList( inTree ) ;
       
       for ( int i = 0 ; i < argList.size() ; i ++ ) {
-        if ( !IsList( argList[ i ], argList[ i ] ) ) {
+        if ( !IsList( argList[ i ] ) && argList[ i ] -> type == CONS ) {
           gErrNode = argList[ i ] ;
           throw new IncorrectArgumentTypeException( "begin" ) ;
         } // if()
@@ -3631,9 +3637,9 @@ private:
     vector<Node*> varList ;
     vector<Node*> bindingList ;
     // Seperate all the local variables from the tree structure into a vactor
-    if ( IsList( localVars, localVars ) ) {
+    if ( IsList( localVars ) ) {
       for ( Node* walk = localVars ; walk -> lex != "nil" ; walk = walk -> right ) {
-        if ( IsList( walk -> left, walk -> left ) && CountListElement( walk -> left ) == 2 ) {
+        if ( IsList( walk -> left ) && CountListElement( walk -> left ) == 2 ) {
           varNameList.push_back( walk -> left -> left -> lex ) ;
           varList.push_back( walk -> left ) ;
         } // if()
@@ -3726,19 +3732,14 @@ private:
   
   // use when the defining lambda
   int CountAndCkeckParameters( Node* arg, vector<string> &paraList ) {
-    int countNum = 0 ;
+    int countNum = CountListElement( arg ) ;
     paraList.clear() ;
     
-    if ( arg -> type == SPECIAL && arg -> lex == "nil" ) {
-      return 0 ;
-    } // if()
-    
-    if ( IsList( arg, arg ) ) { // the parameter part is a list
+    if ( IsList( arg ) ) { // the parameter part is a list
       for ( Node* walk = arg ; walk -> lex != "nil" ; walk = walk -> right ) {
         if ( walk -> left -> type == ATOM ) {
           if ( g.IsSymbol(  walk -> left -> lex ) ) {
             paraList.push_back( walk -> left -> lex ) ;
-            countNum ++ ;
           } // if()
           else {
             gErrNode = arg ;
@@ -3760,16 +3761,11 @@ private:
   } // CountAndCkeckParameters()
   
   int CountAndCkeckParameters( Node* arg, vector<Node*> &paraList, int level ) {
-    int countNum = 0 ;
+    int countNum = CountListElement( arg ) ;
     paraList.clear() ;
-    
-    if ( arg -> type == SPECIAL && arg -> lex == "nil" ) {
-      return 0 ;
-    } // if()
     
     for ( Node* walk = arg ; walk -> lex != "nil" ; walk = walk -> right ) {
       paraList.push_back( walk -> left ) ;
-      countNum ++ ;
     } // for()
     
     return countNum ;
@@ -4017,7 +4013,7 @@ public:
     // Local vairables in each zone (S-exp) cannot be push until all evaluation is done
     
     if ( treeRoot == NULL ) { // to make sure the recent evaluated tree is not null
-      return g.GetEmptyNode() ;
+      return NULL ;
     } // if()
     else ; // the input tree is not empty, keep evaluating
     
@@ -4032,7 +4028,7 @@ public:
         result = treeRoot ;
       } // if()
       else if ( SymbolExist( atomStr ) ) { // this S-exp is a exist symbol
-        result = FindSymbolBinding( atomStr, level ) ;
+        result = FindSymbolBinding( atomStr ) ;
       } // else if()
       else {
         throw new UnboundValueException( atomStr ) ;
@@ -4048,7 +4044,7 @@ public:
       
       if ( funcPart -> type == ATOM ) { // if this is an atom, then check what it represents
         if ( SymbolExist( funcPart -> lex ) ) {
-          originFuncName = FindSymbolBinding( funcPart -> lex, level ) -> lex ;
+          originFuncName = FindSymbolBinding( funcPart -> lex ) -> lex ;
         } // if()
         else {
           originFuncName = funcPart -> lex ;
@@ -4081,7 +4077,7 @@ public:
     } // if()
     else ; // this function name is not start with the symbol #
     
-    if ( IsList( treeRoot, treeRoot ) ) { // keep doing the evaluation
+    if ( IsList( treeRoot ) ) { // keep doing the evaluation
       
       if ( funcName != "" ) {
         if ( funcName == "quote" ) {
@@ -4219,6 +4215,8 @@ int main() {
       if ( grammerCorrect ) {
         Tree tree( gOriginalList ) ;
         tree.BuildTree() ;
+        g.Reset() ;
+        
         if ( !gIsEOF ) {
           // g.PrettyPrint( tree.GetRoot() ) ; // proj.1
           try {
@@ -4300,8 +4298,8 @@ int main() {
         } // if()
       } // if()
       
-      gOriginalList.Clear() ;
-      g.Reset() ;
+      // gOriginalList.Clear() ;
+      // g.Reset() ;
       gJustFinishAExp = true ;
       eval.CleanWholeStack() ;
     } // catch()

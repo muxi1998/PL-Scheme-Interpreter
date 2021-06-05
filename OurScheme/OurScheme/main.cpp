@@ -121,16 +121,16 @@ public:
       mTail = newNode ;
     } // if()
     else {
-      bool addSuccess = false ;
-      
-      for ( Node_Linear* walk = mRoot ; walk != NULL && !addSuccess ; walk = walk -> next ) {
-        if ( walk -> next == NULL ) {
-          walk -> next = newNode ;
-          newNode -> prev = walk ;
-          mTail = newNode ;
-          addSuccess = true ;
-        } // if()
-      } // for()
+      if ( mTail != NULL && mTail == mRoot ) {
+        mRoot -> next = newNode ;
+        newNode -> prev = mRoot ;
+        mTail = newNode ;
+      } // if()
+      else {
+        mTail -> next = newNode ;
+        newNode -> prev = mTail ;
+        mTail = mTail -> next ;
+      } // else()
     } // else()
     
   } // AddNode()
@@ -921,12 +921,6 @@ public:
       
       // peek whether the next char is in input
       ch = cin.peek() ;
-      /*
-      if ( g.IsEOF( ch ) ) { // -1 means -1 for cin.peek
-        gIsEOF = true ;
-        throw new EOFException() ;
-      } // if()
-      */
       
       // before get a actual char, we need to skip all the white-spaces first
       while ( IsWhiteSpace( ch ) ) {
@@ -947,12 +941,6 @@ public:
         } // if()
         
         ch = cin.peek() ;
-        /*
-        if ( g.IsEOF( ch ) ) { // -1 means -1 for cin.peek
-          gIsEOF = true ;
-          throw new EOFException() ;
-        } // if()
-        */
       } // while()
       
       if ( ch == ';' ) {
@@ -968,12 +956,6 @@ public:
       // if this char is already a separator then STOP reading, or keep getting the next char
       if ( !IsSeparator( ch ) && ch != '\"' ) {  // 'ch' here is the first char overall
         ch = cin.peek() ;
-        /*
-        if ( g.IsEOF( ch ) ) { // -1 means -1 for cin.peek
-          gIsEOF = true ;
-          throw new EOFException() ;
-        } // if()
-        */
         
         // check whether EOF because we may encounter EOF while making a peek token
         while ( !IsSeparator( ch ) && !IsWhiteSpace( ch ) && !g.IsEOF( ch ) ) {
@@ -1134,8 +1116,8 @@ class Tree {
   
 private:
   
-  Node *mRoot ;
-  SingleList mCopyList ;
+  Node* mRoot ;
+  // SingleList mCopyList ;
   
   void TransferNIL( Node_Linear* root, Node_Linear* tail ) {
     bool finish = false ;
@@ -1291,31 +1273,31 @@ private:
   // Only list can call this function
   void Translate( Node_Linear* root, Node_Linear* tail ) {
     
-    if ( mCopyList.mRoot -> token.type == LPAREN
-         && mCopyList.mRoot -> next -> token.type == RPAREN
-         && mCopyList.mRoot -> next -> next == NULL ) {
+    if ( gOriginalList.mRoot -> token.type == LPAREN
+         && gOriginalList.mRoot -> next -> token.type == RPAREN
+         && gOriginalList.mRoot -> next -> next == NULL ) {
       
       Node_Linear* nilNode = new Node_Linear ;
       nilNode -> prev = NULL ;
       nilNode -> next = NULL ;
       nilNode -> token.str = "nil" ;
       nilNode -> token.type = NIL ;
-      nilNode -> token.line = mCopyList.mRoot -> token.line ;
-      nilNode -> token.column = mCopyList.mRoot -> token.column ;
+      nilNode -> token.line = gOriginalList.mRoot -> token.line ;
+      nilNode -> token.column = gOriginalList.mRoot -> token.column ;
       nilNode -> next = NULL ;
       nilNode -> isAddByMe = false ;
       
-      while ( mCopyList.mRoot != NULL ) { // Clear ( )
-        Node_Linear* current = mCopyList.mRoot ;
-        mCopyList.mRoot = mCopyList.mRoot -> next ;
+      while ( gOriginalList.mRoot != NULL ) { // Clear ( )
+        Node_Linear* current = gOriginalList.mRoot ;
+        gOriginalList.mRoot = gOriginalList.mRoot -> next ;
         delete current ;
         current = NULL ;
       } // while()
       
-      mCopyList.mRoot = nilNode ; // connect nil node
-      mCopyList.mTail = mCopyList.mRoot ;
-      gOriginalList.mRoot = mCopyList.mRoot ;
-      mCopyList.mTail = gOriginalList.mRoot ;
+      gOriginalList.mRoot = nilNode ; // connect nil node
+      gOriginalList.mTail = gOriginalList.mRoot ;
+      gOriginalList.mRoot = gOriginalList.mRoot ;
+      gOriginalList.mTail = gOriginalList.mRoot ;
       return ;
     } // if()
     else {
@@ -1327,8 +1309,8 @@ private:
     Node_Linear* dotPointer = FindDOT( root, tail ) ;
     if ( dotPointer == NULL ) { // there is no DOT, so put it on manually
       // assert: there is no DOT so need to add DOT and nil
-      mCopyList.InsertNode( tail -> prev, DOT ) ;
-      mCopyList.InsertNode( tail -> prev, NIL ) ;
+      gOriginalList.InsertNode( tail -> prev, DOT ) ;
+      gOriginalList.InsertNode( tail -> prev, NIL ) ;
     } // if()
     
     // assert: there must be at least one dot in this S-exp
@@ -1341,9 +1323,9 @@ private:
       } // if()
       
       if ( walk -> next -> token.type != DOT ) { // manually add DOT and keep counting
-        mCopyList.InsertNode( walk, DOT ) ;
+        gOriginalList.InsertNode( walk, DOT ) ;
         walk = walk -> next ;
-        mCopyList.InsertNode( walk, LPAREN ) ;
+        gOriginalList.InsertNode( walk, LPAREN ) ;
         walk = walk -> next ;
         countPar ++ ;
       } // if()
@@ -1355,13 +1337,13 @@ private:
           walk = corRightPar ;
           
           for ( int i = 0 ; i < countPar ; i ++ ) {
-            mCopyList.InsertNode( walk, RPAREN ) ;
+            gOriginalList.InsertNode( walk, RPAREN ) ;
           } // for()
         } // if()
         else { // only an atom
           walk = walk -> next ; // skip DOT
           for ( int i = 0 ; i < countPar ; i ++ ) {
-            mCopyList.InsertNode( walk, RPAREN ) ;
+            gOriginalList.InsertNode( walk, RPAREN ) ;
           } // for()
         } // else()
         
@@ -1394,28 +1376,27 @@ private:
     quote -> prev = NULL ;
     
     // from back to front
-    for ( Node_Linear* walk = mCopyList.mTail ; walk != NULL ; walk = walk -> prev ) {
+    for ( Node_Linear* walk = gOriginalList.mTail ; walk != NULL ; walk = walk -> prev ) {
       if ( walk -> token.str == "'" ) { // should make the transfer
         if ( walk -> next -> token.type == LPAREN ) {
           Node_Linear* corRightPar = FindCorrespondPar( walk -> next ) ;
           walk -> token.str = "quote" ;
-          mCopyList.InsertNode( walk -> prev, LPAREN ) ;
-          mCopyList.InsertNode( corRightPar, RPAREN ) ;
+          gOriginalList.InsertNode( walk -> prev, LPAREN ) ;
+          gOriginalList.InsertNode( corRightPar, RPAREN ) ;
         } // if()
         else { // is a aimple symbol
-          // mCopyList.InsertNode( mCopyList.mRoot , QUOTE ) ;
+          // gOriginalList.InsertNode( mCopyList.mRoot , QUOTE ) ;
           walk -> token.str = "quote" ;
-          mCopyList.InsertNode( walk -> prev, LPAREN ) ;
-          mCopyList.InsertNode( walk -> next, RPAREN ) ;
+          gOriginalList.InsertNode( walk -> prev, LPAREN ) ;
+          gOriginalList.InsertNode( walk -> next, RPAREN ) ;
         } // else()
       } // if()
     } // for()
   } // TranslateQuote()
   
 public:
-  Tree( SingleList list ) {
+  Tree() {
     mRoot = NULL ;
-    mCopyList = list ;
   } // Tree()
   
   // Purpose: Transfer the DS from list to pointer (tree)
@@ -1507,7 +1488,7 @@ public:
     TranslateQuote() ;
     
     // Substitude () with nil and put on the ( )
-    if ( gSA.IsATOM( mCopyList.mRoot -> token ) ) {
+    if ( gSA.IsATOM( gOriginalList.mRoot -> token ) ) {
       Node* leaf = new Node ;
       leaf -> lex = "" ;
       leaf -> left = NULL ;
@@ -1516,8 +1497,8 @@ public:
       leaf -> type = EMPTY ;
       leaf -> isAddByMe = false ;
       
-      leaf -> lex = mCopyList.mRoot -> token.str ;
-      if ( mCopyList.mRoot -> token.type == NIL || mCopyList.mRoot -> token.type == T ) {
+      leaf -> lex = gOriginalList.mRoot -> token.str ;
+      if ( gOriginalList.mRoot -> token.type == NIL || gOriginalList.mRoot -> token.type == T ) {
         leaf -> type = SPECIAL ;
       } // if()
       else {
@@ -1531,17 +1512,16 @@ public:
       
     } // if((
     else {
-      if ( mCopyList.mRoot -> token.type == LPAREN && mCopyList.mRoot
-          -> next -> token.str == "exit" && mCopyList.mRoot -> next -> next -> token.type == RPAREN ) {
+      if ( gOriginalList.mRoot -> token.type == LPAREN && gOriginalList.mRoot
+          -> next -> token.str == "exit" && gOriginalList.mRoot -> next -> next -> token.type == RPAREN ) {
         gIsEOF = true ;
         return ;
       } // if()
       
-      Translate( mCopyList.mRoot, mCopyList.mTail ) ;
+      Translate( gOriginalList.mRoot, gOriginalList.mTail ) ;
       // mCopyList.PrintForward() ;
       
-      mRoot = Build( mCopyList.mRoot, mCopyList.mTail ) ;
-      
+      mRoot = Build( gOriginalList.mRoot, gOriginalList.mTail ) ;
       /*
        if ( mRoot -> type == CONS && mRoot -> left -> lex == "exit"
        && mRoot -> right -> lex == "nil" ) {
@@ -1558,28 +1538,38 @@ public:
     return mRoot ;
   } // GetRoot()
   
-  void CleanInputList() {
-    mCopyList.Clear() ;
-  } // CleanInputList()
-  
-  
   void DeleteTree( Node* root ) {
-    if ( root != NULL ) {
-      // leaf
-      if ( root -> left == NULL && root -> right == NULL ) {
-        delete root ;
-        root = NULL ;
-      } // if()
-      else  { // still some subtrees in left or right node
-        if ( root -> left != NULL ) {
-          return DeleteTree( root -> left ) ;
-        } // if()
-        
-        if ( root -> right != NULL ) {
-          return DeleteTree( root -> right ) ;
-        } // if()
-      } // else()
+    if ( root == NULL ) {
+      return ;
     } // if()
+    else if ( root -> right == NULL && root -> left == NULL ){
+      delete root ;
+      root = NULL ;
+      return ;
+    } // else()
+    else {
+      
+      if ( root -> left == NULL ) {
+        DeleteTree( root -> left ) ;
+        root -> left = NULL ;
+      } // if()
+      else ;
+      
+      if ( root -> right == NULL ) {
+        DeleteTree( root -> right ) ;
+        root -> right = NULL ;
+      } // if()
+      else ;
+
+    } // else()
+
+    return ;
+    
+  } // DeleteTree()
+  
+  void DeleteTree() {
+    DeleteTree( mRoot ) ;
+    mRoot = NULL ;
   } // DeleteTree()
   
 };
@@ -1937,8 +1927,8 @@ public:
   
   bool IsLocalVar( string name ) {
     bool isLocal = false ;
-    for ( int i = 0 ; i < mCallStack.size() ; i ++ ) {
-      if ( name == mCallStack[ i ].name ) {
+    for ( int i = 0 ; i < mCurrentVar.size() ; i ++ ) {
+      if ( name == mCurrentVar[ i ] ) {
         isLocal = true ;
       } // if()
     } // for()
@@ -1957,11 +1947,10 @@ public:
   } // GetLocalVarIndex()
   
   Node* GetLocalVarBinding( string varName ) {
-    for ( int i = ( int ) mCallStack.size() - 1 ; i >= 0 ; i -- ) {
-      if ( varName == mCallStack[ i ].name ) {
-        return mCallStack[ i ].tree ;
-      } // if()
-    } // for()
+    if ( IsLocalVar( varName ) ) {
+      int index = GetLocalVarIndex( varName ) ;
+      return mCallStack[ index ].tree ;
+    } // if()
     
     return NULL ;
   } // GetLocalVarBinding()
@@ -2677,7 +2666,8 @@ private:
                   
                   // this been assigned S-exp is in the input
                   // and haven't evaluated yet
-                  newSymbol.tree = bind ;
+                  // newSymbol.tree = bind ;
+                  newSymbol.tree = CopyTree( bind ) ;
                 } // if()
                 else {
                   int symIndex = FindSymbolFromLocalAndGlobal( argList[ 1 ] -> lex ) ;
@@ -3712,7 +3702,7 @@ private:
     vector<string> localVarNameList ;
     
     if ( CountArgument( inTree ) >= 2 ) {
-      mCallStack.GetCleanLocalZone() ;
+      // mCallStack.GetCleanLocalZone() ;
       
       if ( CheckAndStoreLocalVarSuccess( localVarList, localVarNameList, ++level ) ) {
         
@@ -4215,9 +4205,8 @@ int main() {
       
       grammerCorrect = gSA.CheckSExp( token ) ;
       if ( grammerCorrect ) {
-        Tree tree( gOriginalList ) ;
+        Tree tree ;
         tree.BuildTree() ;
-        // tree.CleanInputList() ; // as the tree has built, the original input list is useless
         g.Reset() ; // reset all information that used in Lexical analyzer
         
         if ( !gIsEOF ) {
@@ -4300,12 +4289,10 @@ int main() {
           } // catch()
         } // if()
         
-        tree.DeleteTree( tree.GetRoot() ) ;
+        tree.DeleteTree() ;
         
       } // if()
       
-      // gOriginalList.Clear() ;
-      // g.Reset() ;
       gJustFinishAExp = true ;
       eval.CleanWholeStack() ;
     } // catch()

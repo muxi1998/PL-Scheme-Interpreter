@@ -483,13 +483,13 @@ public:
     } // else if()
     else {
       
-      if ( root -> left == NULL ) {
+      if ( root -> left != NULL ) {
         DeleteTree( root -> left ) ;
         root -> left = NULL ;
       } // if()
       else ;
       
-      if ( root -> right == NULL ) {
+      if ( root -> right != NULL ) {
         DeleteTree( root -> right ) ;
         root -> right = NULL ;
       } // if()
@@ -858,7 +858,7 @@ private:
       
       while ( keepRead && !IsReturnLine( ch_peek ) && !g.IsEOF( ch_peek ) ) {
         ch_get = cin.get() ;
-        if ( g.IsEOF( ch_peek ) ) {
+        if ( g.IsEOF( ch_get ) ) {
           throw new EOFException() ;
         } // if()
         
@@ -1805,7 +1805,7 @@ struct Function {
 } ; // Function
 
 struct StackArea {
-  vector<string> currentArea ;
+  vector<string> *currentArea ;
   StackArea* next ;
   StackArea* prev ;
 } ; // StackArea
@@ -1836,33 +1836,16 @@ public:
     
     return false ;
   } // SymboIsInCallStack()
-  /*
-  vector<string> GetCurrentLocalVarZone() {
-    return mCurrentVar ;
-  } // GetCurrentLocalVarZone()
-  */
-  /*
-  void CreateRecentLocalVarForLambda( vector<Symbol> &list ) {
-    Symbol sym ;
-    sym.name = "" ;
-    sym.tree = NULL ;
-    
-    for ( int i = 0 ; i < mCurrentVar.size() ; i ++ ) {
-      sym.name = mCurrentVar[ i ] ;
-      sym.tree = GetLocalVarBinding( sym.name ) ;
-      
-      list.push_back( sym ) ;
-    } // for()
-  } // CreateRecentLocalVarForLambda()
-  */
+  
   void AddNewSymbolNameToStackArea() {
     if ( mStart == NULL ) {
       mStart = new StackArea ;
+      mStart -> currentArea = new vector<string> ;
       mStart -> next = NULL ;
       mStart -> prev = NULL ;
       
       if ( mCurrentVar.size() != 0 ) {
-        mStart -> currentArea.assign( mCurrentVar.begin(), mCurrentVar.end() ) ;
+        mStart -> currentArea -> assign( mCurrentVar.begin(), mCurrentVar.end() ) ;
       } // if()
       else ; // the current stack area is empty
       
@@ -1870,11 +1853,12 @@ public:
     } // if()
     else { // insert the new names
       mEnd -> next = new StackArea ;
+      mEnd -> next -> currentArea = new vector<string> ;
       mEnd -> next -> next = NULL ;
       mEnd -> next -> prev = mEnd ;
       mEnd = mEnd -> next ;
       if ( mCurrentVar.size() != 0 ) {
-        mEnd -> currentArea.assign( mCurrentVar.begin(), mCurrentVar.end() ) ;
+        mEnd -> currentArea -> assign( mCurrentVar.begin(), mCurrentVar.end() ) ;
       } // if()
       else ;
     } // else()
@@ -1896,6 +1880,8 @@ public:
         return;
       } // if()
       else {
+        mStart -> currentArea -> clear() ;
+        delete mStart -> currentArea ;
         delete mStart ;
         mStart = NULL ;
         mEnd = NULL ;
@@ -1904,11 +1890,15 @@ public:
     else if ( mEnd -> prev != NULL ) {
       if ( mEnd -> prev == mStart ) {
         mEnd = mEnd -> prev ;
+        mStart -> next -> currentArea -> clear() ;
+        delete mStart -> next -> currentArea ;
         delete mStart -> next ;
         mStart -> next = NULL ;
       } // if()
       else {
         mEnd = mEnd -> prev ;
+        mEnd -> next -> currentArea -> clear() ;
+        delete mEnd -> next -> currentArea ;
         delete mEnd -> next ;
         mEnd -> next = NULL ;
       } // else()
@@ -1958,7 +1948,11 @@ public:
     
     mCurrentVar.clear() ;
     if ( mEnd != NULL ) {
-      mCurrentVar = mEnd -> currentArea ;
+      if ( mEnd -> currentArea != NULL ) {
+        mCurrentVar.assign( mEnd -> currentArea -> begin(), mEnd -> currentArea -> end() ) ;
+      } // if()
+      else ;
+      
       DeleteLastStackArea() ;
     } // if()
   } // ClearCurrentLocalVar()
@@ -2617,8 +2611,8 @@ private:
       newFunc.tree = NULL ;
       
       newFunc.argNum = CountAndCkeckParameters( argList, newFunc.argList ) ;
-      newFunc.tree = procedurePart ;
-      // newFunc.tree = CopyTree( procedurePart ) ;
+      // newFunc.tree = procedurePart ;
+      newFunc.tree = CopyTree( procedurePart ) ;
       
       // create a global symbol for this function, make it easy to find in the symbol
       Node* tmp = g.GetEmptyNode() ;
@@ -2695,7 +2689,7 @@ private:
               Node* bind = NULL ;
               if ( IsQuoteExp( argList[ 1 ] ) ) {
                 // define should be the original binding except the quote
-                bind = argList[ 1 ] -> right -> left ;
+                bind = CopyTree( argList[ 1 ] -> right -> left ) ;
               } // if()
               else {
                 // the definition of this symbol, need to check whether the binding exist

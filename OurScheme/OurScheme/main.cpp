@@ -472,6 +472,35 @@ public:
     return nullNode ;
   } // GetEmptyNode()
   
+  void DeleteTree( Node* root ) {
+    if ( root == NULL ) {
+      return ;
+    } // if()
+    else if ( root -> right == NULL && root -> left == NULL ) {
+      delete root ;
+      root = NULL ;
+      return ;
+    } // else if()
+    else {
+      
+      if ( root -> left == NULL ) {
+        DeleteTree( root -> left ) ;
+        root -> left = NULL ;
+      } // if()
+      else ;
+      
+      if ( root -> right == NULL ) {
+        DeleteTree( root -> right ) ;
+        root -> right = NULL ;
+      } // if()
+      else ;
+      
+    } // else()
+    
+    return ;
+    
+  } // DeleteTree()
+  
   void Reset() {
     gLine = 1 ;
     gColumn = 0 ;
@@ -1538,37 +1567,8 @@ public:
     return mRoot ;
   } // GetRoot()
   
-  void DeleteTree( Node* root ) {
-    if ( root == NULL ) {
-      return ;
-    } // if()
-    else if ( root -> right == NULL && root -> left == NULL ){
-      delete root ;
-      root = NULL ;
-      return ;
-    } // else()
-    else {
-      
-      if ( root -> left == NULL ) {
-        DeleteTree( root -> left ) ;
-        root -> left = NULL ;
-      } // if()
-      else ;
-      
-      if ( root -> right == NULL ) {
-        DeleteTree( root -> right ) ;
-        root -> right = NULL ;
-      } // if()
-      else ;
-
-    } // else()
-
-    return ;
-    
-  } // DeleteTree()
-  
   void DeleteTree() {
-    DeleteTree( mRoot ) ;
+    g.DeleteTree( mRoot ) ;
     mRoot = NULL ;
   } // DeleteTree()
   
@@ -1812,17 +1812,49 @@ struct StackArea {
 
 class CallStack { // to implement a callstack similar to the actual call stack
 private:
-  vector<string> mCurrentVar ; // record the recent local variable (in smae level)
   StackArea* mStart ;
   StackArea* mEnd ;
   vector<LocalSymbol> mCallStack ; // the first element is the lastest one
   
 public:
+  vector<string> mCurrentVar ; // record the recent local variable (in same level)
+  
   CallStack() {
     mStart = NULL ;
     mEnd = NULL ;
+    mCurrentVar.clear() ;
+    mCallStack.clear() ;
   } // CallStack()
   
+  bool SymboIsInCallStack( string str ) {
+    for ( int i = ( int ) mCallStack.size() - 1 ; i >= 0 ; i -- ) {
+      if ( str == mCallStack[ i ].name ) {
+        return true ;
+      } // if()
+      else ;
+    } // for()
+    
+    return false ;
+  } // SymboIsInCallStack()
+  /*
+  vector<string> GetCurrentLocalVarZone() {
+    return mCurrentVar ;
+  } // GetCurrentLocalVarZone()
+  */
+  /*
+  void CreateRecentLocalVarForLambda( vector<Symbol> &list ) {
+    Symbol sym ;
+    sym.name = "" ;
+    sym.tree = NULL ;
+    
+    for ( int i = 0 ; i < mCurrentVar.size() ; i ++ ) {
+      sym.name = mCurrentVar[ i ] ;
+      sym.tree = GetLocalVarBinding( sym.name ) ;
+      
+      list.push_back( sym ) ;
+    } // for()
+  } // CreateRecentLocalVarForLambda()
+  */
   void AddNewSymbolNameToStackArea() {
     if ( mStart == NULL ) {
       mStart = new StackArea ;
@@ -1847,6 +1879,12 @@ public:
       else ;
     } // else()
   } // AddNewSymbolNameToStackArea()
+  
+  void RestoreLocalVar( vector<Symbol> list ) {
+    for ( int i = 0 ; i < list.size() ; i ++ ) {
+      mCurrentVar.push_back( list[ i ].name ) ;
+    } // for()
+  } // RestoreLocalVar()
   
   void RestoreLocalVar( vector<string> paramList ) {
     mCurrentVar.assign( paramList.begin(), paramList.end() ) ;
@@ -1925,9 +1963,40 @@ public:
     } // if()
   } // ClearCurrentLocalVar()
   
+  void RemoveLocalVarFromCurrentZone( vector<string> strList ) {
+    for ( int i = ( int ) strList.size() - 1 ; i >= 0 ; i -- ) {
+      bool hasRemoved = false ;
+      
+      for ( int j = ( int ) mCurrentVar.size() - 1 ; !hasRemoved && j >= 0 ; j -- ) {
+        if ( strList[ i ] == mCurrentVar[ j ] ) {
+          mCurrentVar.erase( mCurrentVar.begin() + j ) ;
+          hasRemoved = true ;
+        } // if()
+        else ;
+      } // for()
+    } // for()
+  } // RemoveLocalVarFromCurrentZone()
+  
+  void ClearRecentLocalVar( vector<string> strList ) {
+    for ( int i = ( int ) strList.size() - 1 ; i >= 0 ; i -- ) {
+      bool hasErased = false ;
+      
+      for ( int j = ( int ) mCurrentVar.size() - 1 ; !hasErased && j >= 0 ; j -- ) {
+        if ( strList[ i ] == mCurrentVar[ j ] ) {
+          int indexInStack = GetLocalVarIndex( strList[ i ] ) ;
+          mCallStack.erase( mCallStack.begin() + indexInStack ) ;
+          mCurrentVar.erase( mCurrentVar.begin() + j ) ;
+          
+          hasErased = true ;
+        } // if()
+        else ;
+      } // for()
+    } // for()
+  } // ClearRecentLocalVar()
+  
   bool IsLocalVar( string name ) {
     bool isLocal = false ;
-    for ( int i = 0 ; i < mCurrentVar.size() ; i ++ ) {
+    for ( int i = 0 ; i < mCurrentVar.size() && !isLocal ; i ++ ) {
       if ( name == mCurrentVar[ i ] ) {
         isLocal = true ;
       } // if()
@@ -1937,9 +2006,13 @@ public:
   } // IsLocalVar()
   
   int GetLocalVarIndex( string varName ) {
-    for ( int i = ( int ) mCallStack.size() - 1 ; i >= 0 ; i -- ) {
-      if ( varName == mCallStack[ i ].name ) {
-        return i ;
+    for ( int i = ( int ) mCurrentVar.size() - 1 ; i >= 0 ; i -- ) {
+      if ( varName == mCurrentVar[ i ] ) {
+        for ( int i = ( int ) mCallStack.size() - 1 ; i >= 0 ; i -- ) {
+          if ( varName == mCallStack[ i ].name ) {
+            return i ;
+          } // if()
+        } // for()
       } // if()
     } // for()
     
@@ -1960,7 +2033,16 @@ public:
   } // UpdateVar()
   
   void CleanStack() {
+    mCurrentVar.clear() ;
     mCallStack.clear() ;
+    while ( mStart != NULL ) {
+      StackArea* current = mStart ;
+      mStart = mStart -> next ;
+      delete current ;
+      current = NULL ;
+    } // while()
+    
+    delete mStart ;
     mStart = NULL ;
     mEnd = NULL ;
   } // CleanStack()
@@ -1982,6 +2064,7 @@ private:
   CallStack mCallStack ;
   vector<Function> mUserDefinedFunctionTable ;
   Function mLambdaFunc ; // used to temporary store the lambda function
+  // vector<Symbol> mLambdaVars ;
   vector<Function> mLambdaStack ;
   
   void InitialReserveWord() {
@@ -2164,8 +2247,10 @@ private:
     return FindGlobalSymbol( str ) ;
   } // FindSymbolFromLocalAndGlobal()
   
+  
+  
   bool SymbolExist( string str ) {
-    if ( mCallStack.IsLocalVar( str ) ) {
+    if ( mCallStack.SymboIsInCallStack( str ) ) {
       return true ;
     } // if()
     else if ( IsGlobalSymbol( str ) ) {
@@ -2432,6 +2517,8 @@ private:
           prevNode = node ;
         } // else()
       } // for()
+      
+      argList.clear() ;
       
       return result ;
     } // if()
@@ -2733,6 +2820,8 @@ private:
     else {
       throw new LevelException( "DEFINE" ) ; // curious here
     } // else()
+    
+    argList.clear() ;
     
     return NULL ;
   } // Define()
@@ -3231,39 +3320,43 @@ private:
   } // ProcessCondOperation()
   
   Node* ProcessOperation( string funcName, Node* inTree, int level ) {
-    
+    Node* ans = NULL ;
     vector<Node*> argList = GetArgumentList( inTree ) ;
     
     if ( IsMathOperator( funcName ) ) { // need to have more than two arguments
       if ( CountArgument( inTree ) >= 2 ) {
-        return ProcessMath( funcName, argList, ++level ) ;
+        ans = ProcessMath( funcName, argList, ++level ) ;
       } // if()
       else {
+        argList.clear() ;
         throw new IncorrectNumberArgumentException( funcName ) ;
       } // else()
     } // if()
     else if ( IsComparison( funcName ) ) { // need to have more than two arguments
       if ( CountArgument( inTree ) >= 2 ) {
-        return ProcessCompare( funcName, argList, ++level );
+        ans = ProcessCompare( funcName, argList, ++level );
       } // if()
       else {
+        argList.clear() ;
         throw new IncorrectNumberArgumentException( funcName ) ;
       } // else()
     } // else if()
     else if ( IsCondOperator( funcName ) ) { // not only need 1 argument
       if ( funcName == "not" ) { // only ONE argument
         if ( CountArgument( inTree ) == 1 ) {
-          return ProcessCondOperation( funcName, argList, ++level ) ;
+          ans = ProcessCondOperation( funcName, argList, ++level ) ;
         } // if()
         else {
+          argList.clear() ;
           throw new IncorrectNumberArgumentException( funcName ) ;
         } // else()
       } // if()
       else {
         if ( CountArgument( inTree ) >= 2 ) {
-          return ProcessCondOperation( funcName, argList, ++level ) ;
+          ans = ProcessCondOperation( funcName, argList, ++level ) ;
         } // if()
         else {
+          argList.clear() ;
           throw new IncorrectNumberArgumentException( funcName ) ;
         } // else()
       } // else()
@@ -3271,14 +3364,17 @@ private:
     else if ( IsStringOperator( funcName ) ) {
       // need to have more than two arguments
       if ( CountArgument( inTree ) >= 2 ) {
-        return ProcessStringCompare( funcName, argList, ++level ) ;
+        ans = ProcessStringCompare( funcName, argList, ++level ) ;
       } // if()
       else {
+        argList.clear() ;
         throw new IncorrectNumberArgumentException( funcName ) ;
       } // else()
     } // else if()
     
-    return NULL ;
+    argList.clear() ;
+    
+    return ans ;
   } // ProcessOperation()
   
   bool TwoTreesAreTheSame( Node* tree1, Node* tree2 ) {
@@ -3367,10 +3463,14 @@ private:
         
         if ( isInSameMemory ) {
           ansNode -> lex = "#t" ;
+          
+          argList.clear() ;
           return ansNode ;
         } // if()
         else {
           ansNode -> lex = "nil" ;
+          
+          argList.clear() ;
           return ansNode ;
         } // else()
       } // if()
@@ -3406,6 +3506,8 @@ private:
   
   Node* ProcessIf( Node* inTree, int level ) {
     // has two or three arguments
+    Node* result = NULL ;
+    
     if ( CountArgument( inTree ) == 2 || CountArgument( inTree ) == 3 ) {
       vector<Node*> argList = GetArgumentList( inTree ) ;
       
@@ -3415,7 +3517,7 @@ private:
       if ( condition != NULL ) {
         if ( CountArgument( inTree ) == 2 ) {
           if ( condition -> lex != "#f" && condition -> lex != "nil" ) {
-            return EvaluateSExp( argList[ 1 ], ++level ) ;
+            result = EvaluateSExp( argList[ 1 ], ++level ) ;
           } // if()
           else ;
           /*
@@ -3427,10 +3529,10 @@ private:
         } // if()
         else if ( CountArgument( inTree ) == 3 ) {
           if ( condition -> lex != "#f" && condition -> lex != "nil" ) {
-            return EvaluateSExp( argList[ 1 ], ++level ) ;
+            result = EvaluateSExp( argList[ 1 ], ++level ) ;
           } // if()
           else {
-            return EvaluateSExp( argList[ 2 ], ++level ) ;
+            result = EvaluateSExp( argList[ 2 ], ++level ) ;
           } // else()
         } // else if()
       } // if()
@@ -3439,12 +3541,14 @@ private:
         // throw new IncorrectArgumentTypeException( "if" ) ;
         throw new TestCondNotBoundException() ;
       } // else()
+      
+      argList.clear() ;
     } // if()
     else {
       throw new IncorrectNumberArgumentException( "if" ) ; // curious here
     } // else()
     
-    return NULL ;
+    return result ;
   } // ProcessIf()
   
   Node* ProcessCond( Node* inTree, int level ) {
@@ -3544,6 +3648,8 @@ private:
             } // else()
           } // else()
         } // else()
+        
+        subAugList.clear() ;
       } // for()
     } // if()
     else {
@@ -3641,17 +3747,21 @@ private:
           varList.push_back( walk -> left ) ;
         } // if()
         else {
+          varList.clear() ;
           return false ;
         } // else()
       } // for()
     } // if()
     else {
+      varList.clear() ;
       return false ;
     } // else()
     
     if ( varList.size() == 1 && varList[ 0 ] == NULL ) {
+      varList.clear() ;
       return true ;
     } // if()
+    else ;
     
     for ( int i = 0 ; i < varList.size() ; i ++ ) {
       if ( varList[ i ] -> type == CONS ) { // Should be a cons structure
@@ -3713,8 +3823,9 @@ private:
         
         Node* finalResult = EvaluateSExp( walk -> left, ++level ) ; // the last expression result
 
-        mCallStack.RestoreLocalVar( localVarNameList ) ;
-        mCallStack.ClearCurrentLocalVar() ;
+        // mCallStack.RestoreLocalVar( localVarNameList ) ;
+        //  mCallStack.ClearCurrentLocalVar() ;
+        mCallStack.ClearRecentLocalVar( localVarNameList ) ;
         
         localVarNameList.clear() ;
         
@@ -3802,8 +3913,34 @@ private:
     } // else()
   } // ParameterBinding()
   
+  void Substitude( string name, Node* binding, Node* root ) {
+    if ( root == NULL ) {
+      return ;
+    } // if()
+    else if ( root -> type != CONS ) {
+      // check whether the name in the original expression is same with the local variable
+      if ( root -> lex == name ) {
+        delete root -> parent -> left ;
+        root -> parent -> left = NULL ;
+        root -> parent -> left = binding ;
+      } // if()
+      else ;
+    } // else if()
+    else { // still in the middle of the tree
+      Substitude( name, binding, root -> left ) ;
+      Substitude( name, binding, root -> right ) ;
+    } // else()
+  } // Substitude()
+  
+  void SubstitudeLocalVarWithBinding( vector<string> varList, Node* express ) {
+    for ( int i = 0 ; i < varList.size() ; i ++ ) {
+      Node* binding = mCallStack.GetLocalVarBinding( varList[ i ] ) ;
+      Substitude( varList[ i ], binding, express ) ;
+    } // for()
+  } // SubstitudeLocalVarWithBinding()
+  
   Node* ProcessLambda( Node* inTree, int level ) {
-    mCallStack.GetCleanLocalZone() ;
+    // mCallStack.GetCleanLocalZone() ;
     // When in this function, there might be two circumstaces
     // 1. Not yet be evaluated
     // 2. Is the returned #<procedure lambda
@@ -3815,7 +3952,7 @@ private:
       return ProcessUserDefinedFunc( inTree, FindUserDefinedFunc( inTree -> left -> lex ), ++level );
     } // if()
     else if ( inTree -> left -> type == CONS ) { // the second circumstances
-      mCallStack.GetCleanLocalZone() ;
+      // mCallStack.GetCleanLocalZone() ;
       Node* finalResult = NULL ;
       
       if ( inTree -> right -> lex != "nil" ) { // immediately call the lambda function
@@ -3827,7 +3964,11 @@ private:
           gErrNode = inTree ;
           throw new NoReturnValueException() ;
         } // catch()
-        
+        /*
+        for ( int i = 0 ; i < mLambdaVars.size() ; i ++ ) {
+          mCallStack.AddOneLocalVar( mLambdaVars[ i ].name, mLambdaVars[ i ].tree, level ) ;
+        } // for()
+        */
         mLambdaFunc = mLambdaStack[ mLambdaStack.size() - 1 ] ;
         mLambdaStack.pop_back() ;
       } // if()
@@ -3843,8 +3984,10 @@ private:
         } // for()
       } // if()
       
-      mCallStack.RestoreLocalVar( mLambdaFunc.argList ) ;
-      mCallStack.ClearCurrentLocalVar() ;
+      // mCallStack.RestoreLocalVar( mLambdaFunc.argList ) ;
+      // mCallStack.RestoreLocalVar( mLambdaVars ) ;
+      // mCallStack.ClearCurrentLocalVar() ;
+      mCallStack.ClearRecentLocalVar( mLambdaFunc.argList ) ;
       
       return finalResult ;
     } // else if()
@@ -3866,6 +4009,13 @@ private:
             // mLambdaFunc.tree = allSExp ;
             mLambdaFunc.tree = CopyTree( allSExp ) ;
             
+            /*
+            if ( mCallStack.GetCurrentLocalVarZone().size() != 0 ) {
+              // mCallStack.CreateRecentLocalVarForLambda( mLambdaVars ) ;
+            } // if()
+            else ;
+            */
+             
           } catch ( FormatException* e ) {
             gErrNode = inTree ;
             throw new FormatException( "LAMBDA" ) ;
@@ -3887,7 +4037,6 @@ private:
   } // ProcessLambda()
   
   Node* ProcessUserDefinedFunc( Node* inTree, int funcIndex, int level ) {
-    mCallStack.GetCleanLocalZone() ;
     
     Function func = mUserDefinedFunctionTable[ funcIndex ] ;
     Node* treeInSymbolTable = mSymbolTable[ FindSymbolFromLocalAndGlobal( func.name ) ].tree ;
@@ -3900,6 +4049,10 @@ private:
       ParameterBinding( func.argList, inTree -> right, func.name, ++level ) ;
     } // else()
     
+    mCallStack.RemoveLocalVarFromCurrentZone( func.argList ) ;
+    mCallStack.GetCleanLocalZone() ;
+    mCallStack.RestoreLocalVar( func.argList ) ;
+    
     for ( Node* walk = func.tree ; walk -> lex != "nil" ; walk = walk -> right ) {
       if ( walk -> right -> lex == "nil" ) {
         finalResult = EvaluateSExp( walk -> left, ++level ) ;
@@ -3909,7 +4062,7 @@ private:
       } // else()
     } // for()
     
-    mCallStack.RestoreLocalVar( func.argList ) ;
+    // mCallStack.RestoreLocalVar( func.argList ) ;
     mCallStack.ClearCurrentLocalVar() ;
     return finalResult ;
   } // ProcessUserDefinedFunc()
@@ -3959,6 +4112,7 @@ private:
     mLambdaFunc.name = "" ;
     mLambdaFunc.argNum = 0 ;
     mLambdaFunc.tree = NULL ;
+    // mLambdaVars.clear() ;
   } // InitialLambdaFunc()
   
 public:
@@ -4226,6 +4380,8 @@ int main() {
             if ( result != NULL ) {
               g.PrettyPrint( result ) ;
             } // if()
+            else ;
+            
           } // try
           catch ( LevelException* e ) {
             cout << e -> Err_mesg() << endl ;

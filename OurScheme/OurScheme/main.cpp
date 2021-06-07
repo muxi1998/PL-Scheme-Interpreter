@@ -247,8 +247,27 @@ SingleList gOriginalList ;
 class GlobalFunction { // the functions that may be used in anywhere
 private:
   enum Direction { RIGHT = 1234, LEFT = 4321 } ;
+  Node* mNULLNode ;
+  Node* mEmptyNode ;
   
 public:
+  GlobalFunction() {
+    mNULLNode = new Node ;
+    mNULLNode -> lex = "nil" ;
+    mNULLNode -> type = SPECIAL ;
+    mNULLNode -> parent = NULL ;
+    mNULLNode -> left = NULL ;
+    mNULLNode -> right = NULL ;
+    mNULLNode -> isAddByMe = false ;
+    
+    mEmptyNode = new Node ;
+    mEmptyNode -> lex = "" ;
+    mEmptyNode -> type = EMPTY ;
+    mEmptyNode -> parent = NULL ;
+    mEmptyNode -> left = NULL ;
+    mEmptyNode -> right = NULL ;
+    mEmptyNode -> isAddByMe = false ;
+  } // GlobalFunction()
   
   bool IsINT( string str ) {
     // Mark1: there might be a sign char, such as '+' or '-'
@@ -453,28 +472,8 @@ public:
   } // FormatIntToFloatStr()
   
   Node* GetNullNode() {
-    Node* nullNode = new Node ;
-    nullNode -> lex = "nil" ;
-    nullNode -> type = SPECIAL ;
-    nullNode -> parent = NULL ;
-    nullNode -> left = NULL ;
-    nullNode -> right = NULL ;
-    nullNode -> isAddByMe = false ;
-    
-    return nullNode ;
+    return mNULLNode ;
   } // GetNullNode()
-  
-  Node* GetEmptyNode() {
-    Node* nullNode = new Node ;
-    nullNode -> lex = "" ;
-    nullNode -> type = EMPTY ;
-    nullNode -> parent = NULL ;
-    nullNode -> left = NULL ;
-    nullNode -> right = NULL ;
-    nullNode -> isAddByMe = false ;
-    
-    return nullNode ;
-  } // GetEmptyNode()
   
   void DeleteTree( Node* root ) {
     if ( root == NULL ) {
@@ -1437,7 +1436,7 @@ public:
   // Pre-request: tokens in vector construct a S-exp with correct grammer
   // Return the root of this tree
   void Build( Node_Linear* leftPointer, Node_Linear* rightPointer, Node* parent, string dir ) {
-    if ( parent == NULL || dir == "root" ) {
+    if ( mRoot == NULL || dir == "root" ) {
       mRoot = new Node ;
       mRoot -> lex = "" ;
       mRoot -> left = NULL ;
@@ -1457,7 +1456,7 @@ public:
       parent -> left -> type = EMPTY ;
       parent -> left -> isAddByMe = false ;
       parent = parent -> left ;
-    } // els if()
+    } // else if()
     else if ( dir == "right" ) {
       parent -> right = new Node ;
       parent -> right -> lex = "" ;
@@ -1470,36 +1469,9 @@ public:
     } // else if()
     else ;
     
-    
-    if ( leftPointer -> token.type == LPAREN &&
-         rightPointer -> token.type == DOT ) { // left part if the cons
-      /*
-      Node* atomNode = new Node ;
-      atomNode -> lex = "" ;
-      atomNode -> left = NULL ;
-      atomNode -> right = NULL ;
-      atomNode -> parent = NULL ;
-      atomNode -> type = EMPTY ;
-      atomNode -> isAddByMe = false ;
+    // left part if the cons
+    if ( leftPointer -> token.type == LPAREN && rightPointer -> token.type == DOT ) {
       
-      atomNode -> lex = leftPointer -> next -> token.str ;
-      if ( leftPointer -> next -> token.type == NIL || leftPointer -> next -> token.type == T ) {
-        atomNode -> type = SPECIAL ;
-        
-        if ( leftPointer -> next -> isAddByMe ) {
-          atomNode -> isAddByMe = true ;
-        } // if()
-        else ;
-      } // if()
-      else {
-        atomNode -> type = ATOM ;
-      } // else()
-      
-      atomNode -> left = NULL ;
-      atomNode -> right = NULL ;
-      
-      return atomNode ;
-      */
       parent -> lex = leftPointer -> next -> token.str ;
       if ( leftPointer -> next -> token.type == NIL || leftPointer -> next -> token.type == T ) {
         parent -> type = SPECIAL ;
@@ -1514,34 +1486,7 @@ public:
       } // else()
     } // if()
     else if ( leftPointer == rightPointer ) { // right part of the cons
-      /*
-      Node* atomNode = NULL ;
-      atomNode = new Node ;
-      atomNode -> lex = "" ;
-      atomNode -> left = NULL ;
-      atomNode -> right = NULL ;
-      atomNode -> parent = NULL ;
-      atomNode -> type = EMPTY ;
-      atomNode -> isAddByMe = false ;
       
-      atomNode -> lex = leftPointer -> token.str ;
-      if ( leftPointer -> token.type == NIL || leftPointer -> token.type == T ) {
-        atomNode -> type = SPECIAL ;
-        
-        if ( leftPointer -> isAddByMe ) {
-          atomNode -> isAddByMe = true ;
-        } // if()
-        else ;
-      } // if()
-      else {
-        atomNode -> type = ATOM ;
-      } // else()
-      
-      atomNode -> left = NULL ;
-      atomNode -> right = NULL ;
-      
-      return atomNode ;
-      */
       parent -> lex = leftPointer -> token.str ;
       if ( leftPointer -> token.type == NIL || leftPointer -> token.type == T ) {
         parent -> type = SPECIAL ;
@@ -1557,33 +1502,15 @@ public:
     } // else if()
     else { // Now is still in ( ) form
       Node_Linear* dotPointer = FindDOT( leftPointer, rightPointer ) ;
-      // Node* leftSubTree = Build( leftPointer -> next, dotPointer -> prev ) ;
-      // Node* rightSubTree = Build( dotPointer -> next, rightPointer -> prev ) ;
+      
       parent -> type = CONS ;
       Build( leftPointer -> next, dotPointer -> prev, parent, "left" ) ;
       parent -> left -> parent = parent ;
       Build( dotPointer -> next, rightPointer -> prev, parent, "right" ) ;
       parent -> right -> parent = parent ;
-      /*
-      Node* cons = new Node ;
-      cons -> lex = "" ;
-      cons -> left = NULL ;
-      cons -> right = NULL ;
-      cons -> parent = NULL ;
-      cons -> type = EMPTY ;
-      cons -> isAddByMe = false ;
       
-      cons -> type = CONS ;
-      cons -> left = Build( leftPointer -> next, dotPointer -> prev, cons, "left" ) ;
-      cons -> left -> parent = cons ;
-      cons -> right = Build( dotPointer -> next, rightPointer -> prev, cons, "right" ) ;
-      cons -> right -> parent = cons ;
-      
-      return cons ;
-       */
     } // else()
     
-    // return NULL ;
   } // Build()
   
   void BuildTree() {
@@ -2328,7 +2255,7 @@ private:
   } // UpdateGlobalSymbol()
   
   Node* CopyNode( Node* node ) {
-    Node* newN = g.GetEmptyNode() ;
+    Node* newN = new Node ;
     newN -> lex = node -> lex ;
     newN -> type = node -> type ;
     newN -> left = node -> left ;
@@ -2799,7 +2726,7 @@ private:
     newFunc.tree = NULL ;
     Symbol newSymbol ;
     newSymbol.name = "" ;
-    newSymbol.tree = g.GetEmptyNode() ;
+    newSymbol.tree = NULL ;
     
     
     if ( IsList( funcNameAndArgPart ) ) {
@@ -2820,11 +2747,17 @@ private:
       newFunc.tree = NULL ;
       
       newFunc.argNum = CountAndCkeckParameters( argList, newFunc.argList ) ;
-      newFunc.tree = procedurePart ;
-      // newFunc.tree = CopyTree( procedurePart ) ;
+      // newFunc.tree = procedurePart ;
+      newFunc.tree = CopyTree( procedurePart ) ;
       
       // create a global symbol for this function, make it easy to find in the symbol
-      Node* tmp = g.GetEmptyNode() ;
+      Node* tmp = new Node ;
+      tmp -> lex = "" ;
+      tmp -> type = EMPTY ;
+      tmp -> left = NULL ;
+      tmp -> right = NULL ;
+      tmp -> parent = NULL ;
+      tmp -> isAddByMe = false ;
       if ( IsALambdaFunc( procedurePart ) ) {
         tmp -> lex = "#<procedure lambda>" ;
       } // if()
@@ -2958,14 +2891,14 @@ private:
                   
                   // this been assigned S-exp is in the input
                   // and haven't evaluated yet
-                  newSymbol.tree = bind ;
-                  // newSymbol.tree = CopyTree( bind ) ;
+                  // newSymbol.tree = bind ;
+                  newSymbol.tree = CopyTree( bind ) ;
                 } // if()
                 else {
                   // int symIndex = FindSymbolFromLocalAndGlobal( argList[ 1 ] -> lex ) ;
                   if ( mCallStack.IsLocalVar( argList[ 1 ] -> lex ) ) {
-                    newSymbol.tree = mCallStack.GetLocalVarBinding( argList[ 1 ] -> lex ) ;
-                    // newSymbol.tree = CopyTree( mCallStack.GetLocalVarBinding( argList[ 1 ] -> lex ) ) ;
+                    // newSymbol.tree = mCallStack.GetLocalVarBinding( argList[ 1 ] -> lex ) ;
+                    newSymbol.tree = CopyTree( mCallStack.GetLocalVarBinding( argList[ 1 ] -> lex ) ) ;
                   } // if()
                   else {
                     // newSymbol.tree = mSymbolTable[ symIndex ].tree ;
@@ -3856,8 +3789,10 @@ private:
               } // else if()
             } // if()
             else {
-              gErrNode = inTree ;
-              throw new CondFormatException() ; // curious
+              // gErrNode = inTree ;
+              // throw new CondFormatException() ; // curious
+              gErrNode = condPart ;
+              throw new TestCondNotBoundException() ;
             } // else()
           } // else()
         } // else()
@@ -3919,7 +3854,13 @@ private:
         } // if()
         else {
           gVerbose = true ;
-          Node* node = g.GetEmptyNode() ;
+          Node* node = new Node ;
+          node -> lex = "" ;
+          node -> type = EMPTY ;
+          node -> left = NULL ;
+          node -> right = NULL ;
+          node -> parent = NULL ;
+          node -> isAddByMe = false ;
           node -> lex = "#t" ;
           node -> type = SPECIAL ;
           return node ;
@@ -3932,7 +3873,13 @@ private:
     else if ( funcName == "verbose?" ) {
       if ( CountArgument( inTree ) == 0 ) {
         if ( gVerbose ) {
-          Node* node = g.GetEmptyNode() ;
+          Node* node = new Node ;
+          node -> lex = "" ;
+          node -> type = EMPTY ;
+          node -> left = NULL ;
+          node -> right = NULL ;
+          node -> parent = NULL ;
+          node -> isAddByMe = false ;
           node -> lex = "#t" ;
           node -> type = SPECIAL ;
           return node ;
@@ -4568,82 +4515,82 @@ int main() {
           } // try
           catch ( LevelException* e ) {
             cout << e -> Err_mesg() << endl ;
-            gTree.DeleteTree() ;
+            // gTree.DeleteTree() ;
           } // catch()
           catch ( NonListException* e ) {
             cout << e -> Err_mesg() ;
             g.PrettyPrint( gErrNode ) ;
-            gTree.DeleteTree() ;
+            // gTree.DeleteTree() ;
             // cout << endl ;
           } // catch()
           catch ( UnboundValueException* e ) {
             cout << e -> Err_mesg() << endl ;
-            gTree.DeleteTree() ;
+            // gTree.DeleteTree() ;
           } // catch()
           catch ( ApplyNonFunctionException* e ) {
             cout << e -> Err_mesg() ;
             g.PrettyPrint( gErrNode ) ;
-            gTree.DeleteTree() ;
+            // gTree.DeleteTree() ;
           } // catch()
           catch ( IncorrectNumberArgumentException* e ) {
             cout << e -> Err_mesg() << endl ;
-            gTree.DeleteTree() ;
+            // gTree.DeleteTree() ;
           } // catch()
           catch ( IncorrectArgumentTypeException* e ) {
             cout << e -> Err_mesg() ;
             g.PrettyPrint( gErrNode ) ;
-            gTree.DeleteTree() ;
+            // gTree.DeleteTree() ;
           } // catch()
           catch ( NoReturnValueException* e ) {
             cout << e -> Err_mesg() ;
             g.PrettyPrint( gErrNode ) ;
-            gTree.DeleteTree() ;
+            // gTree.DeleteTree() ;
             // cout << endl ;
           } // catch()
           catch ( ParamNotBoundException* e ) {
             cout << e -> Err_mesg() ;
             g.PrettyPrint( gErrNode ) ;
-            gTree.DeleteTree() ;
+            // gTree.DeleteTree() ;
           } // catch()
           catch ( DivideByZeroException* e ) {
             cout << e -> Err_mesg() << endl ;
-            gTree.DeleteTree() ;
+            // gTree.DeleteTree() ;
           } // catch()
           catch ( DefineFormatException* e ) {
             // cout << e -> Err_mesg() << endl ;
             cout << e -> Err_mesg() ;
             g.PrettyPrint( gErrNode ) ;
-            gTree.DeleteTree() ;
+            // gTree.DeleteTree() ;
           } // catch()
           catch ( CondFormatException* e ) {
             cout << e -> Err_mesg() ;
             g.PrettyPrint( gErrNode ) ;
-            gTree.DeleteTree() ;
+            // gTree.DeleteTree() ;
             // cout << endl ;
           } // catch()
           catch ( CondNotBoundException* e ) {
             cout << e -> Err_mesg() ;
             g.PrettyPrint( gErrNode ) ;
-            gTree.DeleteTree() ;
+            // gTree.DeleteTree() ;
           } // catch()
           catch ( TestCondNotBoundException* e ) {
             cout << e -> Err_mesg() ;
             g.PrettyPrint( gErrNode ) ;
-            gTree.DeleteTree() ;
+            // gTree.DeleteTree() ;
           } // catch()
           catch ( FormatException* e ) {
             cout << e -> Err_mesg() ;
             g.PrettyPrint( gErrNode ) ;
-            gTree.DeleteTree() ;
+            // gTree.DeleteTree() ;
           } // catch()
           catch ( NonReturnAssignedException* e ) {
             cout << e -> Err_mesg() ;
             g.PrettyPrint( gErrNode ) ;
-            gTree.DeleteTree() ;
+            // gTree.DeleteTree() ;
           } // catch()
         } // if()
         
-        // tree.DeleteTree() ;
+        gTree.DeleteTree() ;
       } // if()
       
       gJustFinishAExp = true ;

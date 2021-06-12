@@ -88,6 +88,14 @@ struct Node_Linear {
   //  Node_Linear(): next( NULL ), prev( NULL ) {} ;
 } ;
 
+class Exception {
+public:
+  string Err_mesg() {
+    string mesg = "ERROR : " ;
+    return mesg ;
+  } // Err_mesg()
+} ; // AssignedNotBoundException
+
 class SingleList {
   
 public:
@@ -98,19 +106,6 @@ public:
   
   Node_Linear* mRoot ;
   Node_Linear* mTail ;
-  
-  Node_Linear* FindNode( Token token ) {
-    Node_Linear* nodeWeWant = NULL ;
-    
-    for ( Node_Linear* walk = mRoot ; walk != NULL && nodeWeWant != NULL ; walk = walk -> next ) {
-      if ( token.str == walk -> token.str && token.line == walk -> token.line
-           && token.column == walk -> token.column ) {
-        nodeWeWant = walk ;
-      } // if()
-    } // for()
-    
-    return nodeWeWant ;
-  } // FindNode()
   
   // Purpose: Simply add a new node at the tail
   void AddNode( Token token ) {
@@ -201,7 +196,7 @@ public:
     } // else()
     
   } // InsertNode()
-  /*
+  
   void Print() {
     for ( Node_Linear* walk = mRoot ; walk != NULL ; walk = walk -> next ) {
       cout << walk -> token.str << "  (" << walk -> token.line ;
@@ -226,9 +221,9 @@ public:
       if ( walk == mRoot ) finish = true ;
     } // for()
   } // PrintBackforward()
-  */
+  
   void Clear() {
-    /*
+    
     while ( mRoot != NULL ) {
       Node_Linear* current = mRoot ;
       mRoot = mRoot -> next ;
@@ -237,7 +232,7 @@ public:
     } // while()
     
     delete mRoot ;
-    */
+    
     mRoot = NULL ;
     mTail = NULL ;
   } // Clear()
@@ -278,22 +273,27 @@ public:
     int startIndex = 0 ;  // to avoid the sign char if there has one
     bool hasNum = false ;
     
-    if ( str[ 0 ] == '+' || str[ 0 ] == '-' ) {
-      startIndex = 1 ;  // the checking process start after the sign char
-    } // if()
-    
-    for ( int i = startIndex ;  i < str.length() ; i ++ ) {
-      if ( ! ( str[ i ] <= '9' && str[ i ] >= '0' ) ) {
-        return false ;
-      } // if()
-      else if ( str[ i ] <= '9' && str[ i ] >= '0' ) {
-        hasNum = true ;
-      } // else if()
-    } // for()
-    
-    if ( ! hasNum ) {
+    if ( str == "" ) {
       return false ;
     } // if()
+    else {
+      if ( str[ 0 ] == '+' || str[ 0 ] == '-' ) {
+        startIndex = 1 ;  // the checking process start after the sign char
+      } // if()
+      
+      for ( int i = startIndex ;  i < str.length() ; i ++ ) {
+        if ( ! ( str[ i ] <= '9' && str[ i ] >= '0' ) ) {
+          return false ;
+        } // if()
+        else if ( str[ i ] <= '9' && str[ i ] >= '0' ) {
+          hasNum = true ;
+        } // else if()
+      } // for()
+      
+      if ( ! hasNum ) {
+        return false ;
+      } // if()
+    } // else()
     
     return true ;
   } // IsINT()
@@ -311,32 +311,37 @@ public:
     int startIndex = 0 ;  // the checking process start after the sign char
     bool hasNum = false ;
     
-    if ( str[ 0 ] == '+' || str[ 0 ] == '-' ) {
-      startIndex = 1 ;  // the checking process start after the sign char
-    } // if()
-    
-    for ( int i = startIndex ;  i < str.length() ; i ++ ) {
-      if ( str[ i ] == '.' ) {
-        dotNum ++ ;  // every time we encounter a dot, count it
-      } // if()
-      
-      if ( ! ( str[ i ] <= '9' && str[ i ] >= '0' ) && str[ i ] != '.' ) {
-        return false ;
-      } // if()
-      else if ( str[ i ] <= '9' && str[ i ] >= '0' ) {
-        hasNum = true ;
-      } // else if()
-    } // for()
-    
-    if ( dotNum != 1 || !hasNum ) {
+    if ( str == "" ) {
       return false ;
     } // if()
+    else {
+      if ( str[ 0 ] == '+' || str[ 0 ] == '-' ) {
+        startIndex = 1 ;  // the checking process start after the sign char
+      } // if()
+      
+      for ( int i = startIndex ;  i < str.length() ; i ++ ) {
+        if ( str[ i ] == '.' ) {
+          dotNum ++ ;  // every time we encounter a dot, count it
+        } // if()
+        
+        if ( ! ( str[ i ] <= '9' && str[ i ] >= '0' ) && str[ i ] != '.' ) {
+          return false ;
+        } // if()
+        else if ( str[ i ] <= '9' && str[ i ] >= '0' ) {
+          hasNum = true ;
+        } // else if()
+      } // for()
+      
+      if ( dotNum != 1 || !hasNum ) {
+        return false ;
+      } // if()
+    } // else()
     
     return true ;
   } // IsFLOAT()
   
   bool IsStr( string str ) {
-    if ( str[ 0 ] == '"' && str[ str.length() - 1 ] == '"' ) {
+    if ( str != "" && str[ 0 ] == '"' && str[ str.length() - 1 ] == '"' ) {
       return true ;
     } // if()
     
@@ -415,16 +420,21 @@ public:
     int num = 0 ;
     char sign = '\0' ;
     
-    if ( str[ 0 ] == '+' || str[ 0 ] == '-' ) {
-      sign = str[ 0 ] ;
-      str.erase( str.begin(), str.begin() + 1 ) ; // take off the sign char
+    if ( str == "" ) {
+      throw new Exception() ;
     } // if()
-    
-    num = atoi( str.c_str() ) ;
-    
-    if ( sign == '-' ) {
-      num *= -1 ;
-    } // if()
+    else {
+      if ( str[ 0 ] == '+' || str[ 0 ] == '-' ) {
+        sign = str[ 0 ] ;
+        str.erase( str.begin(), str.begin() + 1 ) ; // take off the sign char
+      } // if()
+      
+      num = atoi( str.c_str() ) ;
+      
+      if ( sign == '-' ) {
+        num *= -1 ;
+      } // if()
+    } // else()
     
     return num ;
   } // GetValueOfIntStr()
@@ -433,16 +443,21 @@ public:
     double num = 0.0 ;
     char sign = '\0' ;
     
-    if ( str[ 0 ] == '+' || str[ 0 ] == '-' ) {
-      sign = str[ 0 ] ;
-      str.erase( str.begin(), str.begin() + 1 ) ; // take off the sign char
+    if ( str == "" ) {
+      throw new Exception() ;
     } // if()
-    
-    num = atof( str.c_str() ) ;
-    
-    if ( sign == '-' ) {
-      num *= -1.0 ;
-    } // if()
+    else {
+      if ( str[ 0 ] == '+' || str[ 0 ] == '-' ) {
+        sign = str[ 0 ] ;
+        str.erase( str.begin(), str.begin() + 1 ) ; // take off the sign char
+      } // if()
+      
+      num = atof( str.c_str() ) ;
+      
+      if ( sign == '-' ) {
+        num *= -1.0 ;
+      } // if()
+    } // else()
     
     return num ;
   } // GetValueOfFloatStr()
@@ -450,20 +465,26 @@ public:
   string FormatFloat( string str ) {
     string formatStr = "" ;
     
-    if ( str[ str.length() - 1 ] == '.' ) { // float num end with a dot
-      formatStr = str + "000" ; // put some zero in it
-    } // if()
-    else if ( str[ 0 ] == '.' ) { // float num start with the dot
-      formatStr = "0" + str ;
-    } // else if()
-    else {
-      int dotIndex = ( int ) str.find( '.' ) ;
-      int count = ( int ) str.length() - dotIndex ;
-      formatStr = str ;
-      for ( int i = 0 ; i < count ; i ++ ) {
-        formatStr = formatStr + "0" ;
-      } // for()
+    if ( str != "" ) {
       
+      if ( str[ str.length() - 1 ] == '.' ) { // float num end with a dot
+        formatStr = str + "000" ; // put some zero in it
+      } // if()
+      else if ( str[ 0 ] == '.' ) { // float num start with the dot
+        formatStr = "0" + str ;
+      } // else if()
+      else {
+        int dotIndex = ( int ) str.find( '.' ) ;
+        int count = ( int ) str.length() - dotIndex ;
+        formatStr = str ;
+        for ( int i = 0 ; i < count ; i ++ ) {
+          formatStr = formatStr + "0" ;
+        } // for()
+        
+      } // else()
+    } // if()
+    else {
+      throw new Exception() ;
     } // else()
     
     return formatStr ;
@@ -540,11 +561,17 @@ public:
   
   string GetStrContent( string str ) {
     string newString = "" ;
-    if ( str[ 0 ] == '"' ) {
-      newString = str.substr( 1, str.length() - 2 ) ;
+    
+    if ( str != "" ) {
+      if ( str[ 0 ] == '"' ) {
+        newString = str.substr( 1, str.length() - 2 ) ;
+      } // if()
+      else {
+        newString = str ;
+      } // else()
     } // if()
     else {
-      newString = str ;
+      throw new Exception() ;
     } // else()
     
     return newString ;
@@ -1211,26 +1238,6 @@ private:
     } // for()
   } // TransferNIL()
   
-  Node_Linear* FindStrAndGetPreviousNode( Node_Linear* root, Node_Linear* tail, string str ) {
-    
-    Node_Linear* target = NULL ;
-    
-    if ( str == root -> token.str ) {
-      target = root ;
-      return target ;
-    } // if()
-    
-    for ( Node_Linear* walk = root ; walk != NULL && walk != tail && target == NULL
-          ; walk = walk -> next ) {
-      if ( str == walk -> token.str ) {
-        target = walk -> prev ;
-      } // if()
-    } // for()
-    
-    return target ;
-    
-  } // FindStrAndGetPreviousNode()
-  
   Node_Linear* FindCorrespondPar( Node_Linear* par_L ) {
     stack<Node_Linear*> nodeStack ;
     Node_Linear* target = NULL ; // the pointer that pointed to the Right parathesis
@@ -1398,7 +1405,7 @@ private:
     // from back to front
     for ( Node_Linear* walk = gOriginalList.mTail ; walk != NULL ; walk = walk -> prev ) {
       if ( walk -> token.str == "'" ) { // should make the transfer
-        if ( walk != NULL && walk -> next != NULL && walk -> next -> token.type == LPAREN ) {
+        if ( walk -> next != NULL && walk -> next -> token.type == LPAREN ) {
           Node_Linear* corRightPar = FindCorrespondPar( walk -> next ) ;
           walk -> token.str = "quote" ;
           gOriginalList.InsertNode( walk -> prev, LPAREN ) ;
@@ -1537,7 +1544,7 @@ public:
        } // if()
       */
       // gOriginalList.Print() ;
-      // mCopyList.PrintForward() ;
+      // gOriginalList.PrintForward() ;
       // mCopyList.PrintBackforward() ;
     } // else()
   } // BuildTree()
@@ -1748,21 +1755,6 @@ public:
   } // Err_mesg()
 } ; // CondNotBoundException
 
-class AssignedNotBoundException {
-public:
-  string Err_mesg() {
-    string mesg = "ERROR (no return value) : " ;
-    return mesg ;
-  } // Err_mesg()
-} ; // AssignedNotBoundException
-
-class TopLevelNoReturnException {
-public:
-  string Err_mesg() {
-    string mesg = "ERROR (no return value) : " ;
-    return mesg ;
-  } // Err_mesg()
-} ; // TopLevelNoReturnException
 // --------------------- Error Definition Proj.3 (end) ---------------------
 
 struct Symbol {
@@ -1882,10 +1874,10 @@ public:
   
   void AddLocalVars( vector<string> nameList, vector<Node*> bindList, int level ) {
     if ( nameList.size() != bindList.size() ) {
-      cout << "### Error: Local variabl and binding number failure ###" << endl ;
+      throw new Exception() ;
     } // if()
     else {
-      for ( int i = 0 ; i < nameList.size() ; i ++ ) {
+      for ( int i = 0 ; i < nameList.size() && i < bindList.size() ; i ++ ) {
         AddOneLocalVar( nameList[ i ], bindList[ i ], level ) ;
       } // for()
     } // else()
@@ -1952,9 +1944,13 @@ public:
       
       for ( int j = ( int ) mCurrentVar.size() - 1 ; !hasErased && j >= 0 ; j -- ) {
         if ( strList[ i ] == mCurrentVar[ j ] ) {
-          int indexInStack = GetLocalVarIndex( strList[ i ] ) ;
-          mCallStack.erase( mCallStack.begin() + indexInStack ) ;
-          mCurrentVar.erase( mCurrentVar.begin() + j ) ;
+          int indexInStack = -1 ;
+          indexInStack = GetLocalVarIndex( strList[ i ] ) ;
+          if ( indexInStack != -1 ) {
+            mCallStack.erase( mCallStack.begin() + indexInStack ) ;
+            mCurrentVar.erase( mCurrentVar.begin() + j ) ;
+          } // if()
+          else ;
           
           hasErased = true ;
         } // if()
@@ -1977,9 +1973,9 @@ public:
   int GetLocalVarIndex( string varName ) {
     for ( int i = ( int ) mCurrentVar.size() - 1 ; i >= 0 ; i -- ) {
       if ( varName == mCurrentVar[ i ] ) {
-        for ( int i = ( int ) mCallStack.size() - 1 ; i >= 0 ; i -- ) {
-          if ( varName == mCallStack[ i ].symbol.name ) {
-            return i ;
+        for ( int j = ( int ) mCallStack.size() - 1 ; j >= 0 ; j -- ) {
+          if ( varName == mCallStack[ j ].symbol.name ) {
+            return j ;
           } // if()
         } // for()
       } // if()
@@ -1995,9 +1991,9 @@ public:
     
     for ( int i = ( int ) mCurrentVar.size() - 1 ; target.name == "" && i >= 0 ; i -- ) {
       if ( symName == mCurrentVar[ i ] ) {
-        for ( int i = ( int ) mCallStack.size() - 1 ; i >= 0 ; i -- ) {
-          if ( symName == mCallStack[ i ].symbol.name ) {
-            target = mCallStack[ i ].symbol ;
+        for ( int j = ( int ) mCallStack.size() - 1 ; j >= 0 ; j -- ) {
+          if ( symName == mCallStack[ j ].symbol.name ) {
+            target = mCallStack[ j ].symbol ;
           } // if()
         } // for()
       } // if()
@@ -2008,16 +2004,30 @@ public:
   
   Node* GetLocalVarBinding( string varName ) {
     if ( IsLocalVar( varName ) ) {
-      int index = GetLocalVarIndex( varName ) ;
-      return mCallStack[ index ].symbol.tree ;
+      int index = -1 ;
+      index = GetLocalVarIndex( varName ) ;
+      
+      if ( index != -1 ) {
+        return mCallStack[ index ].symbol.tree ;
+      } // if()
+      else {
+        throw new Exception() ;
+      } // else()
     } // if()
     
     return NULL ;
   } // GetLocalVarBinding()
   
   void UpdateVar( string str, Node* newBinding ) {
-    int index = GetLocalVarIndex( str ) ;
-    mCallStack[ index ].symbol.tree = newBinding ;
+    int index = -1 ;
+    index = GetLocalVarIndex( str ) ;
+    
+    if ( index != -1 ) {
+      mCallStack[ index ].symbol.tree = newBinding ;
+    } // if()
+    else {
+      throw new Exception() ;
+    } // else()
   } // UpdateVar()
   
   void CleanStack() {
@@ -2039,34 +2049,27 @@ public:
   
 } ; // CallStack
 
-struct SymbolList {
-  Symbol symbol ;
-  SymbolList* next ;
-  SymbolList* prev ;
-} ; // SymbolList()
+struct ReserveWord {
+  string name ;
+  vector<string> list ;
+} ; // ReserveWord
 
 // Purpose: Do the evaluation and store the user definitions
 class Evaluator {
 private:
   
-  struct ReserveWord {
-    string name ;
-    vector<string> list ;
-  } ; // ReserveWord
-  
   vector<Symbol> mSymbolTable ;
-  // SymbolTable mSymbolTable ;
   vector<Function> mFunctionTable ;
   vector<ReserveWord> mReserveWords ;
   CallStack mCallStack ;
   vector<Function> mUserDefinedFunctionTable ;
   Function mLambdaFunc ; // used to temporary store the lambda function
-  // vector<Symbol> mLambdaVars ;
   vector<Function> mLambdaStack ;
   
   void InitialReserveWord() {
     for ( int i = 0 ; i < gReserveWordNum ; i ++ ) {
       ReserveWord tmpWord ;
+      tmpWord.name = "" ;
       tmpWord.name = gOriginReserveWordList[ i ] ;
       tmpWord.list.clear() ;
       mReserveWords.push_back( tmpWord ) ;
@@ -2099,7 +2102,9 @@ private:
   } // AddOriginReserveWords()
   
   void ResetSymbolTable() {
-    mSymbolTable.erase( mSymbolTable.begin() + gReserveWordNum, mSymbolTable.end() ) ;
+    if ( gReserveWordNum < mSymbolTable.size() ) {
+      mSymbolTable.erase( mSymbolTable.begin() + gReserveWordNum, mSymbolTable.end() ) ;
+    } // if()
   } // ResetSymbolTable()
   
   Symbol FindGlobalSymbol( string str ) {
@@ -2146,19 +2151,24 @@ private:
   
   void CopyNode( Node* newNode, Node* oldNode ) {
     // Node* newN = new Node ;
-    newNode -> lex = "" ;
-    newNode -> type = EMPTY ;
-    newNode -> left = NULL ;
-    newNode -> right = NULL ;
-    newNode -> isAddByMe = false ;
-    newNode -> parent = NULL ;
-    
-    newNode -> lex = oldNode -> lex ;
-    newNode -> type = oldNode -> type ;
-    newNode -> left = oldNode -> left ;
-    newNode -> right = oldNode -> right ;
-    newNode -> isAddByMe = oldNode -> isAddByMe ;
-    newNode -> parent = NULL ;
+    if ( newNode != NULL && oldNode != NULL ) {
+      newNode -> lex = "" ;
+      newNode -> type = EMPTY ;
+      newNode -> left = NULL ;
+      newNode -> right = NULL ;
+      newNode -> isAddByMe = false ;
+      newNode -> parent = NULL ;
+      
+      newNode -> lex = oldNode -> lex ;
+      newNode -> type = oldNode -> type ;
+      newNode -> left = oldNode -> left ;
+      newNode -> right = oldNode -> right ;
+      newNode -> isAddByMe = oldNode -> isAddByMe ;
+      newNode -> parent = NULL ;
+    } // if()
+    else {
+      throw new Exception() ;
+    } // else()
     
     // return newN ;
   } // CopyNode()
@@ -2214,7 +2224,6 @@ private:
     symbol.tree = assignedTree ; // not only copy the pointer but the content
     
     mSymbolTable.push_back( symbol ) ; // add this new symbol to the table
-    // mSymbolTable.AddSymbol( symbol ) ;
   } // AddSymbol()
   
   void AddUserDefineFunction( string funcName, int numberOfAug, Node* assignedTree ) {
@@ -2225,7 +2234,8 @@ private:
     
     func.name = funcName ;
     func.argNum = numberOfAug ;
-    // func.tree = assignedTree ;
+    func.tree = assignedTree ;
+    /*
     func.tree = new Node ;
     func.tree -> lex = "" ;
     func.tree -> type = EMPTY ;
@@ -2234,7 +2244,7 @@ private:
     func.tree -> parent = NULL ;
     func.tree -> isAddByMe = false ;
     CopyTree( func.tree, assignedTree, "root" ) ;
-    // func.tree = CopyTree( assignedTree ) ;
+     */
     
     mUserDefinedFunctionTable.push_back( func ) ;
   } // AddUserDefineFunction()
@@ -2349,7 +2359,8 @@ private:
   } // FindUserDefinedFunc()
   
   bool IsList( Node* origin ) {
-    Node* walk = origin ;
+    Node* walk = NULL ;
+    walk = origin ;
     if ( walk != NULL ) {
       for ( ; walk -> right != NULL ; walk = walk -> right ) { } ;
       
@@ -2404,8 +2415,10 @@ private:
     if ( CountArgument( inTree ) == 2 ) {
       // Step2. check argument type
       // in CONS case, both arguments of CONS should be a tree (list)
-      Node* firstArg = inTree -> right -> left ; // assume aug1 is a list
-      Node* secondArg = inTree -> right -> right -> left ; // assume aug2 is a list
+      Node* firstArg = NULL ; // assume aug1 is a list
+      Node* secondArg = NULL ; // assume aug2 is a list
+      firstArg = inTree -> right -> left ; // assume aug1 is a list
+      secondArg = inTree -> right -> right -> left ; // assume aug2 is a list
       
       consNode = new Node ;
       consNode -> lex = "" ;
@@ -2470,8 +2483,16 @@ private:
   
   void GetArgumentList( Node* inTree, vector<Node*> &newList ) {
     newList.clear() ;
+    Node* walk = NULL ;
     
-    for ( Node* walk = inTree -> right ; walk != NULL && walk -> right != NULL ; walk = walk -> right ) {
+    if ( inTree != NULL ) {
+      walk = inTree -> right ;
+    } // if()
+    else {
+      return ;
+    } // else()
+    
+    for ( ; walk != NULL && walk -> right != NULL && walk != NULL ; walk = walk -> right ) {
       if ( walk != NULL ) {
         newList.push_back( walk -> left ) ;
       } // if()
@@ -2597,10 +2618,12 @@ private:
   } // AddNewReserveWord()
   
   void UpdateUserDefinedFunc( string funcName, Function func ) {
-    int funcIndex = FindUserDefinedFunc( funcName ) ;
+    int funcIndex = -1 ;
+    funcIndex = FindUserDefinedFunc( funcName ) ;
     func.name = funcName ;
     
-    if ( funcIndex != -1 ) { // this function is already exist
+    // this function is already exist
+    if ( funcIndex != -1 && funcIndex < mUserDefinedFunctionTable.size() ) {
       if ( func.tree == NULL ) { // should delete the function with this name
         mUserDefinedFunctionTable.erase( mUserDefinedFunctionTable.begin() + funcIndex ) ;
       } // if()
@@ -2674,11 +2697,11 @@ private:
       else ;
       
       Function newFunc ;
-      newFunc.name = funcName ;
+      newFunc.name = "" ;
       newFunc.argNum = 0 ;
-      newFunc.argList.clear() ;
       newFunc.tree = NULL ;
       
+      newFunc.name = funcName ;
       newFunc.argNum = CountAndCkeckParameters( argList, newFunc.argList ) ;
       newFunc.tree = procedurePart ;
       // newFunc.tree = new Node ;
@@ -2747,7 +2770,8 @@ private:
         // the first argument should be a symbol
         if ( argList[ 0 ] -> type == ATOM ) {
           int reserveIndex = -1 ;
-          string reserveName = GetReserveWordType( argList[ 0 ] -> lex, reserveIndex ) ;
+          string reserveName = "" ;
+          reserveName = GetReserveWordType( argList[ 0 ] -> lex, reserveIndex ) ;
           
           if ( reserveName != "" && !IsOriginalReserveWord( argList[ 0 ] -> lex ) ) {
             // may be a user new defined reverse word
@@ -2767,6 +2791,8 @@ private:
               if ( IsQuoteExp( argList[ 1 ] ) ) {
                 // define should be the original binding except the quote
                 // bind = CopyTree( argList[ 1 ] -> right -> left ) ;
+                bind = argList[ 1 ] -> right -> left ;
+                /*
                 bind = new Node ;
                 bind -> left = NULL ;
                 bind -> right = NULL ;
@@ -2774,8 +2800,8 @@ private:
                 bind -> lex = "" ;
                 bind -> type = EMPTY ;
                 bind -> isAddByMe = false ;
-                
                 CopyTree( bind, argList[ 1 ] -> right -> left, "root" ) ;
+                */
               } // if()
               else {
                 // the definition of this symbol, need to check whether the binding exist
@@ -2814,15 +2840,16 @@ private:
                       UpdateUserDefinedFunc( newSymbol.name, empty ) ;
                     } // else if()
                     
-                    string reserveName =
-                    GetReserveWordType( GetFuncNameFromFuncValue( bind -> lex ) ) ;
+                    string reserveName = "" ;
+                    reserveName = GetReserveWordType( GetFuncNameFromFuncValue( bind -> lex ) ) ;
                     if ( reserveName != "" ) {
                       AddNewReserveWord( reserveName, newSymbol.name ) ;
                     } // if()
                   } // else()
                 } // if()
                 else {
-                  string reserveName = GetReserveWordType( argList[ 1 ] -> lex ) ;
+                  string reserveName = "" ;
+                  reserveName = GetReserveWordType( argList[ 1 ] -> lex ) ;
                   if ( reserveName != "" ) {
                     AddNewReserveWord( reserveName, argList[ 0 ] -> lex ) ;
                   } // if()
@@ -2836,7 +2863,8 @@ private:
                   
                   // this been assigned S-exp is in the input
                   // and haven't evaluated yet
-                  // newSymbol.tree = bind ;
+                  newSymbol.tree = bind ;
+                  /*
                   newSymbol.tree = new Node ;
                   newSymbol.tree -> lex = "" ;
                   newSymbol.tree -> type = EMPTY ;
@@ -2845,6 +2873,7 @@ private:
                   newSymbol.tree -> parent = NULL ;
                   newSymbol.tree -> isAddByMe = false ;
                   CopyTree( newSymbol.tree, bind, "root" ) ;
+                  */
                   // newSymbol.tree = CopyTree( bind ) ;
                   
                 } // if()
@@ -2870,9 +2899,10 @@ private:
                 } // else()
                 
                 if ( newSymbol.tree -> type == ATOM && newSymbol.tree -> lex != "#<procedure lambda>" ) {
-                  string reserveName1 =
-                  GetReserveWordType( GetFuncNameFromFuncValue( newSymbol.tree -> lex ) ) ;
-                  string reserveName2 = GetReserveWordType( newSymbol.tree -> lex ) ;
+                  string reserveName1 = "" ;
+                  string reserveName2 = "" ;
+                  reserveName1 = GetReserveWordType( GetFuncNameFromFuncValue( newSymbol.tree -> lex ) ) ;
+                  reserveName2 = GetReserveWordType( newSymbol.tree -> lex ) ;
                   
                   if ( reserveName1 != "" ) {
                     // this is a special case, define your own reserve word
@@ -2950,7 +2980,13 @@ private:
         else ;
       } // if()
       else {
-        gErrNode = inTree -> right -> left ;
+        if ( inTree != NULL && inTree -> right != NULL ) {
+          gErrNode = inTree -> right -> left ;
+        } // if()
+        else {
+          gErrNode = NULL ;
+        } // else()
+        
         throw new IncorrectArgumentTypeException( funcName ) ;
       } // else()
     } // if()
@@ -3023,7 +3059,13 @@ private:
         } // else if()
       } // if()
       else {
-        gErrNode = inTree -> right -> left ;
+        if ( inTree != NULL && inTree -> right != NULL ) {
+          gErrNode = inTree -> right -> left ;
+        } // if()
+        else {
+          gErrNode = NULL ;
+        } // else()
+        
         throw new IncorrectArgumentTypeException( func ) ;
       } // else()
       
@@ -3328,8 +3370,11 @@ private:
       } // else()
     } // for()
     
-    string currentStr = g.GetStrContent( argList[ 0 ] -> lex ) ;
-    string ansStr = currentStr ; // only used in "string-append"
+    string currentStr = "" ;
+    string ansStr = "" ; // only used in "string-append"
+    
+    currentStr = g.GetStrContent( argList[ 0 ] -> lex ) ;
+    ansStr = currentStr ; // only used in "string-append"
     
     for ( int i = 1 ; i < argList.size() ; i ++ ) {
       if ( funcName == "string-append" ) {
@@ -3402,7 +3447,8 @@ private:
         } // if()
       } // if()
       else if ( funcName == "and" ) {
-        if ( argList[ i ] -> type == SPECIAL && argList[ i ] -> lex != "#t" ) {
+        if ( argList[ i ] -> type == SPECIAL
+             && ( argList[ i ] -> lex != "#t" && argList[ i ] -> lex != "t" ) ) {
           resultIsTrue = false ;
           ansNode -> lex = "nil" ;
           return ansNode ;
@@ -3416,7 +3462,7 @@ private:
         if ( argList[ i ] -> type != SPECIAL ) {
           return argList[ i ] ;
         } // if()
-        else if ( argList[ i ] -> lex == "#t" ) {
+        else if ( argList[ i ] -> lex == "#t" && argList[ i ] -> lex != "t" ) {
           return argList[ i ] ;
         } // else if()
       } // else if()
@@ -3531,10 +3577,19 @@ private:
              && g.GetTokenType( argList[ 1 ] -> lex ) == SYMBOL ) {
           // int symIndex1 = FindSymbolFromLocalAndGlobal( argList[ 0 ] -> lex ) ;
           // int symIndex2 = FindSymbolFromLocalAndGlobal( argList[ 1 ] -> lex ) ;
-          string symName1 = argList[ 0 ] -> lex ;
-          string symName2 = argList[ 1 ] -> lex ;
-          Symbol sym1 = FindSymbolFromLocalAndGlobal( symName1 ) ;
-          Symbol sym2 = FindSymbolFromLocalAndGlobal( symName2 ) ;
+          string symName1 = "" ;
+          string symName2 = "" ;
+          Symbol sym1 ;
+          sym1.name = "" ;
+          sym1.tree = NULL ;
+          Symbol sym2 ;
+          sym2.name = "" ;
+          sym2.tree = NULL ;
+          
+          symName1 = argList[ 0 ] -> lex ;
+          symName2 = argList[ 1 ] -> lex ;
+          sym1 = FindSymbolFromLocalAndGlobal( symName1 ) ;
+          sym2 = FindSymbolFromLocalAndGlobal( symName2 ) ;
           
           if ( SymbolExist( symName1 ) && SymbolExist( symName2 ) ) {
             // case1. both of them are local
@@ -3573,6 +3628,9 @@ private:
           Node* tmp2 = NULL ;
           tmp1 = EvaluateSExp( argList[ 0 ], ++level ) ;
           tmp2 = EvaluateSExp( argList[ 1 ], ++level ) ;
+          CheckHasRaramBindingOrThrow( tmp1, argList[ 0 ] ) ;
+          CheckHasRaramBindingOrThrow( tmp2, argList[ 1 ] ) ;
+          
           if ( tmp1 -> type == SPECIAL && tmp2 -> type == SPECIAL ) {
             if ( tmp1 -> lex == tmp2 -> lex ) {
               isInSameMemory = true ;
@@ -3596,8 +3654,14 @@ private:
       else if ( funcName == "equal?" ) { // compare the context
         // string originArgStr1 = argList[ 0 ] -> lex ;
         // string originArgStr2 = argList[ 1 ] -> lex ;
-        argList[ 0 ] = EvaluateSExp( argList[ 0 ], ++level ) ;
-        argList[ 1 ] = EvaluateSExp( argList[ 1 ], ++level ) ;
+        Node* tmp1 = NULL ;
+        Node* tmp2 = NULL ;
+        tmp1 = EvaluateSExp( argList[ 0 ], ++level ) ;
+        tmp2 = EvaluateSExp( argList[ 1 ], ++level ) ;
+        CheckHasRaramBindingOrThrow( tmp1, argList[ 0 ] ) ;
+        CheckHasRaramBindingOrThrow( tmp2, argList[ 1 ] ) ;
+        argList[ 0 ] = tmp1 ;
+        argList[ 1 ] = tmp2 ;
         
         if ( argList[ 0 ] == NULL ) {
           gErrNode = argList[ 0 ] ;
@@ -3692,10 +3756,12 @@ private:
       // start finding the first satisfying statement
       for ( int i = 0 ; i < argList.size() ; i ++ ) {
         Node* condResult = NULL ;
-        Node* condPart = argList[ i ] -> left ;
+        Node* condPart = NULL ;
         Node* statePart = NULL ;
         vector<Node*> subAugList ;
         GetArgumentList( argList[ i ], subAugList ) ;
+        
+        condPart = argList[ i ] -> left ;
         
         if ( i < argList.size() - 1 ) {
           condResult = EvaluateSExp( condPart, ++level ) ;
@@ -3830,6 +3896,7 @@ private:
       if ( CountArgument( inTree ) == 1 ) {
         Node* arg = NULL ;
         arg = EvaluateSExp( inTree -> right -> left, ++level ) ;
+        CheckHasRaramBindingOrThrow( arg, inTree -> right -> left ) ;
         if ( arg -> type == SPECIAL && arg -> lex == "nil" ) {
           gVerbose = false ;
           return g.GetNullNode() ;
@@ -3908,8 +3975,10 @@ private:
     for ( int i = 0 ; i < varList.size() ; i ++ ) {
       if ( varList[ i ] -> type == CONS ) { // Should be a cons structure
         
-        string varName = varList[ i ] -> left -> lex ;
+        string varName = "" ;
         Node* bind = NULL ;
+        
+        varName = varList[ i ] -> left -> lex ;
         bind = varList[ i ] -> right -> left ;
         
         if ( g.IsSymbol( varName ) ) { // local variable should be a symbol
@@ -3921,7 +3990,13 @@ private:
           if ( binding == NULL || binding -> type == EMPTY ) {
             varList.clear() ;
             
-            gErrNode = varList[ i ] -> right ;
+            if ( varList[ i ] != NULL ) {
+              gErrNode = varList[ i ] -> right ;
+            } // if()
+            else {
+              gErrNode = NULL ;
+            } // else()
+            
             throw new NonReturnAssignedException() ;
           } // if()
           else {
@@ -3949,17 +4024,20 @@ private:
   } // CheckAndStoreLocalVarSuccess()
   
   Node* ProcessLet( Node* inTree, int level ) {
-    Node* allArg = inTree -> right ;
-    Node* localVarList = allArg -> left ;
-    Node* allSExp = allArg -> right ;
+    Node* allArg = NULL ;
+    Node* localVarList = NULL ;
+    Node* allSExp = NULL ;
     vector<string> localVarNameList ;
+    
+    allArg = inTree -> right ;
+    localVarList = allArg -> left ;
+    allSExp = allArg -> right ;
     
     if ( CountArgument( inTree ) >= 2 ) {
       // mCallStack.GetCleanLocalZone() ;
-      
       if ( CheckAndStoreLocalVarSuccess( localVarList, localVarNameList, ++level ) ) {
         
-        Node* walk ;
+        Node* walk = NULL ;
         for ( walk = allSExp ; walk -> right != NULL && walk -> right -> lex != "nil"
               ; walk = walk -> right ) {
           EvaluateSExp( walk -> left, ++level ) ;
@@ -3987,12 +4065,13 @@ private:
   
   // use when the defining lambda
   int CountAndCkeckParameters( Node* arg, vector<string> &paraList ) {
-    int countNum = CountListElement( arg ) ;
+    int countNum = 0 ;
+    countNum = CountListElement( arg ) ;
     paraList.clear() ;
     
     if ( IsList( arg ) ) { // the parameter part is a list
       for ( Node* walk = arg ; walk != NULL && walk -> lex != "nil" ; walk = walk -> right ) {
-        if ( walk -> left -> type == ATOM ) {
+        if ( walk -> left != NULL && walk -> left -> type == ATOM ) {
           if ( g.IsSymbol(  walk -> left -> lex ) ) {
             paraList.push_back( walk -> left -> lex ) ;
           } // if()
@@ -4016,7 +4095,8 @@ private:
   } // CountAndCkeckParameters()
   
   int CountAndCkeckParameters( Node* arg, vector<Node*> &paraList, int level ) {
-    int countNum = CountListElement( arg ) ;
+    int countNum = 0 ;
+    countNum = CountListElement( arg ) ;
     paraList.clear() ;
     
     for ( Node* walk = arg ; walk != NULL && walk -> lex != "nil" ; walk = walk -> right ) {
@@ -4058,7 +4138,7 @@ private:
       throw new IncorrectNumberArgumentException( processName ) ;
     } // else()
   } // ParameterBinding()
-  
+  /*
   void Substitude( string name, Node* binding, Node* root ) {
     if ( root == NULL ) {
       return ;
@@ -4084,20 +4164,22 @@ private:
       Substitude( varList[ i ], binding, express ) ;
     } // for()
   } // SubstitudeLocalVarWithBinding()
-  
+  */
   Node* ProcessLambda( Node* inTree, int level ) {
     // mCallStack.GetCleanLocalZone() ;
     // When in this function, there might be two circumstaces
     // 1. Not yet be evaluated
     // 2. Is the returned #<procedure lambda
-    Node* lambdaProc = FindGlobalSymbol( "lambda" ).tree ;
+    Node* lambdaProc = NULL ;
+    lambdaProc = FindGlobalSymbol( "lambda" ).tree ;
     // int reserveIndex = FindGlobalSymbol( "lambda" ) ;
     // lambdaProc = mSymbolTable[ reserveIndex ].tree ;
     
-    if ( IsUserDefinedFunc( inTree -> left -> lex ) ) {
+    if ( inTree != NULL && inTree -> left != NULL && IsUserDefinedFunc( inTree -> left -> lex ) ) {
       return ProcessUserDefinedFunc( inTree, FindUserDefinedFunc( inTree -> left -> lex ), ++level );
     } // if()
-    else if ( inTree -> left -> type == CONS ) { // the second circumstances
+    else if ( inTree != NULL && inTree -> left != NULL && inTree -> left -> type == CONS ) {
+      // the second circumstances
       // mCallStack.GetCleanLocalZone() ;
       Node* finalResult = NULL ;
       
@@ -4143,17 +4225,23 @@ private:
       // a lambda function
       
       if ( CountArgument( inTree ) >= 2 ) {
-        Node* allArg = inTree -> right ;
-        Node* localVarList = allArg -> left ;
-        Node* allSExp = allArg -> right ;
+        Node* allArg = NULL ;
+        Node* localVarList = NULL ;
+        Node* allSExp = NULL ;
         
-        if ( localVarList -> type == CONS
-             || ( localVarList -> type == SPECIAL && localVarList -> lex == "nil" ) ) {
+        allArg = inTree -> right ;
+        localVarList = allArg -> left ;
+        allSExp = allArg -> right ;
+        
+        if ( localVarList != NULL
+             && ( localVarList -> type == CONS
+                  || ( localVarList -> type == SPECIAL && localVarList -> lex == "nil" ) ) ) {
           
           try {
             
             mLambdaFunc.argNum = CountAndCkeckParameters( localVarList, mLambdaFunc.argList ) ;
-            // mLambdaFunc.tree = allSExp ;
+            mLambdaFunc.tree = allSExp ;
+            /*
             mLambdaFunc.tree = new Node ;
             mLambdaFunc.tree -> lex = "" ;
             mLambdaFunc.tree -> type = EMPTY ;
@@ -4162,6 +4250,7 @@ private:
             mLambdaFunc.tree -> parent = NULL ;
             mLambdaFunc.tree -> isAddByMe = false ;
             CopyTree( mLambdaFunc.tree, allSExp, "root" ) ;
+            */
             // mLambdaFunc.tree = CopyTree( allSExp ) ;
             
             /*
@@ -4193,10 +4282,16 @@ private:
   
   Node* ProcessUserDefinedFunc( Node* inTree, int funcIndex, int level ) {
     
-    Function func = mUserDefinedFunctionTable[ funcIndex ] ;
+    Function func ;
+    func.name = "" ;
+    func.argNum = 0 ;
+    func.tree = NULL ;
+    
     Node* treeInSymbolTable = NULL ;
-    treeInSymbolTable = FindGlobalSymbol( func.name ).tree ;
     Node* finalResult = NULL ;
+    
+    func = mUserDefinedFunctionTable[ funcIndex ] ;
+    treeInSymbolTable = FindGlobalSymbol( func.name ).tree ;
     
     if ( treeInSymbolTable != NULL && treeInSymbolTable -> type == ATOM
          && treeInSymbolTable -> lex == "#<procedure lambda>" ) {
@@ -4267,6 +4362,16 @@ public:
     return true ;
   } // CheckHasReturnBinding()
   
+  bool CheckHasRaramBindingOrThrow( Node* result, Node* binding ) {
+    if ( result == NULL ) {
+      gErrNode = binding ;
+      throw new ParamNotBoundException() ;
+    } // if()
+    else ;
+    
+    return true ;
+  } // CheckHasRaramBindingOrThrow()
+  
   bool CheckHasReturnBindingOrThrow( Node* result, Node* binding ) {
     if ( result == NULL ) {
       gErrNode = binding ;
@@ -4300,149 +4405,156 @@ public:
     } // if()
     else ; // the input tree is not empty, keep evaluating
     
-    // Two conditions in evaluating S-exp
-    // 1. Atom
-    // 2. CONS
-    if ( treeRoot -> type == ATOM ) { // This S-exp is an Atom
-      // may be p pure number or a symbol
-      string atomStr = treeRoot -> lex ;
-      // this S-exp is a number
-      if ( g.IsINT( atomStr ) || g.IsFLOAT( atomStr ) || g.IsStr( atomStr ) ) {
-        result = treeRoot ;
-      } // if()
-      else if ( SymbolExist( atomStr ) ) { // this S-exp is a exist symbol
-        result = FindSymbolBinding( atomStr ) ;
-      } // else if()
-      else {
-        throw new UnboundValueException( atomStr ) ;
-      } // else()
-      
-      return result ;
-    } // if()
-    else if ( treeRoot -> type == SPECIAL ) {
-      return treeRoot ;
-    } // else if()
-    else if ( treeRoot -> type == CONS ) { // This S-exp is a CONS
-      Node* funcPart = treeRoot -> left ; // the left node of the root must be function part
-      
-      if ( funcPart -> type == ATOM ) { // if this is an atom, then check what it represents
-        if ( SymbolExist( funcPart -> lex ) ) {
-          originFuncName = FindSymbolBinding( funcPart -> lex ) -> lex ;
+    try {
+      // Two conditions in evaluating S-exp
+      // 1. Atom
+      // 2. CONS
+      if ( treeRoot -> type == ATOM ) { // This S-exp is an Atom
+        // may be p pure number or a symbol
+        string atomStr = "" ;
+        atomStr = treeRoot -> lex ;
+        // this S-exp is a number
+        if ( g.IsINT( atomStr ) || g.IsFLOAT( atomStr ) || g.IsStr( atomStr ) ) {
+          result = treeRoot ;
         } // if()
+        else if ( SymbolExist( atomStr ) ) { // this S-exp is a exist symbol
+          result = FindSymbolBinding( atomStr ) ;
+        } // else if()
         else {
-          originFuncName = funcPart -> lex ;
+          throw new UnboundValueException( atomStr ) ;
         } // else()
-      } // if()
-      else if ( funcPart -> type == CONS ) {
-        Node* funcResult = NULL ;
-        funcResult = EvaluateSExp( funcPart, ++level ) ;
         
-        CheckHasReturnBindingOrThrow( funcResult, funcPart ) ;
-        originFuncName = funcResult -> lex ;
+        return result ;
+      } // if()
+      else if ( treeRoot -> type == SPECIAL ) {
+        return treeRoot ;
       } // else if()
-      else { // the function part is neither an atom, not a CONS
+      else if ( treeRoot -> type == CONS ) { // This S-exp is a CONS
+        Node* funcPart = NULL ;
+        funcPart = treeRoot -> left ; // the left node of the root must be function part
+        
+        if ( funcPart -> type == ATOM ) { // if this is an atom, then check what it represents
+          if ( SymbolExist( funcPart -> lex ) ) {
+            originFuncName = FindSymbolBinding( funcPart -> lex ) -> lex ;
+          } // if()
+          else {
+            originFuncName = funcPart -> lex ;
+          } // else()
+        } // if()
+        else if ( funcPart -> type == CONS ) {
+          Node* funcResult = NULL ;
+          funcResult = EvaluateSExp( funcPart, ++level ) ;
+          
+          CheckHasReturnBindingOrThrow( funcResult, funcPart ) ;
+          originFuncName = funcResult -> lex ;
+        } // else if()
+        else { // the function part is neither an atom, not a CONS
+          gErrNode = treeRoot ;
+          throw new ApplyNonFunctionException() ;
+        } // else()
+      } // else if()
+      else { // This is S-exp must be an Error
         gErrNode = treeRoot ;
         throw new ApplyNonFunctionException() ;
       } // else()
-    } // else if()
-    else { // This is S-exp must be an Error
-      gErrNode = treeRoot ;
-      throw new ApplyNonFunctionException() ;
-    } // else()
-    
-    // originFuncName = GetFuncNameFromFuncValue( originFuncName ) ;
-    // After evaluate the function name part, now we can decide which function to process
-    string funcName = "" ;
-    int definedFuncIndex = -1 ;
-    if ( originFuncName[ 0 ] == '#' || originFuncName == "lambda" ) {
-      // the function name after evaluation ( if the original one is a symbol or some how)
-      funcName = GetReserveWordType( originFuncName ) ;
-      // the functions are stored in mFuncTable, consist of the function name and definition
-      definedFuncIndex = FindUserDefinedFunc( originFuncName ) ;
-    } // if()
-    else ; // this function name is not start with the symbol #
-    
-    if ( IsList( treeRoot ) ) { // keep doing the evaluation
       
-      if ( funcName != "" ) {
-        if ( funcName == "quote" ) {
-          result = treeRoot -> right -> left ;
-        } // if()
-        else if ( funcName == "cons" ) {
-          result = EvaluateCONS( treeRoot, ++level ) ;
-        } // else if()
-        else if ( funcName == "list" ) {
-          result = EvaluateLIST( treeRoot, ++level ) ;
-        } // else if()
-        else if ( funcName == "define" ) {
-          result = Define( treeRoot, ++level ) ;
-        } // else if()
-        else if ( funcName == "car" || funcName == "cdr" ) {
-          result = AccessList( funcName, treeRoot, ++level ) ;
-        } // else if()
-        else if ( IsPredicator( funcName ) ) {
-          result = PrimitivePredecates( funcName, treeRoot, ++level ) ;
-        } // else if()
-        else if ( IsBasicOperation( funcName ) ) {
-          result = ProcessOperation( funcName, treeRoot, ++level );
-        } // else if()
-        else if ( funcName == "eqv?" || funcName == "equal?" ) {
-          result = ProcessEqvAndEqual( funcName, treeRoot, ++level );
-        } // else if()
-        else if ( funcName == "if" ) {
-          result = ProcessIf( treeRoot, ++level ) ;
-        } // else if()
-        else if ( funcName == "cond" ) {
-          result = ProcessCond( treeRoot, ++level ) ;
-        } // else if()
-        else if ( funcName == "begin" ) {
-          result = ProcessBegin( treeRoot, ++level ) ;
-        } // else if()
-        else if ( funcName == "let" ) {
-          result = ProcessLet( treeRoot, ++level ) ;
-        } // else if()
-        else if ( funcName == "lambda" ) {
-          result = ProcessLambda( treeRoot, ++level ) ;
-        } // else if()
-        else if ( funcName == "verbose" || funcName == "verbose?" ) {
-          result = ProcessVerbose( funcName, treeRoot, ++level ) ;
-        } // else if()
-        else if ( funcName == "clean-environment" ) {
-          if ( level == 0 ) {
-            CleanEnvironment() ;
-          } // if()
-          else {
-            throw new LevelException( "CLEAN-ENVIRONMENT" ) ;
-          } // else()
-          
-          result = NULL ; // no tree to return
-        } // else if()
-        else if ( funcName == "exit" ) {
-          if ( level != 0 ) {
-            throw new LevelException( "EXIT" ) ;
-          } // if()
-          else if ( CountArgument( treeRoot ) != 0 ) {
-            throw new IncorrectNumberArgumentException( funcName ) ;
-          } // else if()
-          
-          gIsEOF = true ;
-          result = NULL ;
-        } // else if()
-        else ;
+      // originFuncName = GetFuncNameFromFuncValue( originFuncName ) ;
+      // After evaluate the function name part, now we can decide which function to process
+      string funcName = "" ;
+      int definedFuncIndex = -1 ;
+      if ( originFuncName[ 0 ] == '#' || originFuncName == "lambda" ) {
+        // the function name after evaluation ( if the original one is a symbol or some how)
+        funcName = GetReserveWordType( originFuncName ) ;
+        // the functions are stored in mFuncTable, consist of the function name and definition
+        definedFuncIndex = FindUserDefinedFunc( originFuncName ) ;
       } // if()
-      else if ( definedFuncIndex != -1 ) { // this user-defined function exist
-        // process the user defined function
-        result = ProcessUserDefinedFunc( treeRoot, definedFuncIndex, ++level ) ;
-      } // else if()
-      else { // either a function name or a symbol
-        gErrNode = EvaluateSExp( treeRoot -> left, ++level ) ;
-        throw new ApplyNonFunctionException() ; // curious
+      else ; // this function name is not start with the symbol #
+      
+      if ( IsList( treeRoot ) ) { // keep doing the evaluation
+        
+        if ( funcName != "" ) {
+          if ( funcName == "quote" ) {
+            result = treeRoot -> right -> left ;
+          } // if()
+          else if ( funcName == "cons" ) {
+            result = EvaluateCONS( treeRoot, ++level ) ;
+          } // else if()
+          else if ( funcName == "list" ) {
+            result = EvaluateLIST( treeRoot, ++level ) ;
+          } // else if()
+          else if ( funcName == "define" ) {
+            result = Define( treeRoot, ++level ) ;
+          } // else if()
+          else if ( funcName == "car" || funcName == "cdr" ) {
+            result = AccessList( funcName, treeRoot, ++level ) ;
+          } // else if()
+          else if ( IsPredicator( funcName ) ) {
+            result = PrimitivePredecates( funcName, treeRoot, ++level ) ;
+          } // else if()
+          else if ( IsBasicOperation( funcName ) ) {
+            result = ProcessOperation( funcName, treeRoot, ++level );
+          } // else if()
+          else if ( funcName == "eqv?" || funcName == "equal?" ) {
+            result = ProcessEqvAndEqual( funcName, treeRoot, ++level );
+          } // else if()
+          else if ( funcName == "if" ) {
+            result = ProcessIf( treeRoot, ++level ) ;
+          } // else if()
+          else if ( funcName == "cond" ) {
+            result = ProcessCond( treeRoot, ++level ) ;
+          } // else if()
+          else if ( funcName == "begin" ) {
+            result = ProcessBegin( treeRoot, ++level ) ;
+          } // else if()
+          else if ( funcName == "let" ) {
+            result = ProcessLet( treeRoot, ++level ) ;
+          } // else if()
+          else if ( funcName == "lambda" ) {
+            result = ProcessLambda( treeRoot, ++level ) ;
+          } // else if()
+          else if ( funcName == "verbose" || funcName == "verbose?" ) {
+            result = ProcessVerbose( funcName, treeRoot, ++level ) ;
+          } // else if()
+          else if ( funcName == "clean-environment" ) {
+            if ( level == 0 ) {
+              CleanEnvironment() ;
+            } // if()
+            else {
+              throw new LevelException( "CLEAN-ENVIRONMENT" ) ;
+            } // else()
+            
+            result = NULL ; // no tree to return
+          } // else if()
+          else if ( funcName == "exit" ) {
+            if ( level != 0 ) {
+              throw new LevelException( "EXIT" ) ;
+            } // if()
+            else if ( CountArgument( treeRoot ) != 0 ) {
+              throw new IncorrectNumberArgumentException( funcName ) ;
+            } // else if()
+            
+            gIsEOF = true ;
+            result = NULL ;
+          } // else if()
+          else ;
+        } // if()
+        else if ( definedFuncIndex != -1 ) { // this user-defined function exist
+          // process the user defined function
+          result = ProcessUserDefinedFunc( treeRoot, definedFuncIndex, ++level ) ;
+        } // else if()
+        else { // either a function name or a symbol
+          gErrNode = EvaluateSExp( treeRoot -> left, ++level ) ;
+          throw new ApplyNonFunctionException() ; // curious
+        } // else()
+      } // if()
+      else {
+        gErrNode = treeRoot ;
+        throw new NonListException() ; // curious
       } // else()
-    } // if()
-    else {
-      gErrNode = treeRoot ;
-      throw new NonListException() ; // curious
-    } // else()
+    } catch ( Exception* e ) {
+      gErrNode = treeRoot -> left ;
+      throw new Exception() ;
+    } // catch()
     
     return result ;
   } // EvaluateSExp()
@@ -4468,7 +4580,7 @@ public:
 } ; // Evaluator
 
 bool IsDefineOrCleanSExp( Node* node ) {
-  if ( node -> type == CONS ) {
+  if ( node != NULL && node -> type == CONS ) {
     if ( node -> left -> lex == "define" || node -> left -> lex == "clean-environment" ) {
       return true ;
     } // if()
@@ -4479,143 +4591,216 @@ bool IsDefineOrCleanSExp( Node* node ) {
   return false ;
 } // IsDefineOrCleanSExp()
 
-Evaluator gEval ;
-Tree gTree ;
-
 int main() {
   
-  bool grammerCorrect = false ;
-  
-  cin >> uTestNum ;
-  char retuenLine = cin.get() ;
-   
-  cout << "Welcome to OurScheme!" << endl ;
-  string inputStr = "" ;
-  
-  while ( !gIsEOF ) {
+  try {
     
-    try {
+    Evaluator eval ;
+    
+    bool grammerCorrect = false ;
+    
+    cin >> uTestNum ;
+    char retuenLine = '\0' ;
+    retuenLine = cin.get() ;
+    
+    cout << "Welcome to OurScheme!" << endl ;
+    string inputStr = "" ;
+    
+    while ( !gIsEOF ) {
       
-      cout << endl << "> " ;
-      gLA.PeekToken() ;
-      Token token = gLA.GetToken() ;
-      
-      grammerCorrect = gSA.CheckSExp( token ) ;
-      if ( grammerCorrect ) {
-        gTree.BuildTree() ;
-        g.Reset() ; // reset all information that used in Lexical analyzer
+      try {
         
-        if ( !gIsEOF ) {
-          // g.PrettyPrint( tree.GetRoot() ) ; // proj.1
-          try {
-            // Evaluate the tree and start with level 0
-            Node* result = NULL ;
-            result = gEval.EvaluateSExp( gTree.GetRoot(), 0 ) ;
-            // check whether the result has a binding
-            // Two exceptions: 1.define 2. clean-environment
-            if ( !gEval.CheckTopLevelHasReturnBinding( result, gTree.GetRoot() )
-                 && !IsDefineOrCleanSExp( gTree.GetRoot() ) ) {
-              gErrNode = gTree.GetRoot() ;
-              throw new NoReturnValueException() ;
-            } // if()
-            else if ( result != NULL ) {
-              g.PrettyPrint( result ) ;
-            } // else if()
-            else ;
+        cout << endl << "> " ;
+        gLA.PeekToken() ;
+        Token token = gLA.GetToken() ;
+        
+        grammerCorrect = gSA.CheckSExp( token ) ;
+        if ( grammerCorrect ) {
+          Tree tree ;
+          tree.BuildTree() ;
+          g.Reset() ; // reset all information that used in Lexical analyzer
+          
+          if ( !gIsEOF ) {
+            // g.PrettyPrint( gTree.GetRoot() ) ; // proj.1
             
-          } // try
-          catch ( LevelException* e ) {
-            cout << e -> Err_mesg() << endl ;
-          } // catch()
-          catch ( NonListException* e ) {
-            cout << e -> Err_mesg() ;
-            g.PrettyPrint( gErrNode ) ;
-            // cout << endl ;
-          } // catch()
-          catch ( UnboundValueException* e ) {
-            cout << e -> Err_mesg() << endl ;
-          } // catch()
-          catch ( ApplyNonFunctionException* e ) {
-            cout << e -> Err_mesg() ;
-            g.PrettyPrint( gErrNode ) ;
-          } // catch()
-          catch ( IncorrectNumberArgumentException* e ) {
-            cout << e -> Err_mesg() << endl ;
-          } // catch()
-          catch ( IncorrectArgumentTypeException* e ) {
-            cout << e -> Err_mesg() ;
-            g.PrettyPrint( gErrNode ) ;
-          } // catch()
-          catch ( NoReturnValueException* e ) {
-            cout << e -> Err_mesg() ;
-            g.PrettyPrint( gErrNode ) ;
-            // cout << endl ;
-          } // catch()
-          catch ( ParamNotBoundException* e ) {
-            cout << e -> Err_mesg() ;
-            g.PrettyPrint( gErrNode ) ;
-          } // catch()
-          catch ( DivideByZeroException* e ) {
-            cout << e -> Err_mesg() << endl ;
-          } // catch()
-          catch ( DefineFormatException* e ) {
-            // cout << e -> Err_mesg() << endl ;
-            cout << e -> Err_mesg() ;
-            g.PrettyPrint( gErrNode ) ;
-          } // catch()
-          catch ( CondFormatException* e ) {
-            cout << e -> Err_mesg() ;
-            g.PrettyPrint( gErrNode ) ;
-            // cout << endl ;
-          } // catch()
-          catch ( CondNotBoundException* e ) {
-            cout << e -> Err_mesg() ;
-            g.PrettyPrint( gErrNode ) ;
-          } // catch()
-          catch ( TestCondNotBoundException* e ) {
-            cout << e -> Err_mesg() ;
-            g.PrettyPrint( gErrNode ) ;
-          } // catch()
-          catch ( FormatException* e ) {
-            cout << e -> Err_mesg() ;
-            g.PrettyPrint( gErrNode ) ;
-          } // catch()
-          catch ( NonReturnAssignedException* e ) {
-            cout << e -> Err_mesg() ;
-            g.PrettyPrint( gErrNode ) ;
-          } // catch()
+            try {
+              // Evaluate the tree and start with level 0
+              Node* result = NULL ;
+              result = eval.EvaluateSExp( tree.GetRoot(), 0 ) ;
+              // check whether the result has a binding
+              // Two exceptions: 1.define 2. clean-environment
+              if ( !eval.CheckTopLevelHasReturnBinding( result, tree.GetRoot() )
+                   && !IsDefineOrCleanSExp( tree.GetRoot() ) ) {
+                gErrNode = tree.GetRoot() ;
+                throw new NoReturnValueException() ;
+              } // if()
+              else if ( result != NULL ) {
+                g.PrettyPrint( result ) ;
+              } // else if()
+              else ;
+              
+            } // try
+            catch ( LevelException* e ) {
+              if ( e != NULL ) {
+                cout << e -> Err_mesg() << endl ;
+              } // if()
+              else ;
+            } // catch()
+            catch ( NonListException* e ) {
+              if ( e != NULL ) {
+                cout << e -> Err_mesg() ;
+              } // if()
+              else ;
+              g.PrettyPrint( gErrNode ) ;
+              // cout << endl ;
+            } // catch()
+            catch ( UnboundValueException* e ) {
+              if ( e != NULL ) {
+                cout << e -> Err_mesg() << endl ;
+              } // if()
+              else ;
+            } // catch()
+            catch ( ApplyNonFunctionException* e ) {
+              if ( e != NULL ) {
+                cout << e -> Err_mesg() ;
+              } // if()
+              else ;
+              g.PrettyPrint( gErrNode ) ;
+            } // catch()
+            catch ( IncorrectNumberArgumentException* e ) {
+              if ( e != NULL ) {
+                cout << e -> Err_mesg() << endl ;
+              } // if()
+              else ;
+            } // catch()
+            catch ( IncorrectArgumentTypeException* e ) {
+              if ( e != NULL ) {
+                cout << e -> Err_mesg() ;
+              } // if()
+              else ;
+              g.PrettyPrint( gErrNode ) ;
+            } // catch()
+            catch ( NoReturnValueException* e ) {
+              if ( e != NULL ) {
+                cout << e -> Err_mesg() ;
+              } // if()
+              else ;
+              g.PrettyPrint( gErrNode ) ;
+              // cout << endl ;
+            } // catch()
+            catch ( ParamNotBoundException* e ) {
+              if ( e != NULL ) {
+                cout << e -> Err_mesg() ;
+              } // if()
+              else ;
+              g.PrettyPrint( gErrNode ) ;
+            } // catch()
+            catch ( DivideByZeroException* e ) {
+              if ( e != NULL ) {
+                cout << e -> Err_mesg() << endl ;
+              } // if()
+              else ;
+            } // catch()
+            catch ( DefineFormatException* e ) {
+              // cout << e -> Err_mesg() << endl ;
+              if ( e != NULL ) {
+                cout << e -> Err_mesg() ;
+              } // if()
+              else ;
+              g.PrettyPrint( gErrNode ) ;
+            } // catch()
+            catch ( TestCondNotBoundException* e ) {
+              if ( e != NULL ) {
+                cout << e -> Err_mesg() ;
+              } // if()
+              else ;
+              g.PrettyPrint( gErrNode ) ;
+            } // catch()
+            catch ( CondNotBoundException* e ) {
+              if ( e != NULL ) {
+                cout << e -> Err_mesg() ;
+              } // if()
+              else ;
+              g.PrettyPrint( gErrNode ) ;
+            } // catch()
+            catch ( CondFormatException* e ) {
+              if ( e != NULL ) {
+                cout << e -> Err_mesg() ;
+              } // if()
+              else ;
+              g.PrettyPrint( gErrNode ) ;
+              // cout << endl ;
+            } // catch()
+            catch ( FormatException* e ) {
+              if ( e != NULL ) {
+                cout << e -> Err_mesg() ;
+              } // if()
+              else ;
+              g.PrettyPrint( gErrNode ) ;
+            } // catch()
+            catch ( NonReturnAssignedException* e ) {
+              if ( e != NULL ) {
+                cout << e -> Err_mesg() ;
+              } // if()
+              else ;
+              g.PrettyPrint( gErrNode ) ;
+            } // catch()
+            catch ( Exception* e ) {
+              if ( e != NULL ) {
+                cout << e -> Err_mesg() ;
+              } // if()
+              else ;
+              g.PrettyPrint( gErrNode ) ;
+            } // catch()
+            
+          } // if()
+          
         } // if()
         
-      } // if()
+      } // catch()
+      catch ( EOFException* e ) {
+        if ( e != NULL ) {
+          cout << e -> Err_mesg() << endl ;
+        } // if()
+        else ;
+        gJustFinishAExp = true ;
+        cout << "Thanks for using OurScheme!" << endl ;
+        return 0 ;
+      } // catch()
+      catch ( MissingAtomOrLeftParException* e ) {
+        if ( e != NULL ) {
+          cout << e -> Err_mesg() << endl ;
+        } // if()
+        else ;
+        gJustFinishAExp = true ;
+      } // catch()
+      catch ( MissingRightParException* e ) {
+        if ( e != NULL ) {
+          cout << e -> Err_mesg() << endl ;
+        } // if()
+        else ;
+        gJustFinishAExp = true ;
+      } // catch()
+      catch ( NoClosingQuoteException* e ) {
+        if ( e != NULL ) {
+          cout << e -> Err_mesg() << endl ;
+        } // if()
+        else ;
+        gJustFinishAExp = true ;
+      } // catch()
       
       gJustFinishAExp = true ;
-      gEval.CleanWholeStack() ;
-    } // catch()
-    catch ( EOFException* e ) {
-      cout << e -> Err_mesg() << endl ;
-      gJustFinishAExp = true ;
-      cout << "Thanks for using OurScheme!" << endl ;
-      return 0 ;
-    } // catch()
-    catch ( MissingAtomOrLeftParException* e ) {
-      cout << e -> Err_mesg() << endl ;
-      gJustFinishAExp = true ;
-    } // catch()
-    catch ( MissingRightParException* e ) {
-      cout << e -> Err_mesg() << endl ;
-      gJustFinishAExp = true ;
-    } // catch()
-    catch ( NoClosingQuoteException* e ) {
-      cout << e -> Err_mesg() << endl ;
-      gJustFinishAExp = true ;
-    } // catch()
+      eval.CleanWholeStack() ;
+    } // while()
     
-  } // while()
-  
-  gEval.CleanWholeStack() ;
-  g.Reset() ;
-  gEval.Clean() ;
-  
-  cout << endl << "Thanks for using OurScheme!" ;
+    eval.CleanWholeStack() ;
+    g.Reset() ;
+    eval.Clean() ;
+    
+    cout << endl << "Thanks for using OurScheme!" ;
+    
+  } catch ( exception* e ) {
+    cout << "exception: " << e -> what() << "\n" ;
+  } // catch()
   
 } // main()

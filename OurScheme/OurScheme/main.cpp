@@ -21,14 +21,16 @@ using namespace std;
 // T 26*97 't', '#t' only these two possible look, too
 // QUOTE 44*97 '
 // SYMBOL 18*97  // DO NOT contain '(', ')', '\'', '\"', white-space
-int gReserveWordNum = 51 ;
-string gOriginReserveWordList[ 51 ] = { "cons", "list", "quote", "define"
+int gReserveWordNum = 61 ;
+string gOriginReserveWordList[ 61 ] = { "cons", "list", "quote", "define"
   , "car", "cdr", "not", "and", "or", "begin", "if", "cond"
   ,  "clean-environment", "quote", "'", "atom?", "pair?", "list?"
   , "null?", "integer?", "real?", "number?", "string?",  "boolean?"
   , "symbol?", "+", "-", "*", "/", ">", ">=", "<", "<=", "=", "and"
   , "not", "or", "string-append", "string>?", "string<?", "string=?"
-  , "eqv?", "equal?", "begin", "if", "cond", "exit", "lambda", "let", "verbose", "verbose?" } ;
+  , "eqv?", "equal?", "begin", "if", "cond", "exit", "lambda", "let", "verbose", "verbose?"
+  , "create-error-object", "error-object?", "read", "write", "display-string", "newline", "eval"
+  , "set!", "symbol->string", "number->string" } ;
 
 
 enum TokenType {
@@ -36,7 +38,7 @@ enum TokenType {
   FLOAT = 1552, NIL = 1261, T = 2522, QUOTE = 4268, SYMBOL = 1746
 } ;
 
-enum NodeType { EMPTY = 0, ATOM = 1, CONS = 2, SPECIAL = 3 } ;
+enum NodeType { EMPTY = 0, ATOM = 1, CONS = 2, SPECIAL = 3, ERROR = 4 } ;
 
 struct Node {
   string lex ; // the string (what it looks in the input file) of this token
@@ -95,6 +97,24 @@ public:
     return mesg ;
   } // Err_mesg()
 } ; // AssignedNotBoundException
+
+class HighestException {
+public:
+  HighestException() {
+    mMesg = "" ;
+  } // HighestException()
+  
+  HighestException( string str ) {
+    mMesg = str ;
+  } // HighestException()
+  
+  string Err_mesg() {
+    return mMesg ;
+  } // Err_mesg()
+  
+protected:
+  string mMesg ;
+} ; // HighestException
 
 class SingleList {
   
@@ -402,6 +422,17 @@ public:
     return str ;
   } // IntToStr()
   
+  string FloatToStr( double num ) {
+    string str = "" ;
+    
+    stringstream stream ;
+    stream << fixed << setprecision( 3 ) << num ;
+    
+    str = stream.str() ;
+    
+    return str ;
+  } // FloatToStr()
+  
   int GetValueOfIntStr( string str ) {
     int num = 0 ;
     char sign = '\0' ;
@@ -600,7 +631,7 @@ public:
       } // else()
     } // for()
     
-    cout << endl ;
+    // cout << endl ;
   } // PrintStr()
   
   bool IsEOF( char ch ) {
@@ -620,22 +651,22 @@ public:
   void PrettyPrintAtom( Node* r ) {
     if ( r -> type == SPECIAL ) {
       if ( r -> lex == "nil" || r -> lex == "#f" ) {
-        cout << "nil" << endl ;
+        cout << "nil" ;
       } // if()
       else {
-        cout << "#t" << endl ;
+        cout << "#t" ;
       } // else()
     } // if()
     else if ( IsINT( r -> lex ) ) {
-      cout << GetValueOfIntStr( r -> lex ) << endl ;
+      cout << GetValueOfIntStr( r -> lex ) ;
     } // else if()
     else if ( IsFLOAT( r -> lex ) ) {
-      cout << fixed << setprecision( 3 ) << GetValueOfFloatStr( r -> lex ) << endl ;
+      cout << fixed << setprecision( 3 ) << GetValueOfFloatStr( r -> lex ) ;
     } // else if()
     else if ( IsStr( r -> lex ) ) {
       PrintStr( r -> lex ) ;
     } // else if()
-    else cout << r -> lex << endl ;
+    else cout << r -> lex ;
   } // PrettyPrintAtom()
   
   void PrettyPrintSExp( Node* r, Direction dir, int level, bool inNewLine ) {
@@ -651,6 +682,7 @@ public:
       if ( dir == LEFT ) {
         PrintWhite( curLevel + 2 ) ;
         PrettyPrintAtom( r -> left ) ;
+        cout << endl ;
       } // if()
       else {
         if ( r -> lex != "nil" && r -> lex != "#f" ) {
@@ -658,10 +690,15 @@ public:
           cout << "." << endl ;
           PrintWhite( curLevel + 2 ) ;
           PrettyPrintAtom( r ) ;
+          cout << endl ;
         } // if()
         
         PrintWhite( curLevel ) ;
-        cout << ")" << endl ;
+        cout << ")" ;
+        
+        if ( curLevel != 0 ) {
+          cout << endl ;
+        } // if()
       } // else()
       
       return ;
@@ -676,6 +713,7 @@ public:
           
           cout << "(" << " " ;
           PrettyPrintAtom( r -> left ) ;
+          cout << endl ;
         } // if()
         else {
           if ( inNewLine ) {
@@ -694,6 +732,7 @@ public:
         if ( r -> left -> type != CONS ) {
           PrintWhite( curLevel + 2 ) ;
           PrettyPrintAtom( r -> left ) ;
+          cout << endl ;
         } // if()
         else {
           curLevel += 2 ; // A new group, level up
@@ -710,11 +749,13 @@ public:
   } // PrettyPrintSExp()
   
   void PrettyPrint( Node* r ) {
-    if ( r != NULL && ( r -> type == ATOM || r -> type == SPECIAL ) ) { // this S-exp is an atom
+    if ( r != NULL && r -> type != CONS ) { // this S-exp is an atom
       PrettyPrintAtom( r ) ;
+      // cout << endl ;
     } // if()
     else if ( r != NULL && r -> type == CONS ) {
       PrettyPrintSExp( r, LEFT, 0, false ) ;
+      // cout << endl ;
     } // else if()
     else ;
   } // PrettyPrint()
@@ -723,9 +764,11 @@ public:
 
 GlobalFunction g ;
 
+
+
 // --------------------- Error Definition Proj.1 (start) ---------------------
 
-class MissingAtomOrLeftParException {
+class MissingAtomOrLeftParException : public HighestException {
 private:
   int mLine ;
   int mCol ;
@@ -736,22 +779,22 @@ public:
     mLine = l ;
     mCol = c ;
     mStr = s ;
-  } // MissingAtomOrLeftParException()
-  
-  string Err_mesg() {
-    string mesg = "" ;
-    mesg = "ERROR (unexpected token) : atom or '(' expected when token at Line " + g.IntToStr( mLine )
+    
+    mMesg = "ERROR (unexpected token) : atom or '(' expected when token at Line " + g.IntToStr( mLine )
     + " Column " + g.IntToStr( mCol - ( int ) mStr.length() + 1 ) + " is >>" + mStr + "<<" ;
     g.SkipLine() ;
     // int tmpGLine = gLine ;
     g.Reset() ;
     // gLine = tmpGLine ;
     
-    return mesg ;
+  } // MissingAtomOrLeftParException()
+  
+  string Err_mesg() {
+    return mMesg ;
   } // Err_mesg()
 } ; // MissingAtomOrLeftParException
 
-class MissingRightParException {
+class MissingRightParException : public HighestException {
 private:
   int mLine ;
   int mCol ;
@@ -762,22 +805,18 @@ public:
     mLine = l ;
     mCol = c ;
     mStr = s ;
+    
+    mMesg = "ERROR (unexpected token) : ')' expected when token at Line " + g.IntToStr( mLine )
+    + " Column " + g.IntToStr( mCol + ( int ) mStr.length() - 1 ) + " is >>" + mStr + "<<" ;
+    g.SkipLine() ;
   } // MissingRightParException()
   
   string Err_mesg() {
-    string mesg = "" ;
-    mesg = "ERROR (unexpected token) : ')' expected when token at Line " + g.IntToStr( mLine )
-    + " Column " + g.IntToStr( mCol + ( int ) mStr.length() - 1 ) + " is >>" + mStr + "<<" ;
-    g.SkipLine() ;
-    // int tmpGLine = gLine ;
-    g.Reset() ;
-    // gLine = tmpGLine ;
-    
-    return mesg ;
+    return mMesg ;
   } // Err_mesg()
 } ; // MissingRightParException
 
-class NoClosingQuoteException {
+class NoClosingQuoteException : public HighestException {
 private:
   int mLine ;
   int mCol ;
@@ -786,31 +825,25 @@ public:
   NoClosingQuoteException( int l, int c ) {
     mLine = l ;
     mCol = c ;
+    
+    mMesg = "ERROR (no closing quote) : END-OF-LINE encountered at Line " + g.IntToStr( mLine )
+    + " Column " + g.IntToStr( mCol ) ;
   } // NoClosingQuoteException()
   
   string Err_mesg() {
-    string mesg = "" ;
-    mesg = "ERROR (no closing quote) : END-OF-LINE encountered at Line " + g.IntToStr( mLine )
-    + " Column " + g.IntToStr( mCol ) ;
-    // int tmpGLine = gLine ;
-    g.Reset() ;
-    // gLine = tmpGLine ;
-    
-    return mesg ;
+    return mMesg ;
   } // Err_mesg()
 } ; // NoClosingQuoteException
 
-class EOFException {
+class EOFException : public HighestException {
 public:
-  string Err_mesg() {
-    string mesg = "" ;
-    mesg = "ERROR (no more input) : END-OF-FILE encountered" ;
-    // int tmpGLine = gLine ;
-    g.Reset() ;
-    // gLine = tmpGLine ;
+  EOFException() {
+    mMesg = "ERROR (no more input) : END-OF-FILE encountered" ;
     gOriginalList.Clear() ;
-    
-    return mesg ;
+  } // EOFException()
+  
+  string Err_mesg() {
+    return mMesg ;
   } // Err_mesg()
 } ; // EOFException
 
@@ -1557,185 +1590,203 @@ public:
 
 // --------------------- Error Definition Proj.2 (start) ---------------------
 
-class NonListException {
+class NonListException : public HighestException {
 public:
+  NonListException() {
+    mMesg = "ERROR (non-list) : " ;
+  } // NonListException()
+  
   string Err_mesg() {
-    string mesg = "ERROR (non-list) : " ;
-    return mesg ;
+    return mMesg ;
   } // Err_mesg()
 } ; // NonListException
 
-class IncorrectNumberArgumentException {
+class IncorrectNumberArgumentException : public HighestException {
 private:
   string mLex ;
 public:
   IncorrectNumberArgumentException( string funcName ) {
     mLex = funcName ;
+    
+    mMesg = "ERROR (incorrect number of arguments) : " + mLex ;
   } // IncorrectNumberArgumentException()
   
   string Err_mesg() {
-    string mesg = "ERROR (incorrect number of arguments) : " + mLex ;
-    return mesg ;
+    return mMesg ;
   } // Err_mesg()
 } ; // IncorrectNumberArgumentException
 
-class IncorrectArgumentTypeException {
+class IncorrectArgumentTypeException : public HighestException {
 private:
   string mFuncName ;
   
 public:
   IncorrectArgumentTypeException( string errFuncName ) {
     mFuncName = errFuncName ;
+    mMesg = "ERROR (" + mFuncName + " with incorrect argument type) : " ;
   } // IncorrectArgumentTypeException()
   
   string Err_mesg() {
-    string mesg = "ERROR (" + mFuncName + " with incorrect argument type) : " ;
-    return mesg ;
+    return mMesg ;
   } // Err_mesg()
   
 } ; // IncorrectArgumentTypeException
 
-class ApplyNonFunctionException {
+class ApplyNonFunctionException : public HighestException {
 public:
+  ApplyNonFunctionException() {
+    mMesg = "ERROR (attempt to apply non-function) : " ;
+  } // ApplyNonFunctionException()
+  
   string Err_mesg() {
-    string mesg = "ERROR (attempt to apply non-function) : " ;
-    return mesg ;
+    return mMesg ;
   } // Err_mesg()
 } ; // ApplyNonFunctionException
 
-class NoReturnValueException {
+class NoReturnValueException : public HighestException {
 public:
+  NoReturnValueException() {
+    mMesg = "ERROR (no return value) : " ;
+  } // NoReturnValueException()
+  
   string Err_mesg() {
-    string mesg = "ERROR (no return value) : " ;
-    return mesg ;
+    return mMesg ;
   } // Err_mesg()
   
 } ; // NoReturnValueException
 
-class UnboundValueException {
+class UnboundValueException : public HighestException {
 private:
   string mLex ;
   
 public:
   UnboundValueException( string errLex ) {
     mLex = errLex ;
+    
+    mMesg = "ERROR (unbound symbol) : " + mLex ;
   } // UnboundValueException()
   
   string Err_mesg() {
-    string mesg = "ERROR (unbound symbol) : " + mLex ;
-    return mesg ;
+    return mMesg ;
   } // Err_mesg()
 } ; // UnboundValueException
 
-class DivideByZeroException {
+class DivideByZeroException : public HighestException {
 public:
+  DivideByZeroException() {
+    mMesg = "ERROR (division by zero) : /" ;
+  } // DivideByZeroException()
+  
   string Err_mesg() {
-    string mesg = "ERROR (division by zero) : /" ;
-    return mesg ;
+    return mMesg ;
   } // Err_mesg()
 } ; // DivideByZeroException
 
-class DefineFormatException {
+class DefineFormatException : public HighestException {
 public:
+  DefineFormatException() {
+    mMesg = "ERROR (DEFINE format) : " ;
+  } // DefineFormatException()
+  
   string Err_mesg() {
-    string mesg = "ERROR (DEFINE format) : " ;
-    return mesg ;
+    return mMesg ;
   } // Err_mesg()
 } ; // DefineFormatException
 
-class CondFormatException {
+class CondFormatException : public HighestException {
 public:
+  CondFormatException() {
+    mMesg = "ERROR (COND format) : " ;
+  } // CondFormatException()
+  
   string Err_mesg() {
-    string mesg = "ERROR (COND format) : " ;
-    return mesg ;
+    return mMesg ;
   } // Err_mesg()
 } ; // CondFormatException
 
-class LevelException {
+class LevelException : public HighestException {
 private:
   string mLex ;
 public:
   LevelException( string funcName ) {
     mLex = funcName ;
+    mMesg = "ERROR (level of " + mLex + ")" ;
   } // LevelException()
   
   string Err_mesg() {
-    string mesg = "ERROR (level of " + mLex + ")" ;
-    return mesg ;
+    return mMesg ;
   } // Err_mesg()
 } ; // CleanLevelException()
 
 // --------------------- Error Definition Proj.2 (end) ---------------------
 // --------------------- Error Definition Proj.3 (start) ---------------------
-/*
-class LetFormatException {
-public:
-  string Err_mesg() {
-    string mesg = "ERROR (let format)" ;
-    return mesg ;
-  } // Err_mesg()
-} ; // LetFormatException
 
-class LambdaFormatException {
+class DefineFormatException2 : public HighestException {
 public:
+  DefineFormatException2() {
+    mMesg = "ERROR (define format)" ;
+  } // DefineFormatException2()
+  
   string Err_mesg() {
-    string mesg = "ERROR (lambda format)" ;
-    return mesg ;
-  } // Err_mesg()
-} ; // LambdaFormatException
-*/
-
-class DefineFormatException2 {
-public:
-  string Err_mesg() {
-    string mesg = "ERROR (define format)" ;
-    return mesg ;
+    return mMesg ;
   } // Err_mesg()
 } ; // DefineFormatException
 
-class FormatException {
+class FormatException : public HighestException {
 private:
   string mLex ;
 public:
   FormatException( string funcName ) {
     mLex = funcName ;
+    mMesg = "ERROR (" + mLex + " format) : " ;
   } // FormatException()
   
   string Err_mesg() {
-    string mesg = "ERROR (" + mLex + " format) : " ;
-    return mesg ;
+    return mMesg ;
   } // Err_mesg()
 } ; // DefineFormatException
 
-class NonReturnAssignedException {
+class NonReturnAssignedException : public HighestException {
 public:
+  NonReturnAssignedException() {
+    mMesg = "ERROR (no return value) : " ;
+  } // NonReturnAssignedException()
+  
   string Err_mesg() {
-    string mesg = "ERROR (no return value) : " ;
-    return mesg ;
+    return mMesg ;
   } // Err_mesg()
 } ; // NonReturnAssignedException
 
-class ParamNotBoundException {
+class ParamNotBoundException : public HighestException {
 public:
+  ParamNotBoundException() {
+    mMesg = "ERROR (unbound parameter) : " ;
+  } // ParamNotBoundException()
+  
   string Err_mesg() {
-    string mesg = "ERROR (unbound parameter) : " ;
-    return mesg ;
+    return mMesg ;
   } // Err_mesg()
 } ; // ParamNotBoundException
 
-class TestCondNotBoundException {
+class TestCondNotBoundException : public HighestException {
 public:
+  TestCondNotBoundException() {
+    mMesg = "ERROR (unbound test-condition) : " ;
+  } // TestCondNotBoundException()
+  
   string Err_mesg() {
-    string mesg = "ERROR (unbound test-condition) : " ;
-    return mesg ;
+    return mMesg ;
   } // Err_mesg()
 } ; // TestCondNotBoundException
 
-class CondNotBoundException {
+class CondNotBoundException : public HighestException {
 public:
+  CondNotBoundException() {
+    mMesg = "ERROR (unbound condition) : " ;
+  } // CondNotBoundException()
+  
   string Err_mesg() {
-    string mesg = "ERROR (unbound condition) : " ;
-    return mesg ;
+    return mMesg ;
   } // Err_mesg()
 } ; // CondNotBoundException
 
@@ -1782,7 +1833,7 @@ public:
   
   bool SymboIsInCallStack( string str ) {
     for ( int i = ( int ) mCallStack.size() - 1 ; i >= 0 ; i -- ) {
-      if ( str == mCallStack[ i ].symbol.name ) {
+      if ( str == mCallStack.at( i ).symbol.name ) {
         return true ;
       } // if()
       else ;
@@ -1798,7 +1849,7 @@ public:
       mStart -> next = NULL ;
       mStart -> prev = NULL ;
       
-      if ( mCurrentVar.size() != 0 ) {
+      if ( !mCurrentVar.empty() ) {
         mStart -> currentArea.assign( mCurrentVar.begin(), mCurrentVar.end() ) ;
       } // if()
       else ; // the current stack area is empty
@@ -1811,7 +1862,7 @@ public:
       mEnd -> next -> next = NULL ;
       mEnd -> next -> prev = mEnd ;
       mEnd = mEnd -> next ;
-      if ( mCurrentVar.size() != 0 ) {
+      if ( !mCurrentVar.empty() ) {
         mEnd -> currentArea.assign( mCurrentVar.begin(), mCurrentVar.end() ) ;
       } // if()
       else ;
@@ -1891,7 +1942,7 @@ public:
     
     int index = ( int ) mCallStack.size() - 1 ;
     for ( int i = ( int ) mCurrentVar.size() - 1 ; i >= 0 && index >= 0 ; i -- ) {
-      if ( mCurrentVar[ i ] == mCallStack[ index ].symbol.name ) {
+      if ( mCurrentVar.at( i ) == mCallStack.at( index ).symbol.name ) {
         mCallStack.erase( mCallStack.begin() + index ) ;
       } // if()
       
@@ -1959,7 +2010,7 @@ public:
     for ( int i = ( int ) mCurrentVar.size() - 1 ; i >= 0 ; i -- ) {
       if ( varName == mCurrentVar[ i ] ) {
         for ( int j = ( int ) mCallStack.size() - 1 ; j >= 0 ; j -- ) {
-          if ( varName == mCallStack[ j ].symbol.name ) {
+          if ( varName == mCallStack.at( j ).symbol.name ) {
             return j ;
           } // if()
         } // for()
@@ -1978,8 +2029,8 @@ public:
     for ( int i = ( int ) mCurrentVar.size() - 1 ; target.name == "" && i >= 0 ; i -- ) {
       if ( symName == mCurrentVar[ i ] ) {
         for ( int j = ( int ) mCallStack.size() - 1 ; j >= 0 && !hasFind ; j -- ) {
-          if ( symName == mCallStack[ j ].symbol.name ) {
-            target = mCallStack[ j ].symbol ;
+          if ( symName == mCallStack.at( j ).symbol.name ) {
+            target = mCallStack.at( j ).symbol ;
             hasFind = true ;
           } // if()
         } // for()
@@ -1995,7 +2046,7 @@ public:
       index = GetLocalVarIndex( varName ) ;
       
       if ( index >= 0 && index < mCallStack.size() ) {
-        return mCallStack[ index ].symbol.tree ;
+        return mCallStack.at( index ).symbol.tree ;
       } // if()
       else ;
     } // if()
@@ -2008,7 +2059,7 @@ public:
     index = GetLocalVarIndex( str ) ;
     
     if ( index >= 0 && index < mCallStack.size() ) {
-      mCallStack[ index ].symbol.tree = newBinding ;
+      mCallStack.at( index ).symbol.tree = newBinding ;
     } // if()
     else {
       throw new Exception() ;
@@ -2045,12 +2096,13 @@ struct ReserveWord {
   vector<string> list ;
 } ; // ReserveWord
 
+static Tree uTree ;
+
 // Purpose: Do the evaluation and store the user definitions
 class Evaluator {
 private:
   
   vector<Symbol> mSymbolTable ;
-  vector<Function> mFunctionTable ;
   vector<ReserveWord> mReserveWords ;
   CallStack mCallStack ;
   vector<Function> mUserDefinedFunctionTable ;
@@ -2069,7 +2121,7 @@ private:
   
   void ResetReserveWord() {
     for ( int i = 0 ; i < gReserveWordNum ; i ++ ) {
-      mReserveWords[ i ].list.clear() ;
+      mReserveWords.at( i ).list.clear() ;
     } // for()
   } // ResetReserveWord()
   
@@ -2105,8 +2157,8 @@ private:
     bool hasFound = false ;
     
     for ( int i = ( int ) mSymbolTable.size() - 1 ; i >= 0 && !hasFound ; i -- ) {
-      if ( str == mSymbolTable[ i ].name ) {
-        target = mSymbolTable[ i ] ;
+      if ( str == mSymbolTable.at( i ).name ) {
+        target = mSymbolTable.at( i ) ;
         hasFound = true ;
       } // if()
       else ;
@@ -2117,21 +2169,11 @@ private:
   
   void UpdateGlobalSymbol( string name, Node* binding ) {
     bool finish = false ;
-    for ( int i = gReserveWordNum ; !finish && i < mSymbolTable.size() ; i ++ ) {
-      if ( name == mSymbolTable[ i ].name ) {
-        // g.DeleteTree( walk -> symbol.tree ) ;
-        mSymbolTable[ i ].tree = NULL ;
-        mSymbolTable[ i ].tree = binding ;
-        /*
-        mSymbolTable[ i ].tree = new Node ;
-        mSymbolTable[ i ].tree -> lex = "" ;
-        mSymbolTable[ i ].tree -> type = EMPTY ;
-        mSymbolTable[ i ].tree -> isAddByMe = false ;
-        mSymbolTable[ i ].tree -> parent = NULL;
-        mSymbolTable[ i ].tree -> left = NULL ;
-        mSymbolTable[ i ].tree -> right = NULL ;
-        CopyTree( mSymbolTable[ i ].tree, binding, "root" ) ;
-        */
+    for ( int i = ( int ) mSymbolTable.size() - 1 ; !finish && i >= 0 ; i -- ) {
+      if ( name == mSymbolTable.at( i ).name ) {
+        mSymbolTable.at( i ).tree = NULL ;
+        mSymbolTable.at( i ).tree = binding ;
+
         finish = true ;
       } // if()
       else ;
@@ -2144,7 +2186,7 @@ private:
     } // if()
     else {
       for ( int i = ( int ) mSymbolTable.size() - 1 ; i >= 0 ; i -- ) {
-        if ( str == mSymbolTable[ i ].name ) {
+        if ( str == mSymbolTable.at( i ).name ) {
           return true ;
         } // if()
         else ;
@@ -2239,13 +2281,13 @@ private:
       str = GetFuncNameFromFuncValue( str ) ;
       
       for ( int i = 0 ; i < mReserveWords.size() ; i ++ ) {
-        if ( str == mReserveWords[ i ].name ) {
-          return mReserveWords[ i ].name ;
+        if ( str == mReserveWords.at( i ).name ) {
+          return mReserveWords.at( i ).name ;
         } // if()
         
         for ( int j = 0 ; j < mReserveWords[ i ].list.size() ; j ++ ) {
-          if ( str == mReserveWords[ i ].list[ j ] ) {
-            return mReserveWords[ i ].name ;
+          if ( str == mReserveWords.at( i ).list[ j ] ) {
+            return mReserveWords.at( i ).name ;
           } // if()
         } // for()
       } // for()
@@ -2262,15 +2304,15 @@ private:
       str = GetFuncNameFromFuncValue( str ) ;
       
       for ( int i = 0 ; i < mReserveWords.size() ; i ++ ) {
-        if ( str == mReserveWords[ i ].name ) {
+        if ( str == mReserveWords.at( i ).name ) {
           index = i ;
-          return mReserveWords[ i ].name ;
+          return mReserveWords.at( i ).name ;
         } // if()
         
         for ( int j = 0 ; j < mReserveWords[ i ].list.size() ; j ++ ) {
-          if ( str == mReserveWords[ i ].list[ j ] ) {
+          if ( str == mReserveWords.at( i ).list[ j ] ) {
             index = i ;
-            return mReserveWords[ i ].name ;
+            return mReserveWords.at( i ).name ;
           } // if()
         } // for()
       } // for()
@@ -2335,7 +2377,7 @@ private:
       str = GetFuncNameFromFuncValue( str ) ;
       
       for ( int i = ( int ) mUserDefinedFunctionTable.size() - 1 ; i >= 0 && index == -1 ; i -- ) {
-        if ( str == mUserDefinedFunctionTable[ i ].name ) {
+        if ( str == mUserDefinedFunctionTable.at( i ).name ) {
           index = i ;
         } // if()
       } // for()
@@ -2392,7 +2434,7 @@ private:
   
   bool IsUserDefinedFunc( string str ) {
     for ( int i = 0 ; i < mUserDefinedFunctionTable.size() ; i ++ ) {
-      if ( str == mUserDefinedFunctionTable[ i ].name ) {
+      if ( str == mUserDefinedFunctionTable.at( i ).name ) {
         return true ;
       } // if()
     } // for()
@@ -2580,7 +2622,7 @@ private:
   
   bool IsOriginalReserveWord( string name ) {
     for ( int i = 0 ; i < mReserveWords.size() ; i ++ ) {
-      if ( name == mReserveWords[ i ].name ) {
+      if ( name == mReserveWords.at( i ).name ) {
         return true ;
       } // if()
     } // for()
@@ -2590,9 +2632,9 @@ private:
   
   void EraseUserDefinedReserveWord( int index, string name ) {
     if ( index >= 0 ) {
-      for ( int i = 0 ; i < mReserveWords[ index ].list.size() ; i ++ ) {
-        if ( name == mReserveWords[ index ].list[ i ] ) {
-          mReserveWords[ index ].list.erase( mReserveWords[ index ].list.begin() + i ) ;
+      for ( int i = 0 ; i < mReserveWords.at( index ).list.size() ; i ++ ) {
+        if ( name == mReserveWords.at( index ).list[ i ] ) {
+          mReserveWords.at( index ).list.erase( mReserveWords.at( index ).list.begin() + i ) ;
         } // if()
       } // for()
     } // if()
@@ -2600,33 +2642,39 @@ private:
   
   void AddNewReserveWord( string reserveName, string newName ) {
     for ( int i = 0 ; i < gReserveWordNum ; i ++ ) {
-      if ( reserveName == mReserveWords[ i ].name ) {
-        mReserveWords[ i ].list.push_back( newName ) ;
+      if ( reserveName == mReserveWords.at( i ).name ) {
+        mReserveWords.at( i ).list.push_back( newName ) ;
         return ;
       } // if()
     } // for()
   } // AddNewReserveWord()
   
-  void UpdateUserDefinedFunc( string funcName, Function func ) {
+  void AddNewUserDefinedFunc( Function func ) {
+    mUserDefinedFunctionTable.push_back( func ) ;
+  } // AddNewUserDefinedFunc()
+  
+  void UpdateUserDefinedFunc( Function func ) {
     int funcIndex = -1 ;
-    funcIndex = FindUserDefinedFunc( funcName ) ;
-    func.name = funcName ;
+    funcIndex = FindUserDefinedFunc( func.name ) ;
     
     // this function is already exist
     if ( funcIndex >= 0 && funcIndex < mUserDefinedFunctionTable.size() ) {
-      if ( func.tree == NULL ) { // should delete the function with this name
-        mUserDefinedFunctionTable.erase( mUserDefinedFunctionTable.begin() + funcIndex ) ;
-      } // if()
-      else {
-        // mUserDefinedFunctionTable.erase( mUserDefinedFunctionTable.begin() + funcIndex ) ;
-        // mUserDefinedFunctionTable.push_back( func ) ;
-        mUserDefinedFunctionTable[ funcIndex ] = func ;
-      } // else()
+      mUserDefinedFunctionTable.at( funcIndex ) = func ;
     } // if()
-    else { // a new function name
-      mUserDefinedFunctionTable.push_back( func ) ;
+    else {
+      throw new Exception() ;
     } // else()
   } // UpdateUserDefinedFunc()
+  
+  void DeleteUserDefineFunc( string name ) {
+    int funcIndex = -1 ;
+    funcIndex = FindUserDefinedFunc( name ) ;
+    
+    if ( funcIndex != -1 && funcIndex < mUserDefinedFunctionTable.size() ) {
+      mUserDefinedFunctionTable.erase( mUserDefinedFunctionTable.begin() + funcIndex ) ;
+    } // if()
+    else ;
+  } // DeleteUserDefineFunc()
   
   bool IsALambdaFunc( Node* tree ) {
     if ( tree != NULL && tree -> left != NULL && tree -> left -> left != NULL
@@ -2637,29 +2685,21 @@ private:
     return false ;
   } // IsALambdaFunc()
   
-  Node* DefineUserFunc( Node* inTree, int level ) {
+  Node* DefineUserFunc( Node* inTree, int level, bool isSet ) {
     Node* funcNameAndArgPart = NULL ;
     Node* procedurePart = NULL ;
     Symbol newSymbol ;
     newSymbol.name = "" ;
     newSymbol.tree = NULL ;
     
-    if ( inTree != NULL && inTree -> right != NULL ) {
-      funcNameAndArgPart = inTree -> right -> left ;
-      if ( inTree -> right -> right != NULL ) {
-        procedurePart = inTree -> right -> right ;
-      } // if()
-      else ; // procedure part is NULL
-    } // if()
-    else {
-      throw new Exception() ;
-    } // else()
-    
-    if ( funcNameAndArgPart != NULL && IsList( funcNameAndArgPart ) && CountListElement( funcNameAndArgPart ) >= 2 ) {
+    if ( CountArgument( inTree ) >= 2 ) {
       string funcName = "" ;
       Node* argList = NULL ;
       
-      if ( funcNameAndArgPart -> left != NULL ) {
+      funcNameAndArgPart = inTree -> right -> left ;
+      procedurePart = inTree -> right -> right ;
+      
+      if ( funcNameAndArgPart != NULL ) {
         funcName = funcNameAndArgPart -> left -> lex ;
         argList = funcNameAndArgPart -> right ;
       } // if()
@@ -2683,11 +2723,7 @@ private:
       newFunc.name = funcName ;
       newFunc.argNum = CountAndCkeckParameters( argList, newFunc.argList, "define" ) ;
       newFunc.tree = procedurePart ;
-      /*
-      newFunc.tree = new Node ;
-      CopyTree( newFunc.tree, procedurePart, "root" ) ;
-      */
-      // create a global symbol for this function, make it easy to find in the symbol
+      
       Node* tmp = new Node ;
       tmp -> lex = "" ;
       tmp -> type = ATOM ;
@@ -2709,13 +2745,19 @@ private:
         UpdateGlobalSymbol( funcName, tmp ) ;
       } // else()
       
-      UpdateUserDefinedFunc( funcName, newFunc ) ;
+      if ( !IsUserDefinedFunc( funcName ) ) {
+        AddNewUserDefinedFunc( newFunc ) ;
+      } // if()
+      else {
+        UpdateUserDefinedFunc( newFunc ) ;
+      } // else()
       
-      if ( gVerbose ) {
+      if ( gVerbose && !isSet ) {
         cout << funcName << " defined" << endl ;
       } // if()
       
       return NULL ;
+      
     } // if()
     else {
       gErrNode = inTree ;
@@ -2733,17 +2775,16 @@ private:
     return false ;
   } // IsQuoteExp()
   
-  Node* Define( Node* inTree, int level ) {
+  Node* Define( Node* inTree, int level, bool isSet ) {
     vector<Node*> argList ;
-    GetArgumentList( inTree, argList ) ;
     
-    if ( level == 1 ) {
-      if ( inTree != NULL && inTree -> right != NULL && inTree -> right -> left != NULL
-           && CountListElement( inTree -> right -> left ) > 1 ) {
-        return DefineUserFunc( inTree, level + 1 ) ;
-      } // if()
+    if ( ( level == 1 || isSet ) ) {
+      int argNum = 0 ;
+      argNum = CountArgument( inTree ) ;
       
-      if ( CountArgument( inTree ) == 2 ) {
+      GetArgumentList( inTree, argList ) ;
+      
+      if ( argNum == 2 && inTree -> right -> left -> type == ATOM ) {
         Symbol newSymbol ;
         newSymbol.name = "" ;
         newSymbol.tree = NULL ;
@@ -2771,24 +2812,15 @@ private:
               if ( IsQuoteExp( argList[ 1 ] ) ) {
                 // define should be the original binding except the quote
                 bind = argList[ 1 ] -> right -> left ;
-                /*
-                bind = new Node ;
-                bind -> left = NULL ;
-                bind -> right = NULL ;
-                bind -> parent = NULL ;
-                bind -> lex = "" ;
-                bind -> type = EMPTY ;
-                bind -> isAddByMe = false ;
-                CopyTree( bind, argList[ 1 ] -> right -> left, "root" ) ;
-                */
               } // if()
               else {
                 // the definition of this symbol, need to check whether the binding exist
                 // if not, then this is a non return value error
                 bind = EvaluateSExp( argList[ 1 ], level + 1 ) ;
                 CheckHasReturnBindingOrThrow( bind, argList[ 1 ] ) ;
-                
               } // else()
+              
+              newSymbol.tree = bind ;
               
               if ( SymbolExist( argList[ 0 ] -> lex ) ) { // this symbol has already exist, update it
                 
@@ -2799,25 +2831,22 @@ private:
                     
                   } // if()
                   else { // this new symbol should be a global symbol
-                    // mSymbolTable[ symIndex ].tree = bind ; // copy
-                    // mSymbolTable[ symIndex ].tree = CopyTree( bind ) ;
-                    // mSymbolTable.UpdateGlobalSymbol( newSymbol.name, CopyTree( bind ) ) ;
                     UpdateGlobalSymbol( newSymbol.name, bind ) ;
                     
-                    if ( bind -> type == ATOM && bind -> lex == "#<procedure lambda>" ) {
-                      UpdateUserDefinedFunc( newSymbol.name, mLambdaFunc ) ;
-                    } // if()
-                    else if ( IsUserDefinedFunc( newSymbol.name ) ) {
+                    if ( IsUserDefinedFunc( newSymbol.name ) ) {
+                      
                       // this symbol name has already used to define a function
                       // but now this symbol is used to a new binding which is not a function
                       // so need to remove this symbol name from the UserDefinedFuncTable
-                      Function empty ;
-                      empty.name = "" ;
-                      empty.argNum = 0 ;
-                      empty.tree = NULL ;
-                      
-                      UpdateUserDefinedFunc( newSymbol.name, empty ) ;
-                    } // else if()
+                      DeleteUserDefineFunc( newSymbol.name ) ;
+                    } // if()
+                    else ;
+                    
+                    if ( newSymbol.tree -> type != CONS
+                         && newSymbol.tree -> lex == "#<procedure lambda>" ) {
+                      mLambdaFunc.name = newSymbol.name ;
+                      AddNewUserDefinedFunc( mLambdaFunc ) ;
+                    } // if()
                     
                     string reserveName = "" ;
                     reserveName = GetReserveWordType( GetFuncNameFromFuncValue( bind -> lex ) ) ;
@@ -2843,16 +2872,6 @@ private:
                   // this been assigned S-exp is in the input
                   // and haven't evaluated yet
                   newSymbol.tree = bind ;
-                  /*
-                  newSymbol.tree = new Node ;
-                  newSymbol.tree -> lex = "" ;
-                  newSymbol.tree -> type = EMPTY ;
-                  newSymbol.tree -> left = NULL ;
-                  newSymbol.tree -> right = NULL ;
-                  newSymbol.tree -> parent = NULL ;
-                  newSymbol.tree -> isAddByMe = false ;
-                  CopyTree( newSymbol.tree, bind, "root" ) ;
-                  */
                 } // if()
                 else {
                   // int symIndex = FindSymbolFromLocalAndGlobal( argList[ 1 ] -> lex ) ;
@@ -2867,10 +2886,8 @@ private:
                     newSymbol.tree -> isAddByMe = false ;
                     CopyTree( newSymbol.tree,
                               mCallStack.GetLocalVarBinding( argList[ 1 ] -> lex ), "root" ) ;
-                    // newSymbol.tree = CopyTree( mCallStack.GetLocalVarBinding( argList[ 1 ] -> lex ) ) ;
                   } // if()
                   else {
-                    // newSymbol.tree = mSymbolTable[ symIndex ].tree ;
                     newSymbol.tree = FindGlobalSymbol( argList[ 1 ] -> lex ).tree ;
                   } // else()
                 } // else()
@@ -2894,7 +2911,7 @@ private:
                 if ( newSymbol.tree -> type != CONS
                      && newSymbol.tree -> lex == "#<procedure lambda>" ) {
                   mLambdaFunc.name = newSymbol.name ;
-                  UpdateUserDefinedFunc( mLambdaFunc.name, mLambdaFunc ) ;
+                  AddNewUserDefinedFunc( mLambdaFunc ) ;
                 } // if()
                 
                 AddSymbol( newSymbol.name, newSymbol.tree ) ;
@@ -2911,7 +2928,7 @@ private:
             throw new DefineFormatException() ; // curious
           } // else()
           
-          if ( gVerbose ) {
+          if ( gVerbose && !isSet ) {
             cout << newSymbol.name << " defined" << endl ;
           } // if()
           
@@ -2924,6 +2941,11 @@ private:
           throw new DefineFormatException() ; // curious
         } // else()
       } // if()
+      else if ( argNum >= 2 && inTree -> right -> left -> type == CONS ) {
+        
+        DefineUserFunc( inTree, level, isSet ) ;
+        
+      } // else if()
       else {
         gErrNode = inTree ;
         throw new DefineFormatException() ; // curious
@@ -3070,8 +3092,6 @@ private:
   } // PrimitivePredecates()
   
   Node* CleanEnvironment() {
-    // mSymbolTable.clear() ;
-    mFunctionTable.clear() ;
     mUserDefinedFunctionTable.clear() ;
     CleanWholeStack() ;
     
@@ -4133,7 +4153,7 @@ private:
         
         ParameterBinding( mLambdaFunc.argList, inTree -> right, "lambda", level + 1 ) ;
         
-        mLambdaFunc = mLambdaStack[ mLambdaStack.size() - 1 ] ;
+        mLambdaFunc = mLambdaStack.back() ;
         mLambdaStack.pop_back() ;
       } // if()
       
@@ -4217,8 +4237,8 @@ private:
     Node* treeInSymbolTable = NULL ;
     Node* finalResult = NULL ;
     
-    if ( 0 <= funcIndex && funcIndex <= mUserDefinedFunctionTable.size() ) {
-      func = mUserDefinedFunctionTable[ funcIndex ] ;
+    if ( 0 <= funcIndex && funcIndex < mUserDefinedFunctionTable.size() ) {
+      func = mUserDefinedFunctionTable.at( funcIndex ) ;
     } // if()
     else {
       throw new Exception() ;
@@ -4253,6 +4273,332 @@ private:
     
     return finalResult ;
   } // ProcessUserDefinedFunc()
+  
+  Node* CreateErrorObject( string str ) {
+    Node* errObj = new Node ;
+    errObj -> lex = "" ;
+    errObj -> type = ERROR ;
+    errObj -> parent = NULL ;
+    errObj -> left = NULL ;
+    errObj -> right = NULL ;
+    errObj -> isAddByMe = false ;
+    
+    errObj -> lex = str ;
+    
+    return errObj ;
+  } // CreateErrorObject()
+  
+  Node* ProcessCreateErrorObject( Node* inTree, int level ) {
+    Node* result = NULL ;
+    
+    if ( CountArgument( inTree ) == 1 ) {
+      if ( inTree -> right != NULL && inTree -> right -> left != NULL ) {
+        Node* strNode = inTree -> right -> left ;
+        if ( strNode -> type == ATOM && g.IsStr( strNode -> lex ) ) {
+          result = CreateErrorObject( strNode -> lex ) ;
+        } // if()
+        else {
+          gErrNode = inTree -> right -> left ;
+          throw new IncorrectArgumentTypeException( "create-error-object" ) ;
+        } // else()
+      } // if()
+      else ;
+    } // if()
+    else {
+      gErrNode = inTree ;
+      throw new IncorrectNumberArgumentException( "create-error-object" ) ;
+    } // else()
+    
+    return result ;
+  } // ProcessCreateErrorObject()
+  
+  bool IsErrorObj( Node* node ) {
+    if ( node == NULL ) {
+      return false ;
+    } // if()
+    else ;
+    
+    if ( node -> type == ERROR ) {
+      return true ;
+    } // if()
+    else if ( node -> type == ATOM && SymbolExist( node -> lex ) ) {
+      Node* bind = FindSymbolBinding( node -> lex ) ;
+      
+      if ( bind -> type == ERROR ) {
+        return true ;
+      } // if()
+      else ;
+    } // else if()
+    else ;
+    
+    return false ;
+  } // IsErrorObj()
+  
+  Node* ProcessIsError( Node* inTree, int level ) {
+    Node* result = new Node ;
+    result -> lex = "nil" ;
+    result -> type = SPECIAL ;
+    result -> parent = NULL ;
+    result -> left = NULL ;
+    result -> right = NULL ;
+    result -> isAddByMe = false ;
+    
+    if ( CountArgument( inTree ) == 1 ) {
+      if ( inTree -> right != NULL && inTree -> right -> left != NULL ) {
+        Node* objNode = inTree -> right -> left ;
+        Node* binding = EvaluateSExp( objNode, level + 1 ) ;
+        if ( binding != NULL && binding -> type == ERROR ) {
+          result -> lex = "#t" ;
+        } // if()
+        else {
+          CheckHasRaramBindingOrThrow( binding, objNode ) ;
+        } // else()
+      } // if()
+      else ;
+    } // if()
+    else {
+      gErrNode = inTree ;
+      throw new IncorrectNumberArgumentException( "create-error-object" ) ;
+    } // else()
+    
+    return result ;
+  } // ProcessIsError()
+  
+  Node* ProcessDisplayString( Node* inTree, int level ) {
+    Node* result = new Node ;
+    result -> lex = "" ;
+    result -> type = ATOM ;
+    result -> parent = NULL ;
+    result -> left = NULL ;
+    result -> right = NULL ;
+    result -> isAddByMe = false ;
+    
+    if ( CountArgument( inTree ) == 1 ) {
+      Node* target = NULL ;
+      Node* evalResult = NULL ;
+      
+      target = inTree -> right -> left ;
+      evalResult = EvaluateSExp( target, level + 1 ) ;
+      
+      if ( IsErrorObj( target ) ) {
+        // Node* binding = FindSymbolBinding( target -> lex ) ;
+        // CheckSymbolHasBindindRoThrow( target -> lex, binding, target ) ;
+        
+        if ( g.IsStr( evalResult -> lex ) ) {
+          result -> lex = evalResult -> lex ;
+          
+          cout << g.GetStrContent( evalResult -> lex ) ;
+        } // if()
+        else {
+          gErrNode = target ;
+          throw new IncorrectArgumentTypeException( "display-string" ) ;
+        } // else()
+      } // if()
+      else if ( evalResult -> type == ATOM && g.IsStr( evalResult -> lex )  ) {
+        string str = "" ;
+        str = evalResult -> lex ;
+        
+        result -> lex = str ;
+        
+        // cout << g.GetStrContent( str ) ;
+        g.PrintStr( g.GetStrContent( str ) ) ;
+      } // else if()
+      else {
+        gErrNode = target ;
+        throw new IncorrectArgumentTypeException( "display-string" ) ;
+      } // else()
+    } // if()
+    else {
+      gErrNode = inTree ;
+      throw new IncorrectNumberArgumentException( "display-string" ) ;
+    } // else()
+    
+    return result ;
+  } // ProcessDisplayString()
+  
+  Node* ProcessRead( Node* inTree, int level ) {
+    Node* result = NULL ;
+    bool grammerCorrect = false ;
+    
+    try {
+      uLA.PeekToken() ;
+      Token token = uLA.GetToken() ;
+      
+      grammerCorrect = uSA.CheckSExp( token ) ;
+      
+      if ( grammerCorrect ) {
+        Tree tree ;
+        tree.BuildTree() ;
+        g.Reset() ; // reset all information that used in Lexical analyzer
+        
+        result = tree.GetRoot() ;
+      } // if()
+      
+    } // catch()
+    catch ( NoClosingQuoteException* e ) {
+      result = CreateErrorObject( "ERROR : END-OF-FILE encountered when there should be more input" ) ;
+    } // catch()
+    catch ( HighestException* e ) {
+      result = CreateErrorObject( e -> Err_mesg() ) ;
+    } // catch()
+    
+    return result ;
+  } // ProcessRead()
+  
+  Node* ProcessWrite( Node* inTree, int level ) {
+    Node* result = NULL ;
+    
+    if ( CountArgument( inTree ) == 1 ) {
+      Node* target = inTree -> right -> left ;
+      
+      if ( target != NULL ) {
+        Node* evalResult = NULL ;
+        evalResult = EvaluateSExp( target, level + 1 ) ;
+        CheckHasRaramBindingOrThrow( evalResult, target ) ;
+        
+        result = evalResult ;
+        
+        g.PrettyPrint( evalResult ) ;
+      } // if()
+      else ;
+    } // if()
+    else {
+      gErrNode = inTree ;
+      throw new IncorrectNumberArgumentException( "write" ) ;
+    } // else()
+    
+    return result ;
+  } // ProcessWrite()
+  
+  Node* ProcessNewLine( Node* inTree, int level ) {
+    Node* result = new Node ;
+    result -> lex = "nil" ;
+    result -> type = SPECIAL ;
+    result -> parent = NULL ;
+    result -> left = NULL ;
+    result -> right = NULL ;
+    result -> isAddByMe = false ;
+    
+    if ( CountArgument( inTree ) == 0 ) {
+      cout << endl ;
+    } // if()
+    else {
+      gErrNode = inTree ;
+      throw new IncorrectNumberArgumentException( "newline" ) ;
+    } // else()
+    
+    return result ;
+  } // ProcessNewLine()
+  
+  Node* ProcessSymbolToStr( Node* inTree, int level ) {
+    Node* result = NULL ;
+    
+    if ( CountArgument( inTree ) == 1 ) {
+      Node* target = NULL ;
+      Node* evalResult = NULL ;
+      target = inTree -> right -> left ;
+      evalResult = EvaluateSExp( target, level + 1 ) ;
+      CheckHasRaramBindingOrThrow( evalResult, target ) ;
+      
+      if ( evalResult != NULL && evalResult -> type == ATOM ) {
+        result = new Node ;
+        result -> lex = "\"" + evalResult -> lex + "\"" ;
+        result -> type = ATOM ;
+        result -> parent = NULL ;
+        result -> left = NULL ;
+        result -> right = NULL ;
+        result -> isAddByMe = false ;
+      } // if()
+      else {
+        gErrNode = target ;
+        throw new IncorrectArgumentTypeException( "symbol->string" ) ;
+      } // else()
+    } // if()
+    else {
+      gErrNode = inTree ;
+      throw new IncorrectNumberArgumentException( "symbol->string" ) ;
+    } // else()
+    
+    return result ;
+  } // ProcessSymbolToStr()
+  
+  Node* ProcessNumberToStr( Node* inTree, int level ) {
+    Node* result = NULL ;
+    
+    if ( CountArgument( inTree ) == 1 ) {
+      Node* target = NULL ;
+      Node* evalResult = NULL ;
+      target = inTree -> right -> left ;
+      evalResult = EvaluateSExp( target, level + 1 ) ;
+      CheckHasRaramBindingOrThrow( evalResult, target ) ;
+      
+      if ( evalResult != NULL && evalResult -> type == ATOM ) {
+        result = new Node ;
+        result -> lex = "" ;
+        result -> type = ATOM ;
+        result -> parent = NULL ;
+        result -> left = NULL ;
+        result -> right = NULL ;
+        result -> isAddByMe = false ;
+        
+        if ( g.IsINT( evalResult -> lex ) ) {
+          result -> lex = "\"" + evalResult -> lex + "\"" ;
+        } // if()
+        else if ( g.IsFLOAT( evalResult -> lex ) ) {
+          result -> lex = "\"" + g.FloatToStr( g.GetValueOfFloatStr( evalResult -> lex ) ) + "\"" ;
+        } // else if()
+        else ;
+      } // if()
+      else {
+        gErrNode = target ;
+        throw new IncorrectArgumentTypeException( "symbol->string" ) ;
+      } // else()
+    } // if()
+    else {
+      gErrNode = inTree ;
+      throw new IncorrectNumberArgumentException( "symbol->string" ) ;
+    } // else()
+    
+    return result ;
+  } // ProcessNumberToStr()
+  
+  Node* ProcessEval( Node* inTree, int level ) {
+    Node* result = NULL ;
+    
+    if ( CountArgument( inTree ) == 1 ) {
+      Node* target = NULL ;
+      target = EvaluateSExp( inTree -> right -> left, level + 1 ) ;
+      CheckHasRaramBindingOrThrow( target, inTree -> right -> left ) ;
+      
+      result = EvaluateSExp( target, 0 ) ;
+      
+    } // if()
+    else {
+      gErrNode = inTree ;
+      throw new IncorrectNumberArgumentException( "eval" ) ;
+    } // else ()
+    
+    return result ;
+  } // ProcessEval()
+  
+  Node* ProcessSet( Node* inTree, int level ) {
+    Node* result = NULL ;
+    
+    if ( CountArgument( inTree ) == 2 ) {
+      string symName = "" ;
+      symName = inTree -> right -> left -> lex ;
+      
+      Define( inTree, level + 1, true ) ;
+      
+      result = FindSymbolBinding( symName ) ;
+    } // if()
+    else {
+      gErrNode = inTree ;
+      throw new IncorrectNumberArgumentException( "set!" ) ;
+    } // else()
+    
+    return result ;
+  } // ProcessSet()
   
   string GetFuncNameFromFuncValue( string str ) {
     string name = "" ;
@@ -4291,9 +4637,19 @@ public:
     InitialLambdaFunc() ;
   } // Evaluator()
   
-  bool CheckHasReturnBinding( Node* result, Node* binding ) {
+  bool CheckSymbolHasBindindRoThrow( string symName, Node* result, Node* origin ) {
     if ( result == NULL ) {
-      gErrNode = binding ;
+      gErrNode = origin ;
+      throw new UnboundValueException( symName ) ;
+    } // if()
+    else ;
+    
+    return true ;
+  } // CheckSymbolHasBindindRoThrow()
+  
+  bool CheckHasReturnBinding( Node* result, Node* origin ) {
+    if ( result == NULL ) {
+      gErrNode = origin ;
       return false ;
     } // if()
     else ;
@@ -4301,9 +4657,9 @@ public:
     return true ;
   } // CheckHasReturnBinding()
   
-  bool CheckHasRaramBindingOrThrow( Node* result, Node* binding ) {
+  bool CheckHasRaramBindingOrThrow( Node* result, Node* origin ) {
     if ( result == NULL ) {
-      gErrNode = binding ;
+      gErrNode = origin ;
       throw new ParamNotBoundException() ;
     } // if()
     else ;
@@ -4311,9 +4667,9 @@ public:
     return true ;
   } // CheckHasRaramBindingOrThrow()
   
-  bool CheckHasReturnBindingOrThrow( Node* result, Node* binding ) {
+  bool CheckHasReturnBindingOrThrow( Node* result, Node* origin ) {
     if ( result == NULL ) {
-      gErrNode = binding ;
+      gErrNode = origin ;
       throw new NoReturnValueException() ;
     } // if()
     else ;
@@ -4321,9 +4677,9 @@ public:
     return true ;
   } // CheckHasReturnBindingOrThrow()
   
-  bool CheckTopLevelHasReturnBinding( Node* result, Node* binding ) {
+  bool CheckTopLevelHasReturnBinding( Node* result, Node* origin ) {
     if ( result == NULL ) {
-      gErrNode = binding ;
+      gErrNode = origin ;
       return false ;
     } // if()
     else ;
@@ -4366,6 +4722,16 @@ public:
         return result ;
       } // if()
       else if ( treeRoot -> type == SPECIAL ) {
+        return treeRoot ;
+      } // else if()
+      else if ( treeRoot -> type == ERROR ) {
+        if ( SymbolExist( treeRoot -> lex ) ) {
+          result = FindSymbolBinding( treeRoot -> lex ) ;
+        } // if()
+        else {
+          CheckSymbolHasBindindRoThrow( treeRoot -> lex, result, treeRoot ) ;
+        } // else()
+        
         return treeRoot ;
       } // else if()
       else if ( treeRoot -> type == CONS ) { // This S-exp is a CONS
@@ -4428,7 +4794,7 @@ public:
             result = EvaluateLIST( treeRoot, level + 1 ) ;
           } // else if()
           else if ( funcName == "define" ) {
-            result = Define( treeRoot, level + 1 ) ;
+            result = Define( treeRoot, level + 1, false ) ;
           } // else if()
           else if ( funcName == "car" || funcName == "cdr" ) {
             result = AccessList( funcName, treeRoot, level + 1 ) ;
@@ -4459,6 +4825,36 @@ public:
           } // else if()
           else if ( funcName == "verbose" || funcName == "verbose?" ) {
             result = ProcessVerbose( funcName, treeRoot, level + 1 ) ;
+          } // else if()
+          else if ( funcName == "create-error-object" ) {
+            result = ProcessCreateErrorObject( treeRoot, level + 1 ) ;
+          } // else if()
+          else if ( funcName == "error-object?" ) {
+            result = ProcessIsError( treeRoot, level + 1 ) ;
+          } // else if()
+          else if ( funcName == "display-string" ) {
+            result = ProcessDisplayString( treeRoot, level + 1 ) ;
+          } // else if()
+          else if ( funcName == "read" ) {
+            result = ProcessRead( treeRoot, level + 1 ) ;
+          } // else if()
+          else if ( funcName == "write" ) {
+            result = ProcessWrite( treeRoot, level + 1 ) ;
+          } // else if()
+          else if ( funcName == "newline" ) {
+            result = ProcessNewLine( treeRoot, level + 1 ) ;
+          } // else if()
+          else if ( funcName == "symbol->string" ) {
+            result = ProcessSymbolToStr( treeRoot, level + 1 ) ;
+          } // else if()
+          else if ( funcName == "number->string" ) {
+            result = ProcessNumberToStr( treeRoot, level + 1 ) ;
+          } // else if()
+          else if ( funcName == "eval" ) {
+            result = ProcessEval( treeRoot, level + 1 ) ;
+          } // else if()
+          else if ( funcName == "set!" ) {
+            result = ProcessSet( treeRoot, level + 1 ) ;
           } // else if()
           else if ( funcName == "clean-environment" ) {
             if ( level == 0 ) {
@@ -4505,7 +4901,6 @@ public:
   } // EvaluateSExp()
   
   void Clean() {
-    mFunctionTable.clear() ;
     mUserDefinedFunctionTable.clear() ;
     CleanWholeStack() ;
     
@@ -4537,7 +4932,6 @@ bool IsDefineOrCleanSExp( Node* node ) {
 } // IsDefineOrCleanSExp()
 
 static Evaluator uEval ;
-static Tree uTree ;
 
 int main() {
   
@@ -4581,6 +4975,7 @@ int main() {
               } // if()
               else if ( result != NULL ) {
                 g.PrettyPrint( result ) ;
+                cout << endl ;
               } // else if()
               else ;
               
@@ -4591,7 +4986,7 @@ int main() {
             catch ( NonListException* e ) {
               cout << e -> Err_mesg() ;
               g.PrettyPrint( gErrNode ) ;
-              // cout << endl ;
+              cout << endl ;
             } // catch()
             catch ( UnboundValueException* e ) {
               cout << e -> Err_mesg() << endl ;
@@ -4599,6 +4994,7 @@ int main() {
             catch ( ApplyNonFunctionException* e ) {
               cout << e -> Err_mesg() ;
               g.PrettyPrint( gErrNode ) ;
+              cout << endl ;
             } // catch()
             catch ( IncorrectNumberArgumentException* e ) {
               cout << e -> Err_mesg() << endl ;
@@ -4606,15 +5002,18 @@ int main() {
             catch ( IncorrectArgumentTypeException* e ) {
               cout << e -> Err_mesg() ;
               g.PrettyPrint( gErrNode ) ;
+              cout << endl ;
             } // catch()
             catch ( NoReturnValueException* e ) {
               cout << e -> Err_mesg() ;
               g.PrettyPrint( gErrNode ) ;
+              cout << endl ;
               // cout << endl ;
             } // catch()
             catch ( ParamNotBoundException* e ) {
               cout << e -> Err_mesg() ;
               g.PrettyPrint( gErrNode ) ;
+              cout << endl ;
             } // catch()
             catch ( DivideByZeroException* e ) {
               cout << e -> Err_mesg() << endl ;
@@ -4623,33 +5022,39 @@ int main() {
               // cout << e -> Err_mesg() << endl ;
               cout << e -> Err_mesg() ;
               g.PrettyPrint( gErrNode ) ;
+              cout << endl ;
             } // catch()
             catch ( TestCondNotBoundException* e ) {
               cout << e -> Err_mesg() ;
               g.PrettyPrint( gErrNode ) ;
+              cout << endl ;
             } // catch()
             catch ( CondNotBoundException* e ) {
               cout << e -> Err_mesg() ;
               g.PrettyPrint( gErrNode ) ;
+              cout << endl ;
             } // catch()
             catch ( CondFormatException* e ) {
               cout << e -> Err_mesg() ;
               g.PrettyPrint( gErrNode ) ;
+              cout << endl ;
               // cout << endl ;
             } // catch()
             catch ( FormatException* e ) {
               cout << e -> Err_mesg() ;
               g.PrettyPrint( gErrNode ) ;
+              cout << endl ;
             } // catch()
             catch ( NonReturnAssignedException* e ) {
               cout << e -> Err_mesg() ;
               g.PrettyPrint( gErrNode ) ;
+              cout << endl ;
             } // catch()
             catch ( Exception* e ) {
               cout << e -> Err_mesg() ;
               g.PrettyPrint( gErrNode ) ;
+              cout << endl ;
             } // catch()
-            
           } // if()
           
           // uTree.DeleteTree() ;
@@ -4659,7 +5064,7 @@ int main() {
       catch ( EOFException* e ) {
         cout << e -> Err_mesg() << endl ;
         gJustFinishAExp = true ;
-        cout << "Thanks for using OurScheme!" << endl ;
+        cout << "Thanks for using OurScheme!" ;
         return 0 ;
       } // catch()
       catch ( MissingAtomOrLeftParException* e ) {
@@ -4677,6 +5082,7 @@ int main() {
       
       gJustFinishAExp = true ;
       uEval.CleanWholeStack() ;
+      g.Reset() ;
     } // while()
     
     uEval.CleanWholeStack() ;

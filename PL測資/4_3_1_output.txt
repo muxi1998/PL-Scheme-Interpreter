@@ -1,0 +1,103 @@
+Welcome to OurScheme!
+
+> a defined
+
+> "=============== Problem 3 viewable case ================="
+
+> environment cleaned
+
+> cadr defined
+
+> caddr defined
+
+> caar defined
+
+> caadr defined
+
+> caaddr defined
+
+> % defined
+
+> $%%% defined
+
+> KeyPair defined
+
+> RealKey defined
+
+> ListAppend defined
+
+> $ListAppend defined
+
+> ListLength defined
+
+> $ListLength defined
+
+> NthElementOf defined
+
+> $NthElementOf defined
+
+> WithNthElementOfListReplaced defined
+
+> $WithNthElementOfListReplaced defined
+
+> DivisibleBy defined
+
+> PrintListOfStringsAsSentence defined
+
+> PrintListOfSymbolsAsSentence defined
+
+> PrintListOfSymbolsStringsAsSentence defined
+
+> PrintListOfSymbolsNumbersStringsAsSentence defined
+
+> @size@ defined
+
+> @price@ defined
+
+> @quality@ defined
+
+> ResetTransactionState defined
+
+> ProductIndex defined
+
+> TransactionState defined
+
+> Top? defined
+
+> Bottom? defined
+
+> TopPrice? defined
+
+> BottomPrice? defined
+
+> TopSize? defined
+
+> BottomSize? defined
+
+> TopQuality? defined
+
+> BottomQuality? defined
+
+> Downgrade defined
+
+> Upgrade defined
+
+> DowngradeSize defined
+
+> DowngradePrice defined
+
+> DowngradeQuality defined
+
+> UpgradeSize defined
+
+> UpgradePrice defined
+
+> UpgradeQuality defined
+
+> Abs defined
+
+> PriceTag defined
+
+>
+
+A SAFECode fault has occurred. Line number unknown..)<<

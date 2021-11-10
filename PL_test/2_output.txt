@@ -1,0 +1,99 @@
+Welcome to OurScheme!
+
+> v
+
+> Hello
+
+> a.b
+
+> -.
+
+> #t
+
+> #t
+
+> #tt
+
+> nil
+
+> "OurScheme allows the use of '\n', '\t' and  '\"' in a string."
+
+> "Please enter YES\NO below this line >
+"
+
+> NIL
+
+> nil
+
+> nil
+
+> -0.375
+
+> -0.125
+
+> #fa
+
+> exit
+
+> "Hi"
+
+> "  (1 . 2   . 3)  "
+
+> "   ( 1 2 3 . 4 5 6 . 7 . nil ) "
+
+> "What's up?"
+
+> "Use '"' to start and close a string."
+
+> "You need to handle >>\<<"
+
+> "You also need to handle >>"<<"
+
+> 325
+
+> -325
+
+> 3.250
+
+> -3.250
+
+> 3.250
+
+> there!
+
+> @$%--3
+
+> 3.25a
+
+> 325.000
+
+> 325.000
+
+> -325.000
+
+> 0.375
+
+> 0.375
+
+> -0.375
+
+> -3.250
+
+> -325.000
+
+> -0.125
+
+> "There is an ENTER HERE>>
+See?!"
+
+> 0.315
+
+> 5
+
+> +-3.25
+
+> exit
+
+> ERROR (no more input) : END-OF-FILE encountered
+
+Thanks for using OurScheme!

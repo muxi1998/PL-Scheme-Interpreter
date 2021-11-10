@@ -1,0 +1,50 @@
+1
+; was : Proj1-1 test 3
+";;;;;;;;;;;;;;;;;;;;;;;;;;;; Test 1 : Simple, no error"
+v
+Hello
+there!
+@$%--3
+3.25a
+a.b
+-.
+#t
+t
+#tt
+nil
+NIL
+()
+#f
+#fa
+exit
+"Hi"
+"  (1 . 2   . 3)  "
+"   ( 1 2 3 . 4 5 6 . 7 . nil ) "
+"What's up?"
+"There is an ENTER HERE>>\nSee?!"
+"Use '\"' to start and close a string."
+"OurScheme allows the use of '\\n', '\\t' and  '\\\"' in a string."
+"Please enter YES\NO below this line >\n" 
+"You need to handle >>\\<<"      
+"You also need to handle >>\"<<"
+325
+-325
+3.25
+-3.25
++3.25
+325.
++325.
+-325.
+.375
++.3751
+-.3751
+-3.25
+-325.
+-.375
+-.12499
+-.12500
++.31499
++5
++-3.25
+exit
+(exit)

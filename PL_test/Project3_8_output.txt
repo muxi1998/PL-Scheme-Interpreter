@@ -1,0 +1,334 @@
+>>Welcome to OurScheme!
+
+> a defined
+
+> "=============== Problem 8 viewable case ================="
+
+> environment cleaned
+
+> x1 defined
+
+> x2 defined
+
+> x3 defined
+
+> Fcond defined
+
+> Fif defined
+
+> Fbegin defined
+
+> Fand defined
+
+> For defined
+
+> -10320
+
+> -10
+
+> 8
+
+> For defined
+
+> nil
+
+> #t
+
+> #t
+
+> nil
+
+> #t
+
+> nil
+
+> Flambda defined
+
+> #<procedure Flambda>
+
+> #<procedure lambda>
+
+> #<procedure lambda>
+
+> -60
+
+> -86
+
+> -2580
+
+> -752
+
+> environment cleaned
+
+> x1 defined
+
+> x2 defined
+
+> x3 defined
+
+> Fcond defined
+
+> Fif defined
+
+> Fbegin defined
+
+> Fand defined
+
+> For defined
+
+> 12
+
+> 7
+
+> 20
+
+> ERROR (no return value) : ( Fcond
+  x1
+  x1
+)
+
+> ERROR (no return value) : ( Fcond
+  ( +
+    x3
+    1
+  )
+  ( -
+    ( +
+      x3
+      2
+    )
+    1
+  )
+)
+
+> ERROR (unbound parameter) : ( Fcond
+  x1
+  x1
+)
+
+> temp1 defined
+
+> temp2 defined
+
+> temp3 defined
+
+> 6351
+
+> 949
+
+> ERROR (unbound parameter) : ( Fif
+  ( +
+    x1
+    x2
+  )
+  x2
+  x3
+)
+
+> For defined
+
+> ERROR (unbound parameter) : ( Fif
+  x1
+  x3
+  x4
+)
+
+> ERROR (unbound parameter) : ( Fif
+  x1
+  x3
+  x4
+)
+
+> ERROR (unbound parameter) : ( Fif
+  x1
+  x3
+  x4
+)
+
+> #t
+
+> #t
+
+> #t
+
+> Flambda defined
+
+> #<procedure Flambda>
+
+> #<procedure lambda>
+
+> #<procedure lambda>
+
+> -60
+
+> ERROR (unbound parameter) : ( Fif
+  ( Fcond
+    x3
+    x1
+  )
+  x2
+  x3
+)
+
+> 45
+
+> ERROR (unbound parameter) : ( Fcond
+  x3
+  x1
+)
+
+> ERROR (unbound parameter) : ( Fif
+  ( Fcond
+    x3
+    x1
+  )
+  x2
+  x3
+)
+
+> -480
+
+> -900
+
+> ERROR (unbound parameter) : ( Fif
+  ( Fcond
+    x3
+    x1
+  )
+  x2
+  x3
+)
+
+> environment cleaned
+
+> ERROR (LAMBDA format) : ( lambda
+)
+
+> ERROR (LAMBDA format) : ( lambda
+  x
+)
+
+> ERROR (LAMBDA format) : ( lambda
+  x
+  y
+  z
+)
+
+> #<procedure lambda>
+
+> ERROR (LAMBDA format) : ( lambda
+  ( x
+  )
+)
+
+> #<procedure lambda>
+
+> ERROR (LAMBDA format) : ( lambda
+  ( 5
+  )
+  y
+)
+
+> #<procedure lambda>
+
+> #<procedure lambda>
+
+> ERROR (LAMBDA format) : ( lambda
+  nil
+)
+
+> #<procedure lambda>
+
+> ERROR (unbound symbol) : c
+
+> 11
+
+> ERROR (incorrect number of arguments) : lambda
+
+> a defined
+
+> f defined
+
+> #<procedure lambda>
+
+> ERROR (incorrect number of arguments) : lambda
+
+> ERROR (unbound symbol) : c
+
+> ERROR (unbound symbol) : b
+
+> c defined
+
+> ERROR (+ with incorrect argument type) : #<procedure lambda>
+
+> ERROR (incorrect number of arguments) : lambda
+
+> c defined
+
+> 14
+
+> 54
+
+> x defined
+
+> y defined
+
+> g defined
+
+> 77556
+
+> 3110
+
+> ERROR (unbound symbol) : why
+
+> ERROR (unbound symbol) : no
+
+> ERROR (incorrect number of arguments) : lambda
+
+> F defined
+
+> G defined
+
+> 15
+
+> F defined
+
+> 40
+
+> F defined
+
+> 20
+
+> H defined
+
+> ( 3
+  .
+  5
+)
+
+> 10
+
+> F defined
+
+> ( 20
+  30
+)
+
+> 110
+
+> cadr defined
+
+> global defined
+
+> Try defined
+
+> 20
+
+> 10
+
+> ( 20
+  30
+)
+
+> 
+Thanks for using OurScheme!<<

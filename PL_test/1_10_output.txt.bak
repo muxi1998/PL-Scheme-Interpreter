@@ -1,0 +1,768 @@
+Welcome to OurScheme!
+
+> ";;;;;;;;;;;;;;;;;;;;;;;;;;;; Test 2 : Simple, with error"
+
+> v
+
+> Hello
+
+> there
+
+> !
+
+> @$%--3#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!.%%%%^^^&
+
+> "   ( 1 2.54 3 . -4. 5 6 Hi there . 7 . nil ) "
+
+> ERROR (no closing quote) : END-OF-LINE encountered at Line 4 Column 56
+
+> This
+
+> is
+
+> ICE
+
+> !
+
+> #t
+
+> #t
+
+> nil
+
+> nil
+
+> nil
+
+> at#fgh
+
+> 325
+
+> -
+
+> 325.000
+
+> 3.250
+
+> 0.375
+
+> 3a5b
+
+> exit
+
+> #
+
+> f
+
+> #g
+
+> ERROR (unexpected token) : atom or '(' expected when token at Line 1 Column 2 is >>.<<
+
+> #t
+
+> ERROR (unexpected token) : atom or '(' expected when token at Line 8 Column 1 is >>)<<
+
+> 20
+
+> ERROR (unexpected token) : atom or '(' expected when token at Line 1 Column 2 is >>.<<
+
+> nil
+
+> nil
+
+> nil
+
+> ERROR (unexpected token) : atom or '(' expected when token at Line 1 Column 4 is >>)<<
+
+> ";;;;;;;;;;;;;;;;;;;;;;;;;;;; Test 4 : Basic, with error"
+
+> !@
+
+> ERROR (unexpected token) : atom or '(' expected when token at Line 1 Column 3 is >>.<<
+
+> !@
+
+> ERROR (unexpected token) : atom or '(' expected when token at Line 1 Column 3 is >>.<<
+
+> ERROR (no closing quote) : END-OF-LINE encountered at Line 5 Column 33
+
+> on
+
+> this
+
+> continent,
+
+> ERROR (no closing quote) : END-OF-LINE encountered at Line 1 Column 3
+
+> ( 1
+  2
+  3
+)
+
+> ERROR (unexpected token) : atom or '(' expected when token at Line 1 Column 2 is >>)<<
+
+> ( 1
+  -
+  2
+  3.875
+  .
+  4.000
+)
+
+> -7.125
+
+> ( -1.5.
+  ( "2.25"
+    ^&%$*+-=.nil
+  )
+)
+
+> ( -1.500
+  "2.25"
+  ^&%$*+-=.nil
+)
+
+> ( -1.500
+  "2.25"
+  ^&%$*+-=
+  .#f
+)
+
+> ( 10
+  12.000
+  nil
+  0.625
+)
+
+> ( 10
+  nil
+  .
+  "125."
+)
+
+> ( nil.nil
+)
+
+> ( nil
+)
+
+> ERROR (unexpected token) : atom or '(' expected when token at Line 1 Column 3 is >>.<<
+
+> ERROR (unexpected token) : atom or '(' expected when token at Line 5 Column 1 is >>)<<
+
+> ( 1
+  "Hi 2"
+  2.a.b
+  .
+  c
+)
+
+> ( 1
+  2.25.5
+)
+
+> ( 1
+  2.25.5.a.5
+)
+
+> ( 12.5.
+  ( 4.500
+  )
+)
+
+> ( 3...25
+)
+
+> ( abc.
+  " defg. "
+  0.500
+)
+
+> ( Hi
+  there
+  !
+  How#are
+  you
+  ?
+  Is
+  it
+  OK?
+)
+
+> ( Hi
+  there
+  !
+)
+
+> ( How#are
+  you
+)
+
+> ( quote
+  ( nil
+    nil
+  )
+)
+
+> ";;;;;;;;;;;;;;;;;;;;;;;;;;;; Test 6 : Medium, with error"
+
+> ( 12.500
+)
+
+> ERROR (unexpected token) : atom or '(' expected when token at Line 1 Column 5 is >>.<<
+
+> ( t.nil.
+  ( 1
+    2
+    3
+  )
+)
+
+> ( quote
+  ( 1
+    2
+    3
+    ")"
+  )
+)
+
+> ERROR (unexpected token) : atom or '(' expected when token at Line 1 Column 2 is >>)<<
+
+> ( quote
+  ( 1
+    2
+    3
+    ")"
+    nil
+  )
+)
+
+> ( quote
+  ( 1
+    2
+    3
+    ")"
+  )
+)
+
+> ( #t
+  nil
+  ( 1.250
+    0.375
+  )
+  "#f))"
+)
+
+> ( #t
+  nil
+  ( 1.250
+    0.375
+  )
+  .
+  "#f))"
+)
+
+> ( ( 1
+    2
+    3
+  )
+  ( 4
+    .
+    5
+  )
+  6
+  ( 7
+  )
+  ( 8
+    .
+    9
+  )
+  .
+  10
+)
+
+> ( ( 1
+    2
+    3
+  )
+  ( 4
+    .
+    5
+  )
+  ( 6
+    ( 7.000
+      ( #f.#f
+      )
+      0.500
+    )
+    ( ".5"
+      .
+      "nil"
+    )
+  )
+)
+
+> ERROR (unexpected token) : ')' expected when token at Line 6 Column 32 is >>.<<
+
+> ( quote
+  ( nil-nil=nil
+    .nil+nil<>nil
+  )
+)
+
+> ( quote
+  ( quote
+    ( !
+      %^&
+      .
+      abc
+    )
+  )
+)
+
+> ( quote
+  ( Hi.there
+    ( there.
+      nil
+    )
+  )
+)
+
+> ( quote
+  ( Hi.there
+    ( there
+      nil
+      what
+      nil
+    )
+  )
+)
+
+> ( quote
+  ( 1
+    2
+    3
+    "To Taiwan"
+  )
+)
+
+> ( .25#f
+)
+
+> ";;;;;;;;;;;;;;;;;;;;;;;;;;;; Test 8 : Complex, with error"
+
+> ( 1
+  2
+  3
+)
+
+> 4
+
+> ( 5
+  6
+  .
+  7
+)
+
+> ERROR (unexpected token) : atom or '(' expected when token at Line 1 Column 2 is >>.<<
+
+> ( 1
+  2
+  3
+)
+
+> ERROR (unexpected token) : atom or '(' expected when token at Line 1 Column 1 is >>.<<
+
+> ( 1
+  2
+  3
+)
+
+> 4
+
+> 5
+
+> ERROR (unexpected token) : atom or '(' expected when token at Line 2 Column 4 is >>)<<
+
+> ( define
+  ( f
+    z
+  )
+  ( let
+    ( ( x
+        5
+      )
+    )
+    ( define
+      foo
+      ( lambda
+        ( y
+        )
+        ( bar
+          x
+          y
+        )
+      )
+    )
+    ( define
+      bar
+      ( lambda
+        ( a
+          b
+        )
+        ( +
+          ( *
+            a
+            b
+          )
+          a
+        )
+      )
+    )
+    ( +
+      ( foo
+        ( +
+          x
+          3
+        )
+      )
+      z
+    )
+  )
+)
+
+> ( 1
+  .
+  2
+)
+
+> ERROR (unexpected token) : ')' expected when token at Line 13 Column 51 is >>b<<
+
+> ( +
+  ( foo
+    ( +
+      x
+      3
+    )
+  )
+  z
+)
+
+> ERROR (unexpected token) : atom or '(' expected when token at Line 2 Column 4 is >>)<<
+
+> 1
+
+> ERROR (unexpected token) : atom or '(' expected when token at Line 1 Column 2 is >>.<<
+
+> ERROR (unexpected token) : atom or '(' expected when token at Line 1 Column 7 is >>)<<
+
+> ( ( ( 1
+      .
+      2
+    )
+    3.500
+    ( 0.875
+      4.000
+    )
+    5
+    "5 . 6 . 7 ) "
+    0.000
+  )
+  7.000
+  8
+)
+
+> ERROR (unexpected token) : ')' expected when token at Line 14 Column 8 is >>(<<
+
+> ERROR (unexpected token) : atom or '(' expected when token at Line 1 Column 7 is >>)<<
+
+> ERROR (unexpected token) : atom or '(' expected when token at Line 1 Column 4 is >>)<<
+
+> ERROR (unexpected token) : atom or '(' expected when token at Line 1 Column 4 is >>.<<
+
+> ERROR (unexpected token) : atom or '(' expected when token at Line 1 Column 3 is >>)<<
+
+> ( save-restriction
+  ( if
+    ( and
+      ignore-quotes
+      ( eq
+        ( following-char
+        )
+        ?
+      )
+    )
+    ( forward-char
+    )
+  )
+  ( narrow-to-region
+    ( point-min
+    )
+    opoint
+  )
+  ( setq
+    expr
+    ( read
+      ( current-buffer
+      )
+    )
+  )
+  ( and
+    ( consp
+      expr
+    )
+    ( eq
+      ( car
+        expr
+      )
+      ( quote
+        interactive
+      )
+    )
+    ( setq
+      expr
+      ( list
+        ( quote
+          call-interactively
+        )
+        ( list
+          ( quote
+            quote
+          )
+          ( list
+            ( quote
+              lambda
+            )
+            ( quote
+              ( &rest
+                args
+              )
+            )
+            expr
+            ( quote
+              args
+            )
+          )
+        )
+      )
+    )
+  )
+  expr
+)
+
+> ERROR (no closing quote) : END-OF-LINE encountered at Line 9 Column 37
+
+> ERROR (unexpected token) : atom or '(' expected when token at Line 3 Column 14 is >>)<<
+
+> ERROR (unexpected token) : atom or '(' expected when token at Line 1 Column 9 is >>)<<
+
+> ( forward-char
+)
+
+> ERROR (unexpected token) : atom or '(' expected when token at Line 1 Column 1 is >>)<<
+
+> ( narrow-to-region
+  ( point-min
+  )
+  opoint
+)
+
+> ( setq
+  expr
+  ( read
+    ( current-buffer
+    )
+  )
+)
+
+> ( and
+  ( consp
+    expr
+  )
+  ( eq
+    ( car
+      expr
+    )
+    ( quote
+      interactive
+    )
+  )
+  ( setq
+    expr
+    ( list
+      ( quote
+        call-interactively
+      )
+      ( list
+        ( quote
+          quote
+        )
+        ( list
+          ( quote
+            lambda
+          )
+          ( quote
+            ( &rest
+              args
+            )
+          )
+          expr
+          ( quote
+            args
+          )
+        )
+      )
+    )
+  )
+)
+
+> expr
+
+> ERROR (unexpected token) : atom or '(' expected when token at Line 1 Column 1 is >>)<<
+
+> ( defun
+  eval-last-sexp-1
+  ( eval-last-sexp-arg-internal
+  )
+  "Evaluate sexp before point; print value in minibuffer.
+"
+  "With argument, print output into current buffer."
+  ( let
+    ( ( standard-output
+        ( if
+          eval-last-sexp-arg-internal
+          ( current-buffer
+          )
+          #t
+        )
+      )
+    )
+    ( eval-last-sexp-print-value
+      ( eval
+        ( preceding-sexp
+        )
+      )
+    )
+  )
+)
+
+> ERROR (no closing quote) : END-OF-LINE encountered at Line 4 Column 60
+
+> ( let
+  ( ( standard-output
+      ( if
+        eval-last-sexp-arg-internal
+        ( current-buffer
+        )
+        #t
+      )
+    )
+  )
+  ( eval-last-sexp-print-value
+    ( eval
+      ( preceding-sexp
+      )
+    )
+  )
+)
+
+> ERROR (unexpected token) : atom or '(' expected when token at Line 1 Column 1 is >>)<<
+
+> ( defun
+  eval-last-sexp-print-value
+  ( value
+  )
+  ( let
+    ( ( unabbreviated
+        ( let
+          ( ( print-length
+              nil
+            )
+            ( print-level
+              nil
+            )
+          )
+          ( prin1-to-string
+            value
+          )
+        )
+      )
+      ( print-length
+        eval-expression-print-length
+      )
+      ( print-level
+        eval-expression-print-level
+      )
+      ( beg
+        ( point
+        )
+      )
+      end
+    )
+    ( prog1
+      ( prin1
+        value
+      )
+      ( let
+        ( ( str
+            ( eval-expression-print-format
+              value
+            )
+          )
+        )
+        ( if
+          str
+          ( princ
+            str
+          )
+        )
+      )
+      ( setq
+        end
+        ( point
+        )
+      )
+      ( when
+        ( and
+          ( bufferp
+            standard-output
+          )
+          ( or
+            ( not
+              ( null
+                print-length
+              )
+            )
+            ( not
+              ( null
+                print-level
+              )
+            )
+          )
+          ( not
+            ( string=
+              unabbreviated
+              ( buffer-substring-no-properties
+                beg
+                end
+              )
+            )
+          )
+        )
+        ( last-sexp-setup-props
+          beg
+          end
+          value
+          unabbreviated
+          ( buffer-substring-no-properties
+            beg
+            end
+          )
+        )
+      )
+    )
+  )
+)
+
+> 
+Thanks for using OurScheme!

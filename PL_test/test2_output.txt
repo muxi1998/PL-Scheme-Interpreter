@@ -1,0 +1,72 @@
+Welcome to OurScheme!
+
+> ERROR (unbound symbol) : ab
+
+> a defined
+
+> "=============== Problem 8 viewable case ================="
+
+> environment cleaned
+
+> ERROR (unbound symbol) : a
+
+> ERROR (level of CLEAN-ENVIRONMENT)
+
+> 3
+
+> -0.125
+
+> ERROR (no closing quote) : END-OF-LINE encountered at Line 1 Column 9
+
+> ( 3
+  .
+  4
+)
+
+> ( 3
+)
+
+> ( 30
+)
+
+> ( 30
+)
+
+> nil
+
+> ( nil
+)
+
+> ( nil
+)
+
+> ( nil
+)
+
+> ERROR (unbound symbol) : CONS
+
+> ERROR (unbound symbol) : hello
+
+> ERROR (unbound symbol) : hello
+
+> ERROR (unbound symbol) : CONS
+
+> ( 1
+  2
+  3
+)
+
+> nil
+
+> ( nil
+  2
+  3
+  nil
+)
+
+> ( 1
+  2
+  3
+)
+
+> 

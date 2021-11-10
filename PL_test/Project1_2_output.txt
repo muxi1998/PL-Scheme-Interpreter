@@ -1,0 +1,78 @@
+正確的輸出應該是>>Welcome to OurScheme!
+
+> ";;;;;;;;;;;;;;;;;;;;;;;;;;;; Test 2 : Simple, with error"
+
+> v
+
+> Hello
+
+> there
+
+> !
+
+> @$%--3#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!.%%%%^^^&
+
+> "   ( 1 2.54 3 . -4. 5 6 Hi there . 7 . nil ) "
+
+> ERROR (no closing quote) : END-OF-LINE encountered at Line 3 Column 56
+
+> This
+
+> is
+
+> ICE
+
+> !
+
+> #t
+
+> #t
+
+> nil
+
+> nil
+
+> nil
+
+> at#fgh
+
+> 325
+
+> -
+
+> 325.000
+
+> 3.250
+
+> 0.375
+
+> 3a5b
+
+> exit
+
+> #
+
+> f
+
+> #g
+
+> ERROR (unexpected token) : atom or '(' expected when token at Line 1 Column 2 is >>.<<
+
+> #t
+
+> ERROR (unexpected token) : atom or '(' expected when token at Line 4 Column 1 is >>)<<
+
+> 20
+
+> ERROR (unexpected token) : atom or '(' expected when token at Line 1 Column 2 is >>.<<
+
+> nil
+
+> nil
+
+> nil
+
+> ERROR (unexpected token) : atom or '(' expected when token at Line 1 Column 4 is >>)<<
+
+> ERROR (no more input) : END-OF-FILE encountered
+Thanks for using OurScheme!<<

@@ -1,0 +1,1439 @@
+Welcome to OurScheme!
+
+> a defined
+
+> "=============== Problem 4 viewable case ================="
+
+> environment cleaned
+
+> cadr defined
+
+> caddr defined
+
+> caar defined
+
+> caadr defined
+
+> caaddr defined
+
+> % defined
+
+> $%%% defined
+
+> KeyPair defined
+
+> RealKey defined
+
+> ListAppend defined
+
+> $ListAppend defined
+
+> ListLength defined
+
+> $ListLength defined
+
+> NthElementOf defined
+
+> $NthElementOf defined
+
+> WithNthElementOfListReplaced defined
+
+> $WithNthElementOfListReplaced defined
+
+> DivisibleBy defined
+
+> PrintListOfStringsAsSentence defined
+
+> PrintListOfSymbolsAsSentence defined
+
+> PrintListOfSymbolsStringsAsSentence defined
+
+> PrintListOfSymbolsNumbersStringsAsSentence defined
+
+> @size@ defined
+
+> @price@ defined
+
+> @quality@ defined
+
+> ResetTransactionState defined
+
+> ProductIndex defined
+
+> TransactionState defined
+
+> Top? defined
+
+> Bottom? defined
+
+> TopPrice? defined
+
+> BottomPrice? defined
+
+> TopSize? defined
+
+> BottomSize? defined
+
+> TopQuality? defined
+
+> BottomQuality? defined
+
+> Downgrade defined
+
+> Upgrade defined
+
+> DowngradeSize defined
+
+> DowngradePrice defined
+
+> DowngradeQuality defined
+
+> UpgradeSize defined
+
+> UpgradePrice defined
+
+> UpgradeQuality defined
+
+> Abs defined
+
+> PriceTag defined
+
+> ExampleExpertise defined
+
+> $expertise-DB defined
+
+> RuleSetOf defined
+
+> $RuleSetOfFrom defined
+
+> WithNthRuleReplaced defined
+
+> Rule defined
+
+> DefineExpertise defined
+
+> $AddToExpertiseDB defined
+
+> $IndexOfExpertiseEntry defined
+
+> ruleList-01 defined
+
+> Expertise-01 defined
+The expertise 'Expertise-01' has been established.
+#t
+
+> rule-139 defined
+
+> Expertise-02 defined
+The expertise 'Expertise-02' has been established.
+#t
+
+> Expertise-03 defined
+The expertise 'Expertise-03' has been established.
+#t
+
+> ListExpertiseNames defined
+
+> $ListExpertiseNames defined
+
+> GetNotYetUsedKeyFromUser defined
+
+> DoDefineCondition defined
+
+> DoDefineAction defined
+
+> GetNotYetUsedExpertiseNameFromUser defined
+
+> NameUsedInExpertiseDB? defined
+
+> $NameUsedInExpertiseDB? defined
+
+> DoDefineExpertiseFromDB defined
+
+> DoReplaceRuleOfExpertiseWithNewlyComposedRuleUsingDB defined
+
+> GetRuleSetFromDB defined
+
+> GetConditionFromDB defined
+
+> GetActionListFromDB defined
+
+> DoSearchCondition defined
+
+> DoSearchAction defined
+
+> DoUpdateCondition defined
+
+> DoUpdateAction defined
+
+> DoRemoveCondition defined
+
+> DoRemoveAction defined
+
+> DoListConditions defined
+
+> DoListActions defined
+
+> DoListConditionKeys defined
+
+> DoListActionKeys defined
+
+> ExpertSystemShell defined
+
+> DoDefineNewExpertise defined
+
+> DoRemoveExpertise defined
+
+> $WithExpertiseRemoved defined
+
+> ListRuleSet defined
+
+> DoReplaceRuleSet defined
+
+> $ReplaceRuleSet defined
+
+> DoReplaceRuleOfRuleSet defined
+
+> $ReplaceRuleOfRuleSet defined
+
+> nil
+
+> ListConditionBST defined
+
+> ListActionBST defined
+
+> ClearConditionDB defined
+
+> ClearActionDB defined
+
+> ListConditionDB defined
+
+> ListActionDB defined
+
+> ListDB-BST defined
+
+> $ListDB-BST defined
+
+> KeyUsedInConditionDB? defined
+
+> KeyUsedInActionDB? defined
+
+> KeyUsedInBST? defined
+
+> $KeyUsedInBST? defined
+
+> ListKeysOfConditionDB defined
+
+> ListKeysOfActionDB defined
+
+> ListKeysOfBST defined
+
+> $ListKeysOfBST defined
+
+> SearchConditionDB defined
+
+> SearchActionDB defined
+
+> SearchBST defined
+
+> $SearchBST defined
+
+> AddToConditionDB defined
+
+> AddToActionDB defined
+
+> AddToBST defined
+
+> $AddToBST defined
+
+> UpdateConditionDB defined
+
+> UpdateActionDB defined
+
+> UpdateBST defined
+
+> $UpdateBST defined
+
+> FindMaxBSTnode defined
+
+> $FindMaxBSTnode defined
+
+> FindMinBSTnode defined
+
+> $FindMinBSTnode defined
+
+> RemoveFromConditionDB defined
+
+> RemoveFromActionDB defined
+
+> RemoveFromBST defined
+
+> $RemoveFromBST defined
+
+> ( DivisibleBy
+  n
+  7652145
+)
+
+> "Key (short-version long-version) : ( 189  568 )"
+
+> "Key (short-version long-version) : ( 94  473 )"
+
+> "Key (short-version long-version) : ( 282  661 )"
+
+> nil
+
+> 20
+
+> 30
+
+> ( ( set!
+    a
+    ( +
+      n
+      a
+    )
+  )
+  ( set!
+    b
+    ( +
+      n
+      a
+      b
+    )
+  )
+)
+
+> "Key (short-version long-version) : ( 189  568 )"
+
+> "Key (short-version long-version) : ( 94  473 )"
+
+> "Key (short-version long-version) : ( 282  661 )"
+
+> nil
+
+> ------------------ Available choices are ------------------
+1 or DefineExpertise , 2 or RemoveExpertise , 3 or ListExpertiseNames ,
+4 or ListRuleSet , 5 or ReplaceRuleSet , 6 or ReplaceRuleOfRuleSet ,
+---
+7 or DefineCondition , 8 or DefineActionList ,
+9 or UpdateCondition , 10 or UpdateActionList ,
+11 or RemoveCondition , 12 or RemoveActionList ,
+13 or ListConditionKeys , 14 or ListActionListKeys ,
+15 or SearchCondition , 16 or SearchActionList ,
+17 or ListAllConditions , 18 or ListAllActionLists ,
+19 or DefineExpertiseFromDB, 20 or ReplaceRuleOfExpertiseWithNewlyComposedRuleUsingDB
+21 or Quit or quit
+Please enter the number (or item-name) of your choice > ( 94  473 )
+( 189  568 )
+( 282  661 )
+------------------ Available choices are ------------------
+1 or DefineExpertise , 2 or RemoveExpertise , 3 or ListExpertiseNames ,
+4 or ListRuleSet , 5 or ReplaceRuleSet , 6 or ReplaceRuleOfRuleSet ,
+---
+7 or DefineCondition , 8 or DefineActionList ,
+9 or UpdateCondition , 10 or UpdateActionList ,
+11 or RemoveCondition , 12 or RemoveActionList ,
+13 or ListConditionKeys , 14 or ListActionListKeys ,
+15 or SearchCondition , 16 or SearchActionList ,
+17 or ListAllConditions , 18 or ListAllActionLists ,
+19 or DefineExpertiseFromDB, 20 or ReplaceRuleOfExpertiseWithNewlyComposedRuleUsingDB
+21 or Quit or quit
+Please enter the number (or item-name) of your choice > ( 94  473 )
+( 189  568 )
+( 282  661 )
+------------------ Available choices are ------------------
+1 or DefineExpertise , 2 or RemoveExpertise , 3 or ListExpertiseNames ,
+4 or ListRuleSet , 5 or ReplaceRuleSet , 6 or ReplaceRuleOfRuleSet ,
+---
+7 or DefineCondition , 8 or DefineActionList ,
+9 or UpdateCondition , 10 or UpdateActionList ,
+11 or RemoveCondition , 12 or RemoveActionList ,
+13 or ListConditionKeys , 14 or ListActionListKeys ,
+15 or SearchCondition , 16 or SearchActionList ,
+17 or ListAllConditions , 18 or ListAllActionLists ,
+19 or DefineExpertiseFromDB, 20 or ReplaceRuleOfExpertiseWithNewlyComposedRuleUsingDB
+21 or Quit or quit
+Please enter the number (or item-name) of your choice > Key of the condition to be searched for > ( DivisibleBy
+  n
+  7652145
+)
+------------------ Available choices are ------------------
+1 or DefineExpertise , 2 or RemoveExpertise , 3 or ListExpertiseNames ,
+4 or ListRuleSet , 5 or ReplaceRuleSet , 6 or ReplaceRuleOfRuleSet ,
+---
+7 or DefineCondition , 8 or DefineActionList ,
+9 or UpdateCondition , 10 or UpdateActionList ,
+11 or RemoveCondition , 12 or RemoveActionList ,
+13 or ListConditionKeys , 14 or ListActionListKeys ,
+15 or SearchCondition , 16 or SearchActionList ,
+17 or ListAllConditions , 18 or ListAllActionLists ,
+19 or DefineExpertiseFromDB, 20 or ReplaceRuleOfExpertiseWithNewlyComposedRuleUsingDB
+21 or Quit or quit
+Please enter the number (or item-name) of your choice > Key of the action-list to be searched for > ( ( set!
+    a
+    ( +
+      n
+      a
+    )
+  )
+  ( set!
+    b
+    ( +
+      n
+      a
+      b
+    )
+  )
+)
+------------------ Available choices are ------------------
+1 or DefineExpertise , 2 or RemoveExpertise , 3 or ListExpertiseNames ,
+4 or ListRuleSet , 5 or ReplaceRuleSet , 6 or ReplaceRuleOfRuleSet ,
+---
+7 or DefineCondition , 8 or DefineActionList ,
+9 or UpdateCondition , 10 or UpdateActionList ,
+11 or RemoveCondition , 12 or RemoveActionList ,
+13 or ListConditionKeys , 14 or ListActionListKeys ,
+15 or SearchCondition , 16 or SearchActionList ,
+17 or ListAllConditions , 18 or ListAllActionLists ,
+19 or DefineExpertiseFromDB, 20 or ReplaceRuleOfExpertiseWithNewlyComposedRuleUsingDB
+21 or Quit or quit
+Please enter the number (or item-name) of your choice > ------------------------
+( 94  473 )
+( DivisibleBy
+  n
+  7652145
+)
+------------------------
+( 189  568 )
+( DivisibleBy
+  n
+  7652145
+)
+------------------------
+( 282  661 )
+( DivisibleBy
+  n
+  7652145
+)
+------------------ Available choices are ------------------
+1 or DefineExpertise , 2 or RemoveExpertise , 3 or ListExpertiseNames ,
+4 or ListRuleSet , 5 or ReplaceRuleSet , 6 or ReplaceRuleOfRuleSet ,
+---
+7 or DefineCondition , 8 or DefineActionList ,
+9 or UpdateCondition , 10 or UpdateActionList ,
+11 or RemoveCondition , 12 or RemoveActionList ,
+13 or ListConditionKeys , 14 or ListActionListKeys ,
+15 or SearchCondition , 16 or SearchActionList ,
+17 or ListAllConditions , 18 or ListAllActionLists ,
+19 or DefineExpertiseFromDB, 20 or ReplaceRuleOfExpertiseWithNewlyComposedRuleUsingDB
+21 or Quit or quit
+Please enter the number (or item-name) of your choice > ------------------------
+( 94  473 )
+( ( set!
+    a
+    ( +
+      n
+      a
+    )
+  )
+  ( set!
+    b
+    ( +
+      n
+      a
+      b
+    )
+  )
+)
+------------------------
+( 189  568 )
+( ( set!
+    a
+    ( +
+      n
+      a
+    )
+  )
+  ( set!
+    b
+    ( +
+      n
+      a
+      b
+    )
+  )
+)
+------------------------
+( 282  661 )
+( ( set!
+    a
+    ( +
+      n
+      a
+    )
+  )
+  ( set!
+    b
+    ( +
+      n
+      a
+      b
+    )
+  )
+)
+------------------ Available choices are ------------------
+1 or DefineExpertise , 2 or RemoveExpertise , 3 or ListExpertiseNames ,
+4 or ListRuleSet , 5 or ReplaceRuleSet , 6 or ReplaceRuleOfRuleSet ,
+---
+7 or DefineCondition , 8 or DefineActionList ,
+9 or UpdateCondition , 10 or UpdateActionList ,
+11 or RemoveCondition , 12 or RemoveActionList ,
+13 or ListConditionKeys , 14 or ListActionListKeys ,
+15 or SearchCondition , 16 or SearchActionList ,
+17 or ListAllConditions , 18 or ListAllActionLists ,
+19 or DefineExpertiseFromDB, 20 or ReplaceRuleOfExpertiseWithNewlyComposedRuleUsingDB
+21 or Quit or quit
+Please enter the number (or item-name) of your choice > Expertise-03
+Expertise-02
+Expertise-01
+ExampleExpertise
+------------------ Available choices are ------------------
+1 or DefineExpertise , 2 or RemoveExpertise , 3 or ListExpertiseNames ,
+4 or ListRuleSet , 5 or ReplaceRuleSet , 6 or ReplaceRuleOfRuleSet ,
+---
+7 or DefineCondition , 8 or DefineActionList ,
+9 or UpdateCondition , 10 or UpdateActionList ,
+11 or RemoveCondition , 12 or RemoveActionList ,
+13 or ListConditionKeys , 14 or ListActionListKeys ,
+15 or SearchCondition , 16 or SearchActionList ,
+17 or ListAllConditions , 18 or ListAllActionLists ,
+19 or DefineExpertiseFromDB, 20 or ReplaceRuleOfExpertiseWithNewlyComposedRuleUsingDB
+21 or Quit or quit
+Please enter the number (or item-name) of your choice > Please give the name of the expertise > "NoSuchExpertise not found in expertise-DB"
+------------------ Available choices are ------------------
+1 or DefineExpertise , 2 or RemoveExpertise , 3 or ListExpertiseNames ,
+4 or ListRuleSet , 5 or ReplaceRuleSet , 6 or ReplaceRuleOfRuleSet ,
+---
+7 or DefineCondition , 8 or DefineActionList ,
+9 or UpdateCondition , 10 or UpdateActionList ,
+11 or RemoveCondition , 12 or RemoveActionList ,
+13 or ListConditionKeys , 14 or ListActionListKeys ,
+15 or SearchCondition , 16 or SearchActionList ,
+17 or ListAllConditions , 18 or ListAllActionLists ,
+19 or DefineExpertiseFromDB, 20 or ReplaceRuleOfExpertiseWithNewlyComposedRuleUsingDB
+21 or Quit or quit
+Please enter the number (or item-name) of your choice > Please give the name of the expertise > ( ( ( DivisibleBy
+      n
+      3
+    )
+    ( cond
+      ( ( not
+          ( TopSize?
+          )
+        )
+        ( UpgradeSize
+        )
+      )
+      ( ( not
+          ( TopPrice?
+          )
+        )
+        ( UpgradePrice
+        )
+      )
+      ( ( not
+          ( TopQuality?
+          )
+        )
+        ( UpgradeQuality
+        )
+      )
+    )
+    ( TransactionState
+    )
+  )
+  ( ( DivisibleBy
+      n
+      5
+    )
+    ( cond
+      ( ( not
+          ( BottomSize?
+          )
+        )
+        ( DowngradeSize
+        )
+      )
+      ( ( not
+          ( BottomPrice?
+          )
+        )
+        ( DowngradePrice
+        )
+      )
+      ( ( not
+          ( BottomQuality?
+          )
+        )
+        ( DowngradeQuality
+        )
+      )
+    )
+    ( TransactionState
+    )
+  )
+  ( else
+    ( if
+      ( not
+        ( TopPrice?
+        )
+      )
+      ( UpgradePrice
+      )
+    )
+    ( TransactionState
+    )
+  )
+)
+------------------ Available choices are ------------------
+1 or DefineExpertise , 2 or RemoveExpertise , 3 or ListExpertiseNames ,
+4 or ListRuleSet , 5 or ReplaceRuleSet , 6 or ReplaceRuleOfRuleSet ,
+---
+7 or DefineCondition , 8 or DefineActionList ,
+9 or UpdateCondition , 10 or UpdateActionList ,
+11 or RemoveCondition , 12 or RemoveActionList ,
+13 or ListConditionKeys , 14 or ListActionListKeys ,
+15 or SearchCondition , 16 or SearchActionList ,
+17 or ListAllConditions , 18 or ListAllActionLists ,
+19 or DefineExpertiseFromDB, 20 or ReplaceRuleOfExpertiseWithNewlyComposedRuleUsingDB
+21 or Quit or quit
+Please enter the number (or item-name) of your choice > Please give the name of the expertise > ( ( ( DivisibleBy
+      n
+      3
+    )
+    ( cond
+      ( ( not
+          ( TopSize?
+          )
+        )
+        ( UpgradeSize
+        )
+      )
+      ( ( not
+          ( TopPrice?
+          )
+        )
+        ( UpgradePrice
+        )
+      )
+      ( ( not
+          ( TopQuality?
+          )
+        )
+        ( UpgradeQuality
+        )
+      )
+    )
+    ( TransactionState
+    )
+  )
+  ( ( DivisibleBy
+      n
+      5
+    )
+    ( cond
+      ( ( not
+          ( BottomSize?
+          )
+        )
+        ( DowngradeSize
+        )
+      )
+      ( ( not
+          ( BottomPrice?
+          )
+        )
+        ( DowngradePrice
+        )
+      )
+      ( ( not
+          ( BottomQuality?
+          )
+        )
+        ( DowngradeQuality
+        )
+      )
+    )
+    ( TransactionState
+    )
+  )
+  ( else
+    ( if
+      ( not
+        ( TopPrice?
+        )
+      )
+      ( UpgradePrice
+      )
+    )
+    ( TransactionState
+    )
+  )
+)
+------------------ Available choices are ------------------
+1 or DefineExpertise , 2 or RemoveExpertise , 3 or ListExpertiseNames ,
+4 or ListRuleSet , 5 or ReplaceRuleSet , 6 or ReplaceRuleOfRuleSet ,
+---
+7 or DefineCondition , 8 or DefineActionList ,
+9 or UpdateCondition , 10 or UpdateActionList ,
+11 or RemoveCondition , 12 or RemoveActionList ,
+13 or ListConditionKeys , 14 or ListActionListKeys ,
+15 or SearchCondition , 16 or SearchActionList ,
+17 or ListAllConditions , 18 or ListAllActionLists ,
+19 or DefineExpertiseFromDB, 20 or ReplaceRuleOfExpertiseWithNewlyComposedRuleUsingDB
+21 or Quit or quit
+Please enter the number (or item-name) of your choice > Bye!
+
+> "quality : 3 size : 2 price : 3 ProductIndex : 5"
+
+> "quality : 3 size : 3 price : 3 ProductIndex : 6"
+
+> "quality : 3 size : 3 price : 4 ProductIndex : 7"
+
+> ------------------ Available choices are ------------------
+1 or DefineExpertise , 2 or RemoveExpertise , 3 or ListExpertiseNames ,
+4 or ListRuleSet , 5 or ReplaceRuleSet , 6 or ReplaceRuleOfRuleSet ,
+---
+7 or DefineCondition , 8 or DefineActionList ,
+9 or UpdateCondition , 10 or UpdateActionList ,
+11 or RemoveCondition , 12 or RemoveActionList ,
+13 or ListConditionKeys , 14 or ListActionListKeys ,
+15 or SearchCondition , 16 or SearchActionList ,
+17 or ListAllConditions , 18 or ListAllActionLists ,
+19 or DefineExpertiseFromDB, 20 or ReplaceRuleOfExpertiseWithNewlyComposedRuleUsingDB
+21 or Quit or quit
+Please enter the number (or item-name) of your choice > Key (at least 5 digits) associated with the to-be-defined-item > The condition to be added to the DB > Key (short-version long-version) : ( 3  3518792 )
+------------------ Available choices are ------------------
+1 or DefineExpertise , 2 or RemoveExpertise , 3 or ListExpertiseNames ,
+4 or ListRuleSet , 5 or ReplaceRuleSet , 6 or ReplaceRuleOfRuleSet ,
+---
+7 or DefineCondition , 8 or DefineActionList ,
+9 or UpdateCondition , 10 or UpdateActionList ,
+11 or RemoveCondition , 12 or RemoveActionList ,
+13 or ListConditionKeys , 14 or ListActionListKeys ,
+15 or SearchCondition , 16 or SearchActionList ,
+17 or ListAllConditions , 18 or ListAllActionLists ,
+19 or DefineExpertiseFromDB, 20 or ReplaceRuleOfExpertiseWithNewlyComposedRuleUsingDB
+21 or Quit or quit
+Please enter the number (or item-name) of your choice > Key (at least 5 digits) associated with the to-be-defined-item > The condition to be added to the DB > Key (short-version long-version) : ( 5  5478952 )
+------------------ Available choices are ------------------
+1 or DefineExpertise , 2 or RemoveExpertise , 3 or ListExpertiseNames ,
+4 or ListRuleSet , 5 or ReplaceRuleSet , 6 or ReplaceRuleOfRuleSet ,
+---
+7 or DefineCondition , 8 or DefineActionList ,
+9 or UpdateCondition , 10 or UpdateActionList ,
+11 or RemoveCondition , 12 or RemoveActionList ,
+13 or ListConditionKeys , 14 or ListActionListKeys ,
+15 or SearchCondition , 16 or SearchActionList ,
+17 or ListAllConditions , 18 or ListAllActionLists ,
+19 or DefineExpertiseFromDB, 20 or ReplaceRuleOfExpertiseWithNewlyComposedRuleUsingDB
+21 or Quit or quit
+Please enter the number (or item-name) of your choice > Key (at least 5 digits) associated with the to-be-defined-item > The condition to be added to the DB > Key (short-version long-version) : ( 9  9157342 )
+------------------ Available choices are ------------------
+1 or DefineExpertise , 2 or RemoveExpertise , 3 or ListExpertiseNames ,
+4 or ListRuleSet , 5 or ReplaceRuleSet , 6 or ReplaceRuleOfRuleSet ,
+---
+7 or DefineCondition , 8 or DefineActionList ,
+9 or UpdateCondition , 10 or UpdateActionList ,
+11 or RemoveCondition , 12 or RemoveActionList ,
+13 or ListConditionKeys , 14 or ListActionListKeys ,
+15 or SearchCondition , 16 or SearchActionList ,
+17 or ListAllConditions , 18 or ListAllActionLists ,
+19 or DefineExpertiseFromDB, 20 or ReplaceRuleOfExpertiseWithNewlyComposedRuleUsingDB
+21 or Quit or quit
+Please enter the number (or item-name) of your choice > Key (at least 5 digits) associated with the to-be-defined-item > The condition to be added to the DB > Key (short-version long-version) : ( 1  1749826 )
+------------------ Available choices are ------------------
+1 or DefineExpertise , 2 or RemoveExpertise , 3 or ListExpertiseNames ,
+4 or ListRuleSet , 5 or ReplaceRuleSet , 6 or ReplaceRuleOfRuleSet ,
+---
+7 or DefineCondition , 8 or DefineActionList ,
+9 or UpdateCondition , 10 or UpdateActionList ,
+11 or RemoveCondition , 12 or RemoveActionList ,
+13 or ListConditionKeys , 14 or ListActionListKeys ,
+15 or SearchCondition , 16 or SearchActionList ,
+17 or ListAllConditions , 18 or ListAllActionLists ,
+19 or DefineExpertiseFromDB, 20 or ReplaceRuleOfExpertiseWithNewlyComposedRuleUsingDB
+21 or Quit or quit
+Please enter the number (or item-name) of your choice > Key (at least 5 digits) associated with the to-be-defined-item > The condition to be added to the DB > Key (short-version long-version) : ( 4  4865217 )
+------------------ Available choices are ------------------
+1 or DefineExpertise , 2 or RemoveExpertise , 3 or ListExpertiseNames ,
+4 or ListRuleSet , 5 or ReplaceRuleSet , 6 or ReplaceRuleOfRuleSet ,
+---
+7 or DefineCondition , 8 or DefineActionList ,
+9 or UpdateCondition , 10 or UpdateActionList ,
+11 or RemoveCondition , 12 or RemoveActionList ,
+13 or ListConditionKeys , 14 or ListActionListKeys ,
+15 or SearchCondition , 16 or SearchActionList ,
+17 or ListAllConditions , 18 or ListAllActionLists ,
+19 or DefineExpertiseFromDB, 20 or ReplaceRuleOfExpertiseWithNewlyComposedRuleUsingDB
+21 or Quit or quit
+Please enter the number (or item-name) of your choice > ( 1  1749826 )
+( 3  3518792 )
+( 4  4865217 )
+( 5  5478952 )
+( 9  9157342 )
+( 94  473 )
+( 189  568 )
+( 282  661 )
+------------------ Available choices are ------------------
+1 or DefineExpertise , 2 or RemoveExpertise , 3 or ListExpertiseNames ,
+4 or ListRuleSet , 5 or ReplaceRuleSet , 6 or ReplaceRuleOfRuleSet ,
+---
+7 or DefineCondition , 8 or DefineActionList ,
+9 or UpdateCondition , 10 or UpdateActionList ,
+11 or RemoveCondition , 12 or RemoveActionList ,
+13 or ListConditionKeys , 14 or ListActionListKeys ,
+15 or SearchCondition , 16 or SearchActionList ,
+17 or ListAllConditions , 18 or ListAllActionLists ,
+19 or DefineExpertiseFromDB, 20 or ReplaceRuleOfExpertiseWithNewlyComposedRuleUsingDB
+21 or Quit or quit
+Please enter the number (or item-name) of your choice > Name of the to-be-defined-expertise > Define a new rule from Condition/Action-list in DB? (Y/N) > Key of the condition > Key of the action-list > Define a new rule from Condition/Action-list in DB? (Y/N) > Key of the condition > Key of the action-list > Define a new rule from Condition/Action-list in DB? (Y/N) > Key of the condition > SearchBST error : the key 362 (originally 362) is not on the BST.
+Key of the condition > Key of the action-list > ERROR (< with incorrect argument type) : n
+
+> ERROR (unbound symbol) : quit
+
+> 20
+
+> 30
+
+> ERROR (unbound symbol) : TryTrySee
+
+> 20
+
+> 30
+
+> ERROR (unbound symbol) : TryTrySee
+
+> 20
+
+> 30
+
+> ERROR (unbound symbol) : TryTrySee
+
+> 20
+
+> 30
+
+> ------------------ Available choices are ------------------
+1 or DefineExpertise , 2 or RemoveExpertise , 3 or ListExpertiseNames ,
+4 or ListRuleSet , 5 or ReplaceRuleSet , 6 or ReplaceRuleOfRuleSet ,
+---
+7 or DefineCondition , 8 or DefineActionList ,
+9 or UpdateCondition , 10 or UpdateActionList ,
+11 or RemoveCondition , 12 or RemoveActionList ,
+13 or ListConditionKeys , 14 or ListActionListKeys ,
+15 or SearchCondition , 16 or SearchActionList ,
+17 or ListAllConditions , 18 or ListAllActionLists ,
+19 or DefineExpertiseFromDB, 20 or ReplaceRuleOfExpertiseWithNewlyComposedRuleUsingDB
+21 or Quit or quit
+Please enter the number (or item-name) of your choice > Expertise-03
+Expertise-02
+Expertise-01
+ExampleExpertise
+------------------ Available choices are ------------------
+1 or DefineExpertise , 2 or RemoveExpertise , 3 or ListExpertiseNames ,
+4 or ListRuleSet , 5 or ReplaceRuleSet , 6 or ReplaceRuleOfRuleSet ,
+---
+7 or DefineCondition , 8 or DefineActionList ,
+9 or UpdateCondition , 10 or UpdateActionList ,
+11 or RemoveCondition , 12 or RemoveActionList ,
+13 or ListConditionKeys , 14 or ListActionListKeys ,
+15 or SearchCondition , 16 or SearchActionList ,
+17 or ListAllConditions , 18 or ListAllActionLists ,
+19 or DefineExpertiseFromDB, 20 or ReplaceRuleOfExpertiseWithNewlyComposedRuleUsingDB
+21 or Quit or quit
+Please enter the number (or item-name) of your choice > Please give the name of the expertise > "TryTrySee not found in expertise-DB"
+------------------ Available choices are ------------------
+1 or DefineExpertise , 2 or RemoveExpertise , 3 or ListExpertiseNames ,
+4 or ListRuleSet , 5 or ReplaceRuleSet , 6 or ReplaceRuleOfRuleSet ,
+---
+7 or DefineCondition , 8 or DefineActionList ,
+9 or UpdateCondition , 10 or UpdateActionList ,
+11 or RemoveCondition , 12 or RemoveActionList ,
+13 or ListConditionKeys , 14 or ListActionListKeys ,
+15 or SearchCondition , 16 or SearchActionList ,
+17 or ListAllConditions , 18 or ListAllActionLists ,
+19 or DefineExpertiseFromDB, 20 or ReplaceRuleOfExpertiseWithNewlyComposedRuleUsingDB
+21 or Quit or quit
+Please enter the number (or item-name) of your choice > Key (at least 5 digits) associated with the to-be-defined-item > The action-list to be added to the DB > Key (short-version long-version) : ( 4  49256587 )
+------------------ Available choices are ------------------
+1 or DefineExpertise , 2 or RemoveExpertise , 3 or ListExpertiseNames ,
+4 or ListRuleSet , 5 or ReplaceRuleSet , 6 or ReplaceRuleOfRuleSet ,
+---
+7 or DefineCondition , 8 or DefineActionList ,
+9 or UpdateCondition , 10 or UpdateActionList ,
+11 or RemoveCondition , 12 or RemoveActionList ,
+13 or ListConditionKeys , 14 or ListActionListKeys ,
+15 or SearchCondition , 16 or SearchActionList ,
+17 or ListAllConditions , 18 or ListAllActionLists ,
+19 or DefineExpertiseFromDB, 20 or ReplaceRuleOfExpertiseWithNewlyComposedRuleUsingDB
+21 or Quit or quit
+Please enter the number (or item-name) of your choice > Key (at least 5 digits) associated with the to-be-defined-item > The action-list to be added to the DB > Key (short-version long-version) : ( 245  398574 )
+------------------ Available choices are ------------------
+1 or DefineExpertise , 2 or RemoveExpertise , 3 or ListExpertiseNames ,
+4 or ListRuleSet , 5 or ReplaceRuleSet , 6 or ReplaceRuleOfRuleSet ,
+---
+7 or DefineCondition , 8 or DefineActionList ,
+9 or UpdateCondition , 10 or UpdateActionList ,
+11 or RemoveCondition , 12 or RemoveActionList ,
+13 or ListConditionKeys , 14 or ListActionListKeys ,
+15 or SearchCondition , 16 or SearchActionList ,
+17 or ListAllConditions , 18 or ListAllActionLists ,
+19 or DefineExpertiseFromDB, 20 or ReplaceRuleOfExpertiseWithNewlyComposedRuleUsingDB
+21 or Quit or quit
+Please enter the number (or item-name) of your choice > Key (at least 5 digits) associated with the to-be-defined-item > The action-list to be added to the DB > Key (short-version long-version) : ( 1  1124365 )
+------------------ Available choices are ------------------
+1 or DefineExpertise , 2 or RemoveExpertise , 3 or ListExpertiseNames ,
+4 or ListRuleSet , 5 or ReplaceRuleSet , 6 or ReplaceRuleOfRuleSet ,
+---
+7 or DefineCondition , 8 or DefineActionList ,
+9 or UpdateCondition , 10 or UpdateActionList ,
+11 or RemoveCondition , 12 or RemoveActionList ,
+13 or ListConditionKeys , 14 or ListActionListKeys ,
+15 or SearchCondition , 16 or SearchActionList ,
+17 or ListAllConditions , 18 or ListAllActionLists ,
+19 or DefineExpertiseFromDB, 20 or ReplaceRuleOfExpertiseWithNewlyComposedRuleUsingDB
+21 or Quit or quit
+Please enter the number (or item-name) of your choice > Key (at least 5 digits) associated with the to-be-defined-item > The action-list to be added to the DB > Key (short-version long-version) : ( 9  9258674 )
+------------------ Available choices are ------------------
+1 or DefineExpertise , 2 or RemoveExpertise , 3 or ListExpertiseNames ,
+4 or ListRuleSet , 5 or ReplaceRuleSet , 6 or ReplaceRuleOfRuleSet ,
+---
+7 or DefineCondition , 8 or DefineActionList ,
+9 or UpdateCondition , 10 or UpdateActionList ,
+11 or RemoveCondition , 12 or RemoveActionList ,
+13 or ListConditionKeys , 14 or ListActionListKeys ,
+15 or SearchCondition , 16 or SearchActionList ,
+17 or ListAllConditions , 18 or ListAllActionLists ,
+19 or DefineExpertiseFromDB, 20 or ReplaceRuleOfExpertiseWithNewlyComposedRuleUsingDB
+21 or Quit or quit
+Please enter the number (or item-name) of your choice > Key (at least 5 digits) associated with the to-be-defined-item > Sorry, this key is already in use. Please specify another one.
+Key (at least 5 digits) associated with the to-be-defined-item > ERROR (< with incorrect argument type) : ( ( let
+    ( ( %p
+        ( PriceTag
+          n
+        )
+      )
+    )
+    ( cond
+      ( ( and
+          ( <=
+            500000
+            %p
+          )
+          ( <=
+            %p
+            800000
+          )
+        )
+        #t
+      )
+      ( ( <
+          %p
+          500000
+        )
+        ( cond
+          ( ( not
+              ( TopSize?
+              )
+            )
+            ( UpgradeSize
+            )
+          )
+          ( ( not
+              ( TopPrice?
+              )
+            )
+            ( UpgradePrice
+            )
+          )
+          ( ( not
+              ( TopQuality?
+              )
+            )
+            ( UpgradeQuality
+            )
+          )
+        )
+      )
+      ( ( <
+          800000
+          %p
+        )
+        ( cond
+          ( ( not
+              ( BottomSize?
+              )
+            )
+            ( DowngradeSize
+            )
+          )
+          ( ( not
+              ( BottomPrice?
+              )
+            )
+            ( DowngradePrice
+            )
+          )
+          ( ( not
+              ( BottomQuality?
+              )
+            )
+            ( DowngradeQuality
+            )
+          )
+        )
+      )
+    )
+    ( TransactionState
+    )
+  )
+)
+
+> 8
+
+> 8416872
+
+> ERROR (unbound symbol) : n
+
+> 8
+
+> 65623565
+
+> 5545587
+
+> ERROR (unbound symbol) : n
+
+> 8
+
+> 2653485
+
+> ERROR (unbound symbol) : n
+
+> 14
+
+> 19
+
+> ERROR (unbound symbol) : OverSpent
+
+> ERROR (unbound symbol) : y
+
+> 156
+
+> 231
+
+> ERROR (unbound symbol) : y
+
+> 128
+
+> 245
+
+> ERROR (unbound symbol) : y
+
+> 323
+
+> 251
+
+> ERROR (unbound symbol) : y
+
+> 362
+
+> 83
+
+> ERROR (unbound symbol) : n
+
+> 19
+
+> ERROR (unbound symbol) : Exaggerated
+
+> ERROR (unbound symbol) : y
+
+> 373
+
+> 157
+
+> ERROR (unbound symbol) : y
+
+> 156
+
+> 40
+
+> ERROR (unbound symbol) : y
+
+> 128
+
+> 59
+
+> ERROR (unbound symbol) : y
+
+> 362
+
+> 106
+
+> ERROR (unbound symbol) : n
+
+> ERROR (unbound symbol) : quit
+
+> #t
+
+> ERROR (unbound symbol) : OverSpent
+
+> ERROR (unbound symbol) : OverSpent
+
+> ERROR (unbound symbol) : OverSpent
+
+> ERROR (unbound symbol) : OverSpent
+
+> ERROR (unbound symbol) : OverSpent
+
+> ERROR (unbound symbol) : OverSpent
+
+> ERROR (unbound symbol) : Exaggerated
+
+> ERROR (unbound symbol) : Exaggerated
+
+> ERROR (unbound symbol) : OverSpent
+
+> ERROR (unbound symbol) : OverSpent
+
+> ERROR (unbound symbol) : Exaggerated
+
+> ERROR (unbound symbol) : Exaggerated
+
+> ERROR (unbound symbol) : Exaggerated
+
+> ERROR (unbound symbol) : Exaggerated
+
+> ERROR (unbound symbol) : Exaggerated
+
+> ERROR (unbound symbol) : Exaggerated
+
+> ERROR (unbound symbol) : Exaggerated
+
+> ERROR (unbound symbol) : Exaggerated
+
+> ERROR (unbound symbol) : Exaggerated
+
+> ERROR (unbound symbol) : Exaggerated
+
+> ERROR (unbound symbol) : Exaggerated
+
+> ERROR (unbound symbol) : Exaggerated
+
+> ERROR (unbound symbol) : Exaggerated
+
+> ERROR (unbound symbol) : Exaggerated
+
+> ERROR (unbound symbol) : Exaggerated
+
+> ERROR (unbound symbol) : Exaggerated
+
+> ERROR (unbound symbol) : Exaggerated
+
+> ERROR (unbound symbol) : Exaggerated
+
+> ERROR (unbound symbol) : Exaggerated
+
+> ------------------ Available choices are ------------------
+1 or DefineExpertise , 2 or RemoveExpertise , 3 or ListExpertiseNames ,
+4 or ListRuleSet , 5 or ReplaceRuleSet , 6 or ReplaceRuleOfRuleSet ,
+---
+7 or DefineCondition , 8 or DefineActionList ,
+9 or UpdateCondition , 10 or UpdateActionList ,
+11 or RemoveCondition , 12 or RemoveActionList ,
+13 or ListConditionKeys , 14 or ListActionListKeys ,
+15 or SearchCondition , 16 or SearchActionList ,
+17 or ListAllConditions , 18 or ListAllActionLists ,
+19 or DefineExpertiseFromDB, 20 or ReplaceRuleOfExpertiseWithNewlyComposedRuleUsingDB
+21 or Quit or quit
+Please enter the number (or item-name) of your choice > Key of the condition to remove > ERROR (unbound parameter) : %key
+
+> 11
+
+> 189
+
+> 13
+
+> 12
+
+> 231
+
+> 12
+
+> 251
+
+> 12
+
+> 40
+
+> 14
+
+> 15
+
+> 9157342
+
+> 15
+
+> 5478952
+
+> 16
+
+> 78945
+
+> 16
+
+> 1124365
+
+> 16
+
+> 4545125
+
+> ERROR (unbound symbol) : quit
+
+> #t
+
+> ERROR (unbound symbol) : OverSpent
+
+> ERROR (unbound symbol) : OverSpent
+
+> ERROR (unbound symbol) : OverSpent
+
+> ERROR (unbound symbol) : OverSpent
+
+> ERROR (unbound symbol) : OverSpent
+
+> ERROR (unbound symbol) : OverSpent
+
+> ERROR (unbound symbol) : Exaggerated
+
+> ERROR (unbound symbol) : Exaggerated
+
+> ERROR (unbound symbol) : OverSpent
+
+> ERROR (unbound symbol) : OverSpent
+
+> ERROR (unbound symbol) : Exaggerated
+
+> ERROR (unbound symbol) : Exaggerated
+
+> ERROR (unbound symbol) : Exaggerated
+
+> ERROR (unbound symbol) : Exaggerated
+
+> ERROR (unbound symbol) : Exaggerated
+
+> ERROR (unbound symbol) : Exaggerated
+
+> ERROR (unbound symbol) : Exaggerated
+
+> ERROR (unbound symbol) : Exaggerated
+
+> ERROR (unbound symbol) : Exaggerated
+
+> ERROR (unbound symbol) : Exaggerated
+
+> ERROR (unbound symbol) : Exaggerated
+
+> ERROR (unbound symbol) : Exaggerated
+
+> ERROR (unbound symbol) : Exaggerated
+
+> ERROR (unbound symbol) : Exaggerated
+
+> ERROR (unbound symbol) : Exaggerated
+
+> ERROR (unbound symbol) : Exaggerated
+
+> ERROR (unbound symbol) : Exaggerated
+
+> ERROR (unbound symbol) : Exaggerated
+
+> ERROR (unbound symbol) : Exaggerated
+
+> #t
+
+> ERROR (unbound symbol) : Exaggerated
+
+> ERROR (unbound symbol) : Exaggerated
+
+> ERROR (unbound symbol) : Exaggerated
+
+> ERROR (unbound symbol) : Exaggerated
+
+> ERROR (unbound symbol) : OverSpent
+
+> ERROR (unbound symbol) : OverSpent
+
+> ERROR (unbound symbol) : OverSpent
+
+> ERROR (unbound symbol) : OverSpent
+
+> ERROR (unbound symbol) : OverSpent
+
+> ERROR (unbound symbol) : OverSpent
+
+> ERROR (unbound symbol) : OverSpent
+
+> ERROR (unbound symbol) : OverSpent
+
+> ERROR (unbound symbol) : OverSpent
+
+> ERROR (unbound symbol) : OverSpent
+
+> ++ defined
+
+> ------------------ Available choices are ------------------
+1 or DefineExpertise , 2 or RemoveExpertise , 3 or ListExpertiseNames ,
+4 or ListRuleSet , 5 or ReplaceRuleSet , 6 or ReplaceRuleOfRuleSet ,
+---
+7 or DefineCondition , 8 or DefineActionList ,
+9 or UpdateCondition , 10 or UpdateActionList ,
+11 or RemoveCondition , 12 or RemoveActionList ,
+13 or ListConditionKeys , 14 or ListActionListKeys ,
+15 or SearchCondition , 16 or SearchActionList ,
+17 or ListAllConditions , 18 or ListAllActionLists ,
+19 or DefineExpertiseFromDB, 20 or ReplaceRuleOfExpertiseWithNewlyComposedRuleUsingDB
+21 or Quit or quit
+Please enter the number (or item-name) of your choice > Key (at least 5 digits) associated with the to-be-defined-item > The action-list to be added to the DB > Key (short-version long-version) : ( 7  7457747 )
+------------------ Available choices are ------------------
+1 or DefineExpertise , 2 or RemoveExpertise , 3 or ListExpertiseNames ,
+4 or ListRuleSet , 5 or ReplaceRuleSet , 6 or ReplaceRuleOfRuleSet ,
+---
+7 or DefineCondition , 8 or DefineActionList ,
+9 or UpdateCondition , 10 or UpdateActionList ,
+11 or RemoveCondition , 12 or RemoveActionList ,
+13 or ListConditionKeys , 14 or ListActionListKeys ,
+15 or SearchCondition , 16 or SearchActionList ,
+17 or ListAllConditions , 18 or ListAllActionLists ,
+19 or DefineExpertiseFromDB, 20 or ReplaceRuleOfExpertiseWithNewlyComposedRuleUsingDB
+21 or Quit or quit
+Please enter the number (or item-name) of your choice > Name of the expertise you want to replace its rule > Ordering of the rule that is to be replaced - Please enter a number (e.g., 3) > We now need to compose a new rule using existing DB entries.
+Key of the condition > SearchBST error : the key 362 (originally 362) is not on the BST.
+Key of the condition > SearchBST error : the key 164 (originally 164) is not on the BST.
+Key of the condition > ERROR (< with incorrect argument type) : quit
+
+> #t
+
+> ERROR (unbound symbol) : OverSpent
+
+> ERROR (unbound symbol) : OverSpent
+
+> ERROR (unbound symbol) : OverSpent
+
+> ERROR (unbound symbol) : OverSpent
+
+> ERROR (unbound symbol) : OverSpent
+
+> ERROR (unbound symbol) : OverSpent
+
+> ERROR (unbound symbol) : Exaggerated
+
+> ERROR (unbound symbol) : Exaggerated
+
+> ERROR (unbound symbol) : OverSpent
+
+> ERROR (unbound symbol) : OverSpent
+
+> ERROR (unbound symbol) : OverSpent
+
+> ERROR (unbound symbol) : OverSpent
+
+> ERROR (unbound symbol) : OverSpent
+
+> ERROR (unbound symbol) : OverSpent
+
+> ERROR (unbound symbol) : OverSpent
+
+> ERROR (unbound symbol) : OverSpent
+
+> ERROR (unbound symbol) : OverSpent
+
+> ERROR (unbound symbol) : OverSpent
+
+> ERROR (unbound symbol) : OverSpent
+
+> ERROR (unbound symbol) : OverSpent
+
+> ERROR (unbound symbol) : Exaggerated
+
+> ERROR (unbound symbol) : Exaggerated
+
+> ERROR (unbound symbol) : Exaggerated
+
+> ERROR (unbound symbol) : Exaggerated
+
+> ERROR (unbound symbol) : Exaggerated
+
+> ERROR (unbound symbol) : Exaggerated
+
+> ERROR (unbound symbol) : Exaggerated
+
+> ERROR (unbound symbol) : Exaggerated
+
+> ERROR (unbound symbol) : Exaggerated
+
+> ERROR (unbound symbol) : OverSpent
+
+> ERROR (unbound symbol) : OverSpent
+
+> ERROR (unbound symbol) : OverSpent
+
+> ERROR (unbound symbol) : OverSpent
+
+> ERROR (unbound symbol) : OverSpent
+
+> ERROR (unbound symbol) : OverSpent
+
+> ERROR (unbound symbol) : OverSpent
+
+> ERROR (unbound symbol) : OverSpent
+
+> ERROR (unbound symbol) : OverSpent
+
+> ERROR (unbound symbol) : OverSpent
+
+> ERROR (unbound symbol) : OverSpent
+
+> ERROR (unbound symbol) : OverSpent
+
+> #t
+
+> ERROR (unbound symbol) : Exaggerated
+
+> ERROR (unbound symbol) : Exaggerated
+
+> ERROR (unbound symbol) : Exaggerated
+
+> ERROR (unbound symbol) : Exaggerated
+
+> ERROR (unbound symbol) : OverSpent
+
+> ERROR (unbound symbol) : OverSpent
+
+> ERROR (unbound symbol) : OverSpent
+
+> ERROR (unbound symbol) : OverSpent
+
+> ERROR (unbound symbol) : OverSpent
+
+> ERROR (unbound symbol) : OverSpent
+
+> ERROR (unbound symbol) : OverSpent
+
+> ERROR (unbound symbol) : OverSpent
+
+> ERROR (unbound symbol) : OverSpent
+
+> 
+Thanks for using OurScheme!

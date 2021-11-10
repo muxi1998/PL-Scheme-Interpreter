@@ -1,0 +1,167 @@
+1
+; was : Proj1-6 test 3
+";;;;;;;;;;;;;;;;;;;;;;;;;;;; Test 2 : Simple, with error"
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Simple, with error, with comment, with tricks
+   
+   v   
+           ; comment on the first line
+           ; comment on the second line  
+   Hello   ; comment on the third line   
+
+      there    !    
+    
+
+    @$%--3#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!.%%%%^^^&    ; well? 
+; How about this?
+;a string on the next line ; a string here ;"Flying with an eagle..."
+      "   ( 1 2.54 3 . -4. 5 6 Hi there . 7 . nil ) "
+; How about this?
+;a string on the next line ; a string here ;"Flying with an eagle..."
+      "   ( 1 2.54 3 . -4. 5 6 Hi there . 7 . nil () ) 
+
+  This     is       ICE !       ; and some comment here  
+#t t nil () #f at#fgh        ; and more comment
+325
+-   325.
+      
+
+    +3.25     .375     3a5b
+     
+
+
+        exit    
+    #  f      
+    #g .
+    ; bla bla bla bla bla     
+  #t   
+   
+( 525
+   .
+)
+    20 . 30
+
+      (        
+      )    
+      
+      #f      
+
+     ()   )
+";;;;;;;;;;;;;;;;;;;;;;;;;;;; Test 4 : Basic, with error"
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Basic, with error, with comment, with tricks
+    !@  .  ( a . b )
+
+    !@  .
+( Four score and
+    seven years ago.
+    "Our fathers brought forth, 
+   on this continent, "
+; ';' starts a comment until the end of line.
+  ; A comment is something that ReadSExp() should skip when 
+  ; reading in an S-expression.
+  
+(1 2 3) )
+(1 
+   . 
+   (- 2
+    . 
+    (3.875 . 4.)
+   )
+  )  -7.125
+(-1.5.("2.25".(^&%$*+-=.nil)   
+        )
+  )    
+(-1.5 .("2.25".(^&%$*+-=.nil)   
+        )
+  )    
+(-1.5   
+   .   
+   ("2.25"   
+    .  ; comment all over   " 
+    (^&%$*+-=  
+ 
+     .#f  
+
+    )
+   ) 
+  
+      ; some comment there
+  )     (10
+ 
+   
+   12.().625)   ; same as : ( 10 12. () .625 )
+(10 ()."125."   ; the ')' and the double-quote "separate" '.'
+  )                
+( nil.nil )
+( ().() )  .  (3)
+( 1 2.5 .
+
+) )
+
+( 1 
+  "Hi 2";"Hi 3"
+  2.a.b . c)
+(1                         
+   2.25.5)
+(1                         
+   2.25.5.a.5)
+(12.5.(4.5)) ; you should print 3 digits for the decimal part
+( 3...25 )  ; you can write a number as '3.', which means 3.0
+( abc." defg. ".5 )    ; '.' is not considered a separator
+(Hi there ! 
+   How#are you ? . (Is it OK?))
+(Hi 
+   there   !   
+  ) (How#are you)
+' (().(()))
+";;;;;;;;;;;;;;;;;;;;;;;;;;;; Test 6 : Medium, with error"
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Medium, with error, with comment, with tricks
+(12.5)(12(. 3))
+(t.nil.(1 2 3))
+'(1 2 3 ")") )
+'(1 2 3 ")"())
+'(1 2 3 ")".())
+ ( t
+   ()
+   .
+   ( ( 1.250 
+       0.375
+     )
+     .
+     ("#f))")
+   )
+ )
+(t().((1.25 .375)."#f))"))
+((1 2 3)
+   (4 . 5) 
+   . 
+   (6 (7 . nil) (8 . 9)
+   .
+   10
+   )
+  )
+((1 2 3)
+   (4 . 5) 
+   (6(7.(#f.#f).5)(".5"."nil").()
+   )
+   .
+   #f
+  )
+((1 2 3)
+   (4 . 5) 
+   (6(7.(#f.#f).5).(".5"."nil").()
+    
+         '     (  
+ nil-nil=nil .nil+nil<>nil . nil   
+    )  
+''( !
+      .
+      ( %^&
+        .
+        abc
+      )
+    )
+       '(Hi.there(there.(     
+                          )))
+       '(Hi.there(there .(()what()
+                           )))
+'(1 2 3 "To Taiwan". nil)(.25#f)

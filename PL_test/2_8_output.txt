@@ -1,0 +1,320 @@
+Welcome to OurScheme!
+
+> ERROR (unbound symbol) : ab
+
+> a defined
+
+> "=============== Problem 8 viewable case ================="
+
+> environment cleaned
+
+> ERROR (unbound symbol) : a
+
+> ERROR (level of CLEAN-ENVIRONMENT)
+
+> 3
+
+> -0.125
+
+> ERROR (no closing quote) : END-OF-LINE encountered at Line 1 Column 9
+
+> ( 3
+  .
+  4
+)
+
+> ( 3
+)
+
+> ( 30
+)
+
+> ( 30
+)
+
+> nil
+
+> ( nil
+)
+
+> ( nil
+)
+
+> ( nil
+)
+
+> ERROR (unbound symbol) : CONS
+
+> ERROR (unbound symbol) : hello
+
+> ERROR (unbound symbol) : hello
+
+> ERROR (unbound symbol) : CONS
+
+> ( 1
+  2
+  3
+)
+
+> nil
+
+> ( nil
+  2
+  3
+  nil
+)
+
+> ( 1
+  2
+  3
+)
+
+> ERROR (incorrect number of arguments) : cons
+
+> ( nil
+  2
+  3
+  nil
+)
+
+> ERROR (incorrect number of arguments) : cons
+
+> ERROR (incorrect number of arguments) : cons
+
+> ERROR (level of CLEAN-ENVIRONMENT)
+
+> ERROR (incorrect number of arguments) : cons
+
+> ERROR (attempt to apply non-function) : 3
+
+> ( 3
+  4
+  5
+)
+
+> 3
+
+> ERROR (unexpected token) : atom or '(' expected when token at Line 1 Column 2 is >>.<<
+
+> ( 3
+  ( 4
+    5
+  )
+)
+
+> ERROR (attempt to apply non-function) : 4321
+
+> ( 3
+  4321
+  5
+)
+
+> ERROR (attempt to apply non-function) : 4
+
+> ( 3
+  ( 4
+    5
+  )
+)
+
+> ( 3
+  ( 4
+    5
+  )
+  6
+  ( 7
+    8
+  )
+)
+
+> ERROR (unbound symbol) : abc
+
+> a defined
+
+> ERROR (level of DEFINE)
+
+> ERROR (DEFINE format) : ( define
+  5
+  10
+)
+
+> ERROR (DEFINE format) : ( define
+  cons
+  5
+)
+
+> ERROR (DEFINE format) : ( define
+  define
+  5
+)
+
+> ERROR (DEFINE format) : ( define
+)
+
+> ERROR (DEFINE format) : ( define
+  a
+)
+
+> ERROR (DEFINE format) : ( define
+  a
+  b
+  c
+)
+
+> ERROR (level of DEFINE)
+
+> ERROR (incorrect number of arguments) : cons
+
+> ERROR (level of CLEAN-ENVIRONMENT)
+
+> bcd defined
+
+> ( 3
+  .
+  5
+)
+
+> 5
+
+> x defined
+
+> ( ( 3
+    4
+  )
+  5
+)
+
+> hello defined
+
+> ( 1
+  2
+  .
+  3
+)
+
+> ( ( 1
+    2
+    .
+    3
+  )
+  .
+  4
+)
+
+> ( ( 1
+    2
+    .
+    3
+  )
+  4
+)
+
+> hello defined
+
+> ( ""CYCU ICE""
+  ( ""CYCU ICE""
+    .
+    ""CYCU ICE""
+  )
+)
+
+> ERROR (non-list) : ( list
+  hello
+  ( cons
+    hello
+    hello
+  )
+  .
+  hello
+)
+
+> ( ""CYCU ICE""
+  400
+  ( 5000
+    600
+  )
+  70
+)
+
+> there defined
+
+> ( ""CYCU ICE""
+  .
+  "Number One!"
+)
+
+> hello defined
+
+> ERROR (DEFINE format) : ( define
+  ( quote
+    hello
+  )
+  ( cons
+    ( quote
+      ( 1
+        2
+        3
+      )
+    )
+    hello
+  )
+)
+
+> ( ( ( 1
+      2
+      3
+    )
+    .
+    ""CYCU ICE""
+  )
+  4
+  hello
+)
+
+> a defined
+
+> 3
+
+> ( 3
+  4
+)
+
+> ( 3
+  4
+)
+
+> ( 3
+  4
+)
+
+> 3
+
+> ERROR (car with incorrect argument type) : 3
+
+> ERROR (car with incorrect argument type) : 345
+
+> ERROR (unbound symbol) : WarAndPeace!
+
+> ERROR (car with incorrect argument type) : WarAndPeace!
+
+> WarAndPeace!
+
+> ERROR (cdr with incorrect argument type) : "(War And Peace!)"
+
+> ( 5
+)
+
+> ( "Happy New Year!"
+  .
+  6
+)
+
+> "Merry Christmas!"
+
+> ( 4
+)
+
+> ERROR (incorrect number of arguments) : exit
+
+> ERROR (no more input) : END-OF-FILE encountered
+Thanks for using OurScheme!

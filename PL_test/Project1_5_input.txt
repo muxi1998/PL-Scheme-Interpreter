@@ -1,0 +1,174 @@
+1
+; was : Proj1-5 test 3
+";;;;;;;;;;;;;;;;;;;;;;;;;;;; Test 1 : Simple, no error"
+v
+Hello
+there!
+@$%--3
+3.25a
+a.b
+-.
+#t
+t
+#tt
+nil
+NIL
+()
+#f
+#fa
+exit
+"Hi"
+"  (1 . 2   . 3)  "
+"   ( 1 2 3 . 4 5 6 . 7 . nil ) "
+"What's up?"
+"There is an ENTER HERE>>\nSee?!"
+"Use '\"' to start and close a string."
+"OurScheme allows the use of '\\n', '\\t' and  '\\\"' in a string."
+"Please enter YES\NO below this line >\n" 
+"You need to handle >>\\<<"      
+"You also need to handle >>\"<<"
+325
+-325
+3.25
+-3.25
++3.25
+325.
++325.
+-325.
+.375
++.3751
+-.3751
+-3.25
+-325.
+-.375
+-.12499
+-.12500
++.31499
++5
++-3.25
+exit
+";;;;;;;;;;;;;;;;;;;;;;;;;;;; Test 3 : Basic, no error"
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Basic, no error, with comment
+(1 . (2 . (3 . 4)))
+(1 . (2 . (3 . ())))
+(1 . (2 3 4))
+(1 2 3 . 4)
+(1 2 3 . nil)
+(1 (2 . 3) . (4))
+(-1.5 .("2.25".(^&%$*+-= . nil)))    
+(-1.5   
+   .   
+   ("2.25"   
+    .  
+    (^&%$*+-=   
+ 
+     .   
+     ()  
+
+    )
+   ) 
+   ; some comment here   
+      
+  )   more comments here  
+(-1.5   
+   .   
+   ("2.25"   
+    .  ; comment all over   " 
+    (^&%$*+-=   
+ 
+     .   
+     #f  
+
+    )
+   ) 
+  
+      ; some comment there
+  )     
+(10 
+   
+   12.())   ; same as : ( 10 12. () )
+(10 ().125)   ; same as : ( 10 () .125 )
+( 1 2.5
+.
+())
+
+( 1 2.a . a)
+(1                         2.25.5 .(t))
+    
+         (  
+ nil#f  
+ 
+       )  
+    
+         (  
+ nil  
+       .
+    nil       )  
+    
+(12.5       .(4 . 5)) ; you should print 3 digits for the decimal part
+( 3 . 25 )
+( 3. 25 )  ; you can write a number as '3.', which means 3.0
+( 3 .25 )  ; you can also write a number as '.3', which means 0.3
+( 3.25 )
+( abc." defg " )    ; '.' can be used as part of a symbol
+(Hi there ! How are you ?)
+(Hi there!"How are you?")
+(Hi there) (How are you)
+(Hi
+           .
+           (there  .(     ; note that there may be no space between
+                          ; '.' and '('
+           How is it going?))
+           )
+(-110 2.125
+   -3) (4"The sun is shining on this land."
+     23;"hi"
+
+        .5 . 7.)   
+";;;;;;;;;;;;;;;;;;;;;;;;;;;; Test 5 : Medium, no error"
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Medium, no error, with comment
+(1 . (2 . (3 . 4));)
+) (1 . (2 . (3 . ())
+   ))
+(1 . (2 3 . (4
+)))
+(1 2 3 . 4)
+(1 2 3 . nil)
+(1 (2 . (3)) . (4))
+(t () . (1 2 3 . #f))
+((1 2 3)
+   (4 . 5) 
+   . 
+   (6 (7 . nil) 
+      (8 . 9)
+   )
+  ) ((1 2 3)
+   (4 . 5) 
+   . 
+   (6 (7.#f) ((8.5)
+   )
+  )) (1 2 3) (1)
+    
+  (1.(2))';(1;2"3")      
+    (  
+ nil  
+       .
+    nil       
+    )  
+( !;)
+    .
+    ( %^&
+      .
+      abc
+    )
+  )
+       '(Hi
+           .
+           (there.(     ; '(', though a token, is also a separater
+                        ; ; ; ; ;
+                    How is it going?)
+           )
+          )
+'(1 2 3 "To Taiwan. It's fine.").nil (.25
+#f
+)

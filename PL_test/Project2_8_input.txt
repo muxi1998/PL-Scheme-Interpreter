@@ -1,0 +1,148 @@
+1
+; =============== Problem 8 可見數據 ====================
+ab
+(define a "=============== Problem 8 viewable case =================")
+a
+
+(clean-environment)
+
+a
+(cons (clean-environment) a)
+
+; when the being evaluated S-expr is an atom, the result is that atom
+; (in our standard print-form)
+
++3 -.12548 "Hi\n\"
+
+; when a function is being evaluated, the parameters of this function
+; are evaluated BEFORE this function is "applied" 
+; to the evaluated results (of the parameters)
+
+; 1. A list (or rather, a dotted pair) is CONSTRUCTED.
+
+(cons 3 4)     ; an operation on two objects
+(cons 3
+        nil
+  )            ; '(3 . nil)' = '(3)'
+(cons 30
+        ()
+  )            ; same thing
+(cons 30
+        #f
+  )            ; same thing
+()
+(cons () nil)(cons #f #f)(cons 'nil '())
+(CONS 3 4)      ; Scheme distinquishs between upper and lower cases
+(cons hello 4)
+hello
+(CONS hello there)
+(list 1 2 3)(list)(list nil 2 3 #f)
+(list 1 2 3)(cons)(list nil 2 3 #f)
+(cons 1 2 3 ; Number of arguments should always be checked before
+              ; the evaluation of an S-expression ;
+  )           ; Once such an error is detected, no evaluation is performed ;
+(cons hello there! How are you?)
+(cons (clean-environment) ())
+(cons (clean-environment))
+
+; 2. quote - a way to "by pass" the default interpretation of an S-exp
+
+(3 4 5)
+'(3 4 5)'3 . ()
+(quote (3 (4 5)))
+(cons 3 
+        (4321 5))
+(cons 3 '(4321 5))
+(list 3 (4 5))
+(list 3 '(4 5))
+(list 3 
+        '(4 5) 
+        6 
+        '(7 8))
+        
+; 3. To give a (symbolic) name to an object
+
+; Meaning of DEFINE revisited ("令")
+
+; Basically, DEFINE sets up a (temporary) binding between a symbol 
+; and an S-expression
+
+; DEFINE sets up the binding between a name and an internal data structure
+
+abc
+(define a 5)   ; "令a為5"; 讓我們把"那個東西"又稱為'a'
+(define b (define a 5))  ; 'define' must appear at the toplevel
+(define 5 10)            ; first argument of 'define' must be a symbol
+(define cons 5          ; first argument of 'define' cannot be the name 
+)                       ; of a primitive
+(define define 5)
+(define)
+(define a)
+(define a b c)
+(cons (define a 5) ())
+(cons (define a 5))
+(cons (clean-environment) (define a 5))
+
+(define bcd (cons 3 5))
+bcd             ; Is 'bcd' a name of some thing?
+a             ; Is 'a' a name of some thing?
+(define x '((3 4) 5))   ; 讓我們把"那個東西"又稱為'x'
+x              ; Is 'x' a name of some thing?
+
+; Combining (1), (2) and (3)
+
+(define hello '(1 2 . 3))
+hello
+(cons hello 
+        4
+  )       
+(cons hello 
+        '(4)
+  )       
+(define hello "\"CYCU ICE\"" . nil)
+(list hello (cons hello hello))
+(list hello (cons hello hello) . hello)
+(cons hello 
+      '(400 (5000 600) 70)
+)       
+(define there "Number One!")
+(cons hello there)
+(define hello (cons '(1 2 . (3)) hello)
+)
+(define 'hello (cons '(1 2 . (3)) hello)
+)
+( list hello
+       4
+       'hello
+)
+  
+; Whenever a function is called, its parameters are evaluated BEFORE
+; the function is "applied" to the evaluated results of the parameters ;  
+; However, this requires that (the evaluated result of) the first 
+; component of the being-evaluated list must be bound to a function ;
+; if (the evaluated result of) the first component of the being-evaluated list
+; is not bound to a function in the first place, the evaluation process 
+; stops, and an appropriate error message is issued.
+
+(define a '(3 4))
+
+; 4. Different parts of a list (or a dotted pair) can be 
+;    individually accessed
+
+(car '(3 4))    ; the "left part" of a dotted pair
+(car '((3 4) 5)  )
+(car '((3 4) 5 . 6)  )
+(car '((3 4) . 5)  )
+(car a)
+(car (car a))
+(car 345)
+(car WarAndPeace!)
+(car 'WarAndPeace!)
+(car '(WarAndPeace!))
+(cdr "(War And Peace!)")
+(cdr '((3 4) 5)  )  ; the "right part" of a dotted pair
+(cdr '((3 4) "Happy New Year!" . 6)  )
+(cdr '((3 4) . "Merry Christmas!")  )
+(cdr a)
+
+(exit 0)

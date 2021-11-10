@@ -1,0 +1,23 @@
+1
+(define a "=============== Problem 6 viewable case =================")
+a
+
+ ; define + lambda (用para.做為(initialized)"local para") - basic - incl.: COND IF BEGIN AND OR
+
+(clean-environment) ; first round ; no error
+
+(define x1 3)(define x2 4)(define x3 5)
+(define (Fcond x4 x1) (cond ((> x4 x1) (+ x4 x1)) ((< x4 x1)(* x4 x1))(else (- x4 x1))))
+(Fcond x1 x2)
+(Fcond x2 x3)
+(Fcond x1 x1)
+(define (Fif x1 x4 x3) (if (>= x2 x3) (+ x1 x3) (- x3 x4)))
+(Fif 30 40 50)
+(Fif x1 x2 x3)
+(Fif x3 x2 x1)
+(Fif x2 x2 80)
+        "
+
+  "
+
+( exit 
